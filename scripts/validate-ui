@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+project_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+cd "$project_root"
+
+: "${PF07_BASE_URL:?PF07_BASE_URL is required}"
+
+npm run validate:ui

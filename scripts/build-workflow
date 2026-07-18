@@ -1,0 +1,414 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import json
+from pathlib import Path
+import sys
+
+
+ROOT = Path(__file__).resolve().parent.parent
+TARGET = ROOT / "workflow/oddroom-orderops-vsl.json"
+CREDENTIAL = {"httpBearerAuth": {"id": "PF07HubSpotRuntime1", "name": "PF07 HubSpot Runtime"}}
+SLACK_CREDENTIAL = {"httpHeaderAuth": {"id": "PF07SlackRuntime1", "name": "PF07 Slack Runtime"}}
+
+
+def code(node_id: str, name: str, source: str, x: int, y: int = -80) -> dict:
+    return {
+        "parameters": {"mode": "runOnceForAllItems", "language": "javaScript", "jsCode": source.strip()},
+        "id": node_id,
+        "name": name,
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [x, y],
+    }
+
+
+def branch(node_id: str, name: str, field: str, x: int, y: int = -80) -> dict:
+    return {
+        "parameters": {
+            "conditions": {
+                "boolean": [{"value1": f"={{{{ $json.{field} }}}}", "operation": "equal", "value2": True}]
+            }
+        },
+        "id": node_id,
+        "name": name,
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 1,
+        "position": [x, y],
+    }
+
+
+def request(
+    node_id: str,
+    name: str,
+    method: str,
+    url: str,
+    x: int,
+    body: str | None = None,
+    y: int = -80,
+    auth_type: str = "httpBearerAuth",
+    credential: dict | None = None,
+    continue_on_error: bool = False,
+) -> dict:
+    parameters: dict[str, object] = {
+        "method": method,
+        "url": url,
+        "authentication": "genericCredentialType",
+        "genericAuthType": auth_type,
+        "options": {
+            "response": {
+                "response": {"fullResponse": True, "neverError": True, "responseFormat": "json"}
+            },
+            "timeout": 120000,
+        },
+    }
+    if body is not None:
+        parameters.update({"sendBody": True, "contentType": "json", "specifyBody": "json", "jsonBody": body})
+    node = {
+        "parameters": parameters,
+        "id": node_id,
+        "name": name,
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.4,
+        "position": [x, y],
+        "credentials": credential or CREDENTIAL,
+    }
+    if continue_on_error:
+        node["onError"] = "continueRegularOutput"
+    return node
+
+
+VERIFY = r"""
+const crypto = require('crypto');
+const item = $input.first();
+const sourceHeaders = item.json.headers ?? {};
+const headers = {};
+for (const [key, value] of Object.entries(sourceHeaders)) headers[String(key).toLowerCase()] = Array.isArray(value) ? String(value[0] ?? '') : String(value ?? '');
+const rawBase64 = item.binary?.data?.data;
+const raw = typeof rawBase64 === 'string' ? Buffer.from(rawBase64, 'base64') : Buffer.alloc(0);
+const reject = (errorCode, statusCode) => [{ json: { authorized: false, status_code: statusCode, error: { error_code: errorCode } } }];
+if (raw.length > 262144) return reject('PAYLOAD_TOO_LARGE', 413);
+const eventKey = headers['x-oddroom-event-key'] ?? '';
+const timestampText = headers['x-oddroom-timestamp'] ?? '';
+const phase = headers['x-oddroom-resume-phase'] ?? '';
+const supplied = headers['x-oddroom-signature'] ?? '';
+const eventTypes = {
+  ORDER_CREATED: { rank: 10, source: 'date_created' },
+  PAYMENT_CONFIRMED: { rank: 20, source: 'date_paid' },
+  ORDER_CANCELLED: { rank: 30, source: '_oddroom_orderops_cancelled_at_utc' },
+  ORDER_REFUNDED: { rank: 40, source: 'full_refund_completion' },
+};
+if (!/^v1:[A-Za-z0-9-]{1,64}:[1-9][0-9]{0,19}:(ORDER_CREATED|PAYMENT_CONFIRMED|ORDER_CANCELLED|ORDER_REFUNDED)$/.test(eventKey)) return reject('SIGNATURE_INVALID', 401);
+if (!/^[1-9][0-9]{0,10}$/.test(timestampText) || !['created','deal_resolved','contact_upserted','deal_upserted','associated','slack_pending'].includes(phase)) return reject('SIGNATURE_INVALID', 401);
+if (!/^v1=[0-9a-f]{64}$/.test(supplied)) return reject('SIGNATURE_INVALID', 401);
+const secret = String($env.ODDROOM_WEBHOOK_HMAC_KEY ?? '');
+if (secret.length < 16) throw new Error('HMAC credential alias is unavailable');
+const base = Buffer.concat([Buffer.from(`${timestampText}.${eventKey}.${phase}.`, 'utf8'), raw]);
+const expected = 'v1=' + crypto.createHmac('sha256', secret).update(base).digest('hex');
+const providedBytes = Buffer.from(supplied, 'utf8');
+const expectedBytes = Buffer.from(expected, 'utf8');
+if (providedBytes.length !== expectedBytes.length || !crypto.timingSafeEqual(providedBytes, expectedBytes)) return reject('SIGNATURE_INVALID', 401);
+const timestamp = Number(timestampText);
+if (!Number.isSafeInteger(timestamp) || Math.abs(Math.floor(Date.now() / 1000) - timestamp) > 300) return reject('TIMESTAMP_EXPIRED', 401);
+let payload;
+try { payload = JSON.parse(raw.toString('utf8')); } catch { return reject('PAYLOAD_INVALID', 400); }
+const order = payload?.order;
+const eventRule = eventTypes[payload?.event_type];
+const money = /^(?:0|[1-9][0-9]{0,17})\.[0-9]{2}$/;
+const bounded = (value, max) => typeof value === 'string' && value.length >= 1 && value.length <= max;
+const validItem = (value) => value && Number.isSafeInteger(value.item_id) && value.item_id >= 0 && Number.isSafeInteger(value.product_id) && value.product_id >= 0 && Number.isSafeInteger(value.variation_id) && value.variation_id >= 0 && bounded(value.sku, 255) && bounded(value.name, 255) && Number.isSafeInteger(value.quantity) && value.quantity >= 1 && value.quantity <= 1000000 && money.test(value.line_total ?? '');
+const validCoupon = (value) => bounded(value, 255);
+const valid = payload?.schema_version === '1' && payload?.event_key === eventKey && bounded(payload?.shop_instance_id, 64) && typeof payload?.run_id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(payload.run_id) && eventRule && payload?.state_rank === eventRule.rank && typeof payload?.occurred_at_utc === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(payload.occurred_at_utc) && payload?.occurred_at_source === eventRule.source && order && Number.isSafeInteger(order.id) && order.id > 0 && bounded(order.number, 255) && /^[A-Z]{3}$/.test(order.currency ?? '') && money.test(order.total ?? '') && order.customer && bounded(order.customer.email, 254) && order.customer.email === order.customer.email.toLowerCase() && /^[^@\s]+@example\.com$/.test(order.customer.email) && bounded(order.customer.first_name, 255) && bounded(order.customer.last_name, 255) && Array.isArray(order.items) && order.items.length >= 1 && order.items.length <= 100 && order.items.every(validItem) && Array.isArray(order.coupon_codes) && order.coupon_codes.length <= 50 && order.coupon_codes.every(validCoupon);
+if (!valid) return reject(payload?.schema_version === '1' ? 'PAYLOAD_INVALID' : 'SCHEMA_UNSUPPORTED', 400);
+const expectedKey = `v1:${payload.shop_instance_id}:${order.id}:${payload.event_type}`;
+if (eventKey !== expectedKey) return reject('PAYLOAD_INVALID', 400);
+const orderKey = `${payload.shop_instance_id}:${order.id}`;
+return [{ json: { authorized: true, event_key: eventKey, resume_phase: phase, payload, order_key: orderKey, deal_read_body: { idProperty: 'oddroom_wc_order_key', properties: ['oddroom_wc_order_key','oddroom_order_state','oddroom_order_state_rank','oddroom_last_event_at','oddroom_last_event_key','dealname','pipeline','dealstage'], inputs: [{ id: orderKey }] } } }];
+"""
+
+
+RESOLVE = r"""
+const context = $('Verify HMAC Then Decode').first().json;
+const response = $input.first().json;
+const statusCode = Number(response.statusCode ?? 200);
+const body = response.body ?? response;
+const initialSlack = context.payload.event_type === 'ORDER_CREATED' ? 'not_required' : 'pending';
+const envelope = (result, phase, contactId, dealId, slackStatus, retryable, errorCode, errorMessage) => ({ schema_version: '1', event_key: context.event_key, result, processing_phase: phase, remote_contact_id: contactId ?? null, remote_deal_id: dealId ?? null, slack_status: slackStatus, slack_message_ts: null, retryable, retry_after_seconds: null, error_code: errorCode ?? null, error_message: errorMessage ?? null });
+const stop = (responseCode, value) => [{ json: { continue_crm: false, response_code: responseCode, envelope: value } }];
+if (statusCode === 401 || statusCode === 403) return stop(422, envelope('terminal_error', context.resume_phase, null, null, initialSlack, false, 'HUBSPOT_AUTH', 'HubSpot authorization was rejected.'));
+if (statusCode < 200 || statusCode >= 300) return stop(503, envelope('retryable_error', context.resume_phase, null, null, initialSlack, true, 'HUBSPOT_RETRYABLE', 'HubSpot Deal resolution was unavailable.'));
+if (body?.status !== 'COMPLETE') return stop(503, envelope('retryable_error', context.resume_phase, null, null, initialSlack, true, 'HUBSPOT_RETRYABLE', 'HubSpot Deal resolution did not complete.'));
+const results = Array.isArray(body?.results) ? body.results : [];
+if (results.length > 1) return stop(422, envelope('terminal_error', context.resume_phase, null, null, initialSlack, false, 'HUBSPOT_SCHEMA', 'Deal identity resolution was ambiguous.'));
+const existing = results[0] ?? null;
+const existingId = existing ? String(existing.id ?? '') : null;
+if (existing && existingId === '') return stop(422, envelope('terminal_error', context.resume_phase, null, null, initialSlack, false, 'HUBSPOT_SCHEMA', 'Deal identity was malformed.'));
+const existingRank = existing ? Number(existing.properties?.oddroom_order_state_rank) : -1;
+const existingKey = existing?.properties?.oddroom_last_event_key ?? null;
+if (existing && (!Number.isInteger(existingRank) || existingRank < 10 || existingRank > 40 || typeof existingKey !== 'string' || existingKey === '')) return stop(422, envelope('terminal_error', context.resume_phase, null, existingId, initialSlack, false, 'HUBSPOT_SCHEMA', 'Deal authoritative state was malformed.'));
+if (existing && existingRank > context.payload.state_rank) return stop(200, envelope('stale_ignored', 'completed', null, existingId, 'not_required', false, null, null));
+if (existing && existingRank === context.payload.state_rank && existingKey !== context.event_key) return stop(422, envelope('terminal_error', context.resume_phase, null, existingId, initialSlack, false, 'HUBSPOT_SCHEMA', 'Equal-rank remote state has a different event key.'));
+if (!existing && context.resume_phase !== 'created') return stop(409, envelope('operator_review', context.resume_phase, null, null, initialSlack, false, 'RESUME_PHASE_CONFLICT', 'Remote Deal disappeared after a persisted phase advance.'));
+const order = context.payload.order;
+const contactBody = { inputs: [{ id: order.customer.email, idProperty: 'email', properties: { email: order.customer.email, firstname: order.customer.first_name, lastname: order.customer.last_name } }] };
+const dealBody = { inputs: [{ id: context.order_key, idProperty: 'oddroom_wc_order_key', properties: { dealname: `OddRoom order ${order.number}`, pipeline: String($env.HUBSPOT_PIPELINE_ID), dealstage: String($env.HUBSPOT_INITIAL_STAGE_ID), oddroom_wc_order_key: context.order_key, oddroom_order_state: context.payload.event_type, oddroom_order_state_rank: String(context.payload.state_rank), oddroom_last_event_at: context.payload.occurred_at_utc, oddroom_last_event_key: context.event_key } }] };
+return [{ json: { continue_crm: true, response_code: null, envelope: null, existing_deal_id: existingId, contact_upsert_body: contactBody, deal_upsert_body: dealBody, deal_read_body: context.deal_read_body, initial_slack_status: initialSlack, trace: ['created','deal_resolved'] } }];
+"""
+
+
+VALIDATE_CONTACT_UPSERT = r"""
+const context = $('Verify HMAC Then Decode').first().json;
+const prepared = $('Resolve Monotonic Deal State').first().json;
+const response = $input.first().json;
+const statusCode = Number(response.statusCode ?? 200);
+const body = response.body ?? response;
+const failure = (code, message, terminal = false) => [{ json: { continue_contact: false, response_code: terminal ? 422 : 503, envelope: { schema_version: '1', event_key: context.event_key, result: terminal ? 'terminal_error' : 'retryable_error', processing_phase: 'deal_resolved', remote_contact_id: null, remote_deal_id: prepared.existing_deal_id ?? null, slack_status: prepared.initial_slack_status, slack_message_ts: null, retryable: !terminal, retry_after_seconds: null, error_code: code, error_message: message } } }];
+if (statusCode === 401 || statusCode === 403) return failure('HUBSPOT_AUTH', 'HubSpot Contact authorization was rejected.', true);
+const results = Array.isArray(body?.results) ? body.results : [];
+if (statusCode < 200 || statusCode >= 300 || body?.status !== 'COMPLETE') return failure('HUBSPOT_RETRYABLE', 'HubSpot Contact upsert did not complete.');
+if (results.length !== 1 || String(results[0]?.id ?? '') === '') return failure('HUBSPOT_SCHEMA', 'HubSpot Contact upsert returned an invalid identity.', true);
+const contactId = String(results[0].id);
+const email = context.payload.order.customer.email;
+return [{ json: { continue_contact: true, contact_id: contactId, contact_read_url: `https://api.hubapi.com/crm/objects/2026-03/contacts/${encodeURIComponent(contactId)}?properties=email,firstname,lastname`, existing_deal_id: prepared.existing_deal_id ?? null, deal_upsert_body: prepared.deal_upsert_body, deal_read_body: prepared.deal_read_body, initial_slack_status: prepared.initial_slack_status } }];
+"""
+
+
+VALIDATE_CONTACT_READ = r"""
+const context = $('Verify HMAC Then Decode').first().json;
+const prepared = $('Validate Contact Upsert').first().json;
+const response = $input.first().json;
+const statusCode = Number(response.statusCode ?? 200);
+const body = response.body ?? response;
+const properties = body?.properties ?? {};
+const exact = String(body?.id ?? '') === prepared.contact_id && properties.email === context.payload.order.customer.email && properties.firstname === context.payload.order.customer.first_name && properties.lastname === context.payload.order.customer.last_name;
+if (statusCode < 200 || statusCode >= 300 || !exact) return [{ json: { continue_deal: false, response_code: 503, envelope: { schema_version: '1', event_key: context.event_key, result: 'retryable_error', processing_phase: 'deal_resolved', remote_contact_id: null, remote_deal_id: prepared.existing_deal_id ?? null, slack_status: prepared.initial_slack_status, slack_message_ts: null, retryable: true, retry_after_seconds: null, error_code: 'HUBSPOT_RETRYABLE', error_message: 'HubSpot Contact read-back was not exact.' } } }];
+return [{ json: { continue_deal: true, contact_id: prepared.contact_id, existing_deal_id: prepared.existing_deal_id ?? null, deal_upsert_body: prepared.deal_upsert_body, deal_read_body: prepared.deal_read_body, initial_slack_status: prepared.initial_slack_status } }];
+"""
+
+
+VALIDATE_DEAL_UPSERT = r"""
+const context = $('Verify HMAC Then Decode').first().json;
+const prepared = $('Validate Contact Read').first().json;
+const response = $input.first().json;
+const statusCode = Number(response.statusCode ?? 200);
+const body = response.body ?? response;
+const results = Array.isArray(body?.results) ? body.results : [];
+const complete = statusCode >= 200 && statusCode < 300 && body?.status === 'COMPLETE' && results.length === 1 && String(results[0]?.id ?? '') !== '';
+if (!complete) return [{ json: { continue_deal_read: false, response_code: statusCode === 401 || statusCode === 403 ? 422 : 503, envelope: { schema_version: '1', event_key: context.event_key, result: statusCode === 401 || statusCode === 403 ? 'terminal_error' : 'retryable_error', processing_phase: 'contact_upserted', remote_contact_id: prepared.contact_id, remote_deal_id: prepared.existing_deal_id ?? null, slack_status: prepared.initial_slack_status, slack_message_ts: null, retryable: !(statusCode === 401 || statusCode === 403), retry_after_seconds: null, error_code: statusCode === 401 || statusCode === 403 ? 'HUBSPOT_AUTH' : 'HUBSPOT_RETRYABLE', error_message: 'HubSpot Deal upsert did not complete.' } } }];
+return [{ json: { continue_deal_read: true, contact_id: prepared.contact_id, deal_id: String(results[0].id), deal_read_body: prepared.deal_read_body, initial_slack_status: prepared.initial_slack_status } }];
+"""
+
+
+VALIDATE_DEAL_READ = r"""
+const context = $('Verify HMAC Then Decode').first().json;
+const prepared = $('Validate Deal Upsert').first().json;
+const response = $input.first().json;
+const statusCode = Number(response.statusCode ?? 200);
+const body = response.body ?? response;
+const results = Array.isArray(body?.results) ? body.results : [];
+const result = results[0] ?? null;
+const properties = result?.properties ?? {};
+const exact = statusCode >= 200 && statusCode < 300 && body?.status === 'COMPLETE' && results.length === 1 && String(result?.id ?? '') === prepared.deal_id && properties.oddroom_wc_order_key === context.order_key && properties.oddroom_order_state === context.payload.event_type && Number(properties.oddroom_order_state_rank) === context.payload.state_rank && properties.oddroom_last_event_at === context.payload.occurred_at_utc && properties.oddroom_last_event_key === context.event_key;
+if (!exact) return [{ json: { continue_association: false, response_code: 503, envelope: { schema_version: '1', event_key: context.event_key, result: 'retryable_error', processing_phase: 'deal_upserted', remote_contact_id: prepared.contact_id, remote_deal_id: prepared.deal_id, slack_status: prepared.initial_slack_status, slack_message_ts: null, retryable: true, retry_after_seconds: null, error_code: 'HUBSPOT_RETRYABLE', error_message: 'HubSpot Deal read-back was not exact.' } } }];
+return [{ json: { continue_association: true, contact_id: prepared.contact_id, deal_id: prepared.deal_id, initial_slack_status: prepared.initial_slack_status, association_put_url: `https://api.hubapi.com/crm/objects/2026-03/contact/${encodeURIComponent(prepared.contact_id)}/associations/default/deal/${encodeURIComponent(prepared.deal_id)}` } }];
+"""
+
+
+VALIDATE_ASSOCIATION_PUT = r"""
+const context = $('Verify HMAC Then Decode').first().json;
+const prepared = $('Validate Deal Readback').first().json;
+const response = $input.first().json;
+const statusCode = Number(response.statusCode ?? 200);
+if (statusCode < 200 || statusCode >= 300) return [{ json: { continue_association_read: false, response_code: statusCode === 401 || statusCode === 403 ? 422 : 503, envelope: { schema_version: '1', event_key: context.event_key, result: statusCode === 401 || statusCode === 403 ? 'terminal_error' : 'retryable_error', processing_phase: 'deal_upserted', remote_contact_id: prepared.contact_id, remote_deal_id: prepared.deal_id, slack_status: prepared.initial_slack_status, slack_message_ts: null, retryable: !(statusCode === 401 || statusCode === 403), retry_after_seconds: null, error_code: statusCode === 401 || statusCode === 403 ? 'HUBSPOT_AUTH' : 'HUBSPOT_RETRYABLE', error_message: 'HubSpot association request was rejected.' } } }];
+return [{ json: { continue_association_read: true, contact_id: prepared.contact_id, deal_id: prepared.deal_id, initial_slack_status: prepared.initial_slack_status, association_read_url: `https://api.hubapi.com/crm/objects/2026-03/contact/${encodeURIComponent(prepared.contact_id)}/associations/deal` } }];
+"""
+
+
+VALIDATE_FINAL = r"""
+const context = $('Verify HMAC Then Decode').first().json;
+const prepared = $('Validate Association Put').first().json;
+const response = $input.first().json;
+const statusCode = Number(response.statusCode ?? 200);
+const body = response.body ?? response;
+const results = Array.isArray(body?.results) ? body.results : [];
+const associated = statusCode >= 200 && statusCode < 300 && results.some((value) => String(value?.toObjectId ?? value?.id ?? '') === prepared.deal_id);
+if (!associated) return [{ json: { continue_slack: false, response_code: 503, envelope: { schema_version: '1', event_key: context.event_key, result: 'retryable_error', processing_phase: 'deal_upserted', remote_contact_id: prepared.contact_id, remote_deal_id: prepared.deal_id, slack_status: prepared.initial_slack_status, slack_message_ts: null, retryable: true, retry_after_seconds: null, error_code: 'HUBSPOT_RETRYABLE', error_message: 'HubSpot association read-back was not exact.' }, trace: ['created','deal_resolved','contact_upserted','deal_upserted'] } }];
+if (context.payload.event_type === 'ORDER_CREATED') return [{ json: { continue_slack: false, response_code: 200, envelope: { schema_version: '1', event_key: context.event_key, result: 'completed', processing_phase: 'completed', remote_contact_id: prepared.contact_id, remote_deal_id: prepared.deal_id, slack_status: 'not_required', slack_message_ts: null, retryable: false, retry_after_seconds: null, error_code: null, error_message: null }, trace: ['created','deal_resolved','contact_upserted','deal_upserted','associated','completed'] } }];
+const order = context.payload.order;
+const dealRef = `deal-…${prepared.deal_id.slice(-6)}`;
+const text = [`run_id=${context.payload.run_id}`,`event_key=${context.event_key}`,`event_type=${context.payload.event_type}`,`order=${order.number}`,`currency=${order.currency}`,`total=${order.total}`,`deal_ref=${dealRef}`].join(' | ');
+return [{ json: { continue_slack: true, contact_id: prepared.contact_id, deal_id: prepared.deal_id, slack_body: { channel: String($env.SLACK_CHANNEL_ID), text }, trace: ['created','deal_resolved','contact_upserted','deal_upserted','associated','slack_pending'] } }];
+"""
+
+
+PREPARE_FAULT_LOOKUP = r"""
+const crypto = require('crypto');
+const context = $('Verify HMAC Then Decode').first().json;
+const prepared = $('Prepare Slack Or Complete').first().json;
+const timestamp = String(Math.floor(Date.now() / 1000));
+const base = `fault-status.${timestamp}.${context.event_key}.${context.payload.run_id}`;
+const signature = 'v1=' + crypto.createHmac('sha256', String($env.ODDROOM_WEBHOOK_HMAC_KEY ?? '')).update(base, 'utf8').digest('hex');
+return [{ json: { fault_timestamp: timestamp, fault_signature: signature, fault_lookup_body: { event_key: context.event_key, run_id: context.payload.run_id }, contact_id: prepared.contact_id, deal_id: prepared.deal_id, slack_body: prepared.slack_body, trace: prepared.trace } }];
+"""
+
+
+SLACK_FAULT_GATE = r"""
+const context = $('Verify HMAC Then Decode').first().json;
+const prepared = $('Prepare Fault Lookup').first().json;
+const response = $input.first().json;
+const statusCode = Number(response.statusCode ?? 0);
+const body = response.body ?? response;
+if (statusCode === 200 && body?.authorized === true && body?.active === true) return [{ json: { send_slack: false, response_code: 503, envelope: { schema_version: '1', event_key: context.event_key, result: 'retryable_error', processing_phase: 'slack_pending', remote_contact_id: prepared.contact_id, remote_deal_id: prepared.deal_id, slack_status: 'failed_before_post', slack_message_ts: null, retryable: true, retry_after_seconds: 1, error_code: 'SLACK_RETRYABLE_BEFORE_POST', error_message: 'Deterministic staging fault immediately before Slack post.' }, trace: prepared.trace } }];
+return [{ json: { send_slack: true, contact_id: prepared.contact_id, deal_id: prepared.deal_id, slack_body: prepared.slack_body, trace: prepared.trace } }];
+"""
+
+
+VALIDATE_SLACK = r"""
+const context = $('Verify HMAC Then Decode').first().json;
+const prepared = $('Slack Pre-Post Fault Gate').first().json;
+const response = $input.first().json;
+const statusCode = Number(response.statusCode ?? 0);
+const body = response.body ?? response;
+const headers = response.headers ?? {};
+const envelope = (result, slackStatus, retryable, retryAfter, errorCode, errorMessage, ts = null) => ({ schema_version: '1', event_key: context.event_key, result, processing_phase: result === 'completed' ? 'completed' : 'slack_pending', remote_contact_id: prepared.contact_id, remote_deal_id: prepared.deal_id, slack_status: slackStatus, slack_message_ts: ts, retryable, retry_after_seconds: retryAfter, error_code: errorCode, error_message: errorMessage });
+const responseChannel = String(body?.channel ?? '');
+const ts = typeof body?.ts === 'string' && body.ts !== '' ? body.ts : null;
+if (statusCode >= 200 && statusCode < 300 && body?.ok === true && responseChannel === String($env.SLACK_CHANNEL_ID) && ts) return [{ json: { response_code: 200, envelope: envelope('completed', 'posted', false, null, null, null, ts), trace: [...prepared.trace,'slack_posted','completed'] } }];
+const slackError = typeof body?.error === 'string' ? body.error : '';
+const retryHeader = headers['retry-after'] ?? headers['Retry-After'] ?? null;
+const retryAfter = Number.isInteger(Number(retryHeader)) && Number(retryHeader) >= 0 ? Number(retryHeader) : null;
+if (statusCode === 429 || slackError === 'ratelimited' || slackError === 'internal_error' || slackError === 'fatal_error' || slackError === 'request_timeout') return [{ json: { response_code: 503, envelope: envelope('retryable_error', 'failed_before_post', true, retryAfter, 'SLACK_RETRYABLE_BEFORE_POST', 'Slack explicitly did not accept the message.'), trace: prepared.trace } }];
+if (['invalid_auth','not_authed','missing_scope','account_inactive','token_revoked'].includes(slackError) || statusCode === 401 || statusCode === 403) return [{ json: { response_code: 422, envelope: envelope('terminal_error', 'failed_before_post', false, null, 'SLACK_AUTH', 'Slack authorization was rejected.'), trace: prepared.trace } }];
+if (body?.ok === false && slackError !== '') return [{ json: { response_code: 422, envelope: envelope('terminal_error', 'failed_before_post', false, null, 'SLACK_TERMINAL', 'Slack rejected the message before acceptance.'), trace: prepared.trace } }];
+return [{ json: { response_code: 409, envelope: envelope('operator_review', 'outcome_unknown', false, null, 'SLACK_OUTCOME_UNKNOWN', 'Slack acceptance could not be established from the response.'), trace: prepared.trace } }];
+"""
+
+
+nodes = [
+    {
+        "parameters": {"httpMethod": "POST", "path": "oddroom-orderops-v1", "authentication": "none", "responseMode": "responseNode", "options": {"rawBody": True}},
+        "id": "11111111-1111-4111-8111-111111111111", "name": "Signed Raw Webhook", "type": "n8n-nodes-base.webhook", "typeVersion": 2.1, "position": [-1160, 0], "webhookId": "71111111-1111-4111-8111-111111111111",
+    },
+    code("22222222-2222-4222-8222-222222222222", "Verify HMAC Then Decode", VERIFY, -940, 0),
+    branch("33333333-3333-4333-8333-333333333333", "Authenticated", "authorized", -720, 0),
+    {
+        "parameters": {"respondWith": "json", "responseBody": "={{ $json.error }}", "options": {"responseCode": "={{ $json.status_code }}", "responseHeaders": {"entries": [{"name": "Content-Type", "value": "application/json; charset=utf-8"}]}}},
+        "id": "44444444-4444-4444-8444-444444444444", "name": "Reject Before Side Effects", "type": "n8n-nodes-base.respondToWebhook", "typeVersion": 1.5, "position": [-500, 220],
+    },
+    request("55555555-5555-4555-8555-555555555555", "HubSpot 2026-03 Deal Read", "POST", "https://api.hubapi.com/crm/objects/2026-03/deals/batch/read", -500, "={{ $json.deal_read_body }}"),
+    code("66666666-6666-4666-8666-666666666666", "Resolve Monotonic Deal State", RESOLVE, -280),
+    branch("77777777-7777-4777-8777-777777777777", "CRM Mutation Allowed", "continue_crm", -60),
+    request("88888888-8888-4888-8888-888888888888", "HubSpot 2026-03 Contact Upsert", "POST", "https://api.hubapi.com/crm/objects/2026-03/contacts/batch/upsert", 160, "={{ $json.contact_upsert_body }}"),
+    code("99999999-9999-4999-8999-999999999999", "Validate Contact Upsert", VALIDATE_CONTACT_UPSERT, 380),
+    branch("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1", "Contact Upsert Complete", "continue_contact", 600),
+    request("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2", "HubSpot 2026-03 Contact Read", "GET", "={{ $json.contact_read_url }}", 820),
+    code("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3", "Validate Contact Read", VALIDATE_CONTACT_READ, 1040),
+    branch("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa4", "Contact Read Exact", "continue_deal", 1260),
+    request("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa5", "HubSpot 2026-03 Deal Upsert", "POST", "https://api.hubapi.com/crm/objects/2026-03/deals/batch/upsert", 1480, "={{ $json.deal_upsert_body }}"),
+    code("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa6", "Validate Deal Upsert", VALIDATE_DEAL_UPSERT, 1700),
+    branch("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa7", "Deal Upsert Complete", "continue_deal_read", 1920),
+    request("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa8", "HubSpot 2026-03 Deal Readback", "POST", "https://api.hubapi.com/crm/objects/2026-03/deals/batch/read", 2140, "={{ $json.deal_read_body }}"),
+    code("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa9", "Validate Deal Readback", VALIDATE_DEAL_READ, 2360),
+    branch("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaab0", "Deal Readback Exact", "continue_association", 2580),
+    request("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaab1", "HubSpot 2026-03 Default Association", "PUT", "={{ $json.association_put_url }}", 2800),
+    code("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaab2", "Validate Association Put", VALIDATE_ASSOCIATION_PUT, 3020),
+    branch("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaab3", "Association Put Complete", "continue_association_read", 3240),
+    request("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaab4", "HubSpot 2026-03 Association Read", "GET", "={{ $json.association_read_url }}", 3460),
+    code("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaab5", "Prepare Slack Or Complete", VALIDATE_FINAL, 3680),
+    branch("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaab6", "Slack Required", "continue_slack", 3900),
+    code("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaab7", "Prepare Fault Lookup", PREPARE_FAULT_LOOKUP, 4120),
+    {
+        "parameters": {
+            "method": "POST",
+            "url": "http://wordpress/wp-json/oddroom-orderops/v1/fault-before-slack",
+            "sendHeaders": True,
+            "headerParameters": {"parameters": [
+                {"name": "X-OddRoom-Timestamp", "value": "={{ $json.fault_timestamp }}"},
+                {"name": "X-OddRoom-Fault-Signature", "value": "={{ $json.fault_signature }}"},
+            ]},
+            "sendBody": True,
+            "contentType": "json",
+            "specifyBody": "json",
+            "jsonBody": "={{ $json.fault_lookup_body }}",
+            "options": {"response": {"response": {"fullResponse": True, "neverError": True, "responseFormat": "json"}}, "timeout": 5000},
+        },
+        "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaab8",
+        "name": "Lookup Active Pre-Post Fault",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.4,
+        "position": [4340, -80],
+        "onError": "continueRegularOutput",
+    },
+    code("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaab9", "Slack Pre-Post Fault Gate", SLACK_FAULT_GATE, 4560),
+    branch("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaac0", "Slack Send Allowed", "send_slack", 4780),
+    request("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaac1", "Slack chat.postMessage", "POST", "https://slack.com/api/chat.postMessage", 5000, "={{ $json.slack_body }}", auth_type="httpHeaderAuth", credential=SLACK_CREDENTIAL, continue_on_error=True),
+    code("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaac2", "Validate Slack Result", VALIDATE_SLACK, 5220),
+    {
+        "parameters": {"respondWith": "json", "responseBody": "={{ $json.envelope }}", "options": {"responseCode": "={{ $json.response_code }}", "responseHeaders": {"entries": [{"name": "Content-Type", "value": "application/json; charset=utf-8"}]}}},
+        "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", "name": "Return Authenticated Envelope", "type": "n8n-nodes-base.respondToWebhook", "typeVersion": 1.5, "position": [5440, -40],
+    },
+]
+
+
+def edge(target: str) -> dict:
+    return {"node": target, "type": "main", "index": 0}
+
+
+connections = {
+    "Signed Raw Webhook": {"main": [[edge("Verify HMAC Then Decode")]]},
+    "Verify HMAC Then Decode": {"main": [[edge("Authenticated")]]},
+    "Authenticated": {"main": [[edge("HubSpot 2026-03 Deal Read")], [edge("Reject Before Side Effects")]]},
+    "HubSpot 2026-03 Deal Read": {"main": [[edge("Resolve Monotonic Deal State")]]},
+    "Resolve Monotonic Deal State": {"main": [[edge("CRM Mutation Allowed")]]},
+    "CRM Mutation Allowed": {"main": [[edge("HubSpot 2026-03 Contact Upsert")], [edge("Return Authenticated Envelope")]]},
+    "HubSpot 2026-03 Contact Upsert": {"main": [[edge("Validate Contact Upsert")]]},
+    "Validate Contact Upsert": {"main": [[edge("Contact Upsert Complete")]]},
+    "Contact Upsert Complete": {"main": [[edge("HubSpot 2026-03 Contact Read")], [edge("Return Authenticated Envelope")]]},
+    "HubSpot 2026-03 Contact Read": {"main": [[edge("Validate Contact Read")]]},
+    "Validate Contact Read": {"main": [[edge("Contact Read Exact")]]},
+    "Contact Read Exact": {"main": [[edge("HubSpot 2026-03 Deal Upsert")], [edge("Return Authenticated Envelope")]]},
+    "HubSpot 2026-03 Deal Upsert": {"main": [[edge("Validate Deal Upsert")]]},
+    "Validate Deal Upsert": {"main": [[edge("Deal Upsert Complete")]]},
+    "Deal Upsert Complete": {"main": [[edge("HubSpot 2026-03 Deal Readback")], [edge("Return Authenticated Envelope")]]},
+    "HubSpot 2026-03 Deal Readback": {"main": [[edge("Validate Deal Readback")]]},
+    "Validate Deal Readback": {"main": [[edge("Deal Readback Exact")]]},
+    "Deal Readback Exact": {"main": [[edge("HubSpot 2026-03 Default Association")], [edge("Return Authenticated Envelope")]]},
+    "HubSpot 2026-03 Default Association": {"main": [[edge("Validate Association Put")]]},
+    "Validate Association Put": {"main": [[edge("Association Put Complete")]]},
+    "Association Put Complete": {"main": [[edge("HubSpot 2026-03 Association Read")], [edge("Return Authenticated Envelope")]]},
+    "HubSpot 2026-03 Association Read": {"main": [[edge("Prepare Slack Or Complete")]]},
+    "Prepare Slack Or Complete": {"main": [[edge("Slack Required")]]},
+    "Slack Required": {"main": [[edge("Prepare Fault Lookup")], [edge("Return Authenticated Envelope")]]},
+    "Prepare Fault Lookup": {"main": [[edge("Lookup Active Pre-Post Fault")]]},
+    "Lookup Active Pre-Post Fault": {"main": [[edge("Slack Pre-Post Fault Gate")]]},
+    "Slack Pre-Post Fault Gate": {"main": [[edge("Slack Send Allowed")]]},
+    "Slack Send Allowed": {"main": [[edge("Slack chat.postMessage")], [edge("Return Authenticated Envelope")]]},
+    "Slack chat.postMessage": {"main": [[edge("Validate Slack Result")]]},
+    "Validate Slack Result": {"main": [[edge("Return Authenticated Envelope")]]},
+}
+
+
+document = {
+    "id": "PF07OrderOpsVSL1",
+    "name": "OddRoom OrderOps",
+    "active": False,
+    "nodes": nodes,
+    "connections": connections,
+    "settings": {"executionOrder": "v1", "executionTimeout": 300, "saveDataSuccessExecution": "all", "saveDataErrorExecution": "all", "saveManualExecutions": True, "callerPolicy": "workflowsFromSameOwner"},
+    "staticData": None,
+    "meta": None,
+    "pinData": {},
+    "versionId": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+    "tags": [],
+}
+rendered = json.dumps(document, ensure_ascii=False, indent=2) + "\n"
+
+if sys.argv[1:] == ["--check"]:
+    if not TARGET.exists() or TARGET.read_text(encoding="utf-8") != rendered:
+        raise SystemExit("FAIL: generated workflow is stale")
+    print("PASS: generated workflow is current")
+elif sys.argv[1:]:
+    raise SystemExit("usage: scripts/build-workflow [--check]")
+else:
+    TARGET.write_text(rendered, encoding="utf-8")
+    print(f"PASS: generated {len(nodes)}-node workflow")

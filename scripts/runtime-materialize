@@ -37,6 +37,7 @@ copy_locator() {
 copy_locator WEBHOOK_HMAC_KEY "$secret_dir/webhook_hmac_key"
 copy_locator N8N_ENCRYPTION_KEY "$secret_dir/n8n_encryption_key"
 copy_locator HUBSPOT_RUNTIME_TOKEN "$secret_dir/hubspot_runtime_token"
+copy_locator SLACK_BOT_TOKEN "$secret_dir/slack_bot_token"
 copy_locator WORDPRESS_ADMIN_PASSWORD "$secret_dir/wordpress_admin_password"
 
 db_password=$(openssl rand -hex 32)
@@ -48,8 +49,11 @@ hubspot_token=$(tr -d '\r\n' < "$secret_dir/hubspot_runtime_token")
 shop_id=$(jq -er '.SHOP_INSTANCE_ID' "$readiness_file")
 pipeline_id=$(jq -er '.hubspot.pipeline_internal_id' "$readiness_file")
 stage_id=$(jq -er '.hubspot.initial_stage_internal_id' "$readiness_file")
+slack_channel_id_path=$(locator "SLACK_CHANNEL_ID")
+[[ -f "$slack_channel_id_path" && -s "$slack_channel_id_path" ]] || { echo "SLACK_CHANNEL_ID locator is unavailable" >&2; exit 66; }
+slack_channel_id=$(tr -d '\r\n' < "$slack_channel_id_path")
 
-for value_name in n8n_key hmac_key hubspot_token shop_id pipeline_id stage_id; do
+for value_name in n8n_key hmac_key hubspot_token shop_id pipeline_id stage_id slack_channel_id; do
   [[ -n "${!value_name}" && "${!value_name}" != *$'\n'* ]] || { echo "invalid runtime value: $value_name" >&2; exit 65; }
 done
 
@@ -65,9 +69,10 @@ runtime_env="$runtime_dir/runtime.env"
   printf 'ODDROOM_RUN_ID=%s\n' "$run_id"
   printf 'HUBSPOT_PIPELINE_ID=%s\n' "$pipeline_id"
   printf 'HUBSPOT_INITIAL_STAGE_ID=%s\n' "$stage_id"
+  printf 'SLACK_CHANNEL_ID=%s\n' "$slack_channel_id"
 } > "$runtime_env"
 chmod 600 "$runtime_env"
 
 printf 'runtime material ready: mode=%s aliases=%s\n' \
   "$(stat -c '%a' "$runtime_env")" \
-  "WEBHOOK_HMAC_KEY,N8N_ENCRYPTION_KEY,HUBSPOT_RUNTIME_TOKEN,WORDPRESS_ADMIN_PASSWORD"
+  "WEBHOOK_HMAC_KEY,N8N_ENCRYPTION_KEY,HUBSPOT_RUNTIME_TOKEN,SLACK_BOT_TOKEN,WORDPRESS_ADMIN_PASSWORD,SLACK_CHANNEL_ID"

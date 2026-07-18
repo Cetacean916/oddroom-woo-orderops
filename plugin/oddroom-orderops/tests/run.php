@@ -43,6 +43,10 @@ $assert($decoded['order']['items'][0]['item_id'] === 1, 'Items were not sorted.'
 $assert($decoded['order']['coupon_codes'] === ['ODDROOM', 'WELCOME'], 'Coupons were not sorted.');
 $assert($decoded['order']['customer']['email'] === 'buyer@example.com', 'Email was not normalized.');
 $assert(strlen(OddRoom_Canonical_Payload::hash($json)) === 64, 'Payload hash is invalid.');
+$assert(OddRoom_Canonical_Payload::rankFor('ORDER_CREATED') === 10, 'Created rank changed.');
+$assert(OddRoom_Canonical_Payload::rankFor('PAYMENT_CONFIRMED') === 20, 'Payment rank changed.');
+$assert(OddRoom_Canonical_Payload::rankFor('ORDER_CANCELLED') === 30, 'Cancellation rank changed.');
+$assert(OddRoom_Canonical_Payload::rankFor('ORDER_REFUNDED') === 40, 'Refund rank changed.');
 
 $signature = OddRoom_Signature::sign(1784390400, $input['event_key'], 'created', $json, 'synthetic-test-secret');
 $assert(OddRoom_Signature::verify($signature, 1784390400, $input['event_key'], 'created', $json, 'synthetic-test-secret'), 'Valid signature failed.');

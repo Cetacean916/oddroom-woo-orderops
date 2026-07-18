@@ -4,7 +4,7 @@ defined('ABSPATH') || exit;
 
 final class OddRoom_Installer
 {
-    public const SCHEMA_VERSION = '1.0.0';
+    public const SCHEMA_VERSION = '1.1.0';
     private const OPTION = 'oddroom_orderops_schema_version';
 
     public static function activate(): void
@@ -27,6 +27,7 @@ final class OddRoom_Installer
         $charset = $wpdb->get_charset_collate();
         $outbox = self::outboxTable();
         $leases = self::leaseTable();
+        $faults = self::faultTable();
 
         $outboxSql = "CREATE TABLE {$outbox} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -96,8 +97,24 @@ final class OddRoom_Installer
             KEY holder_outbox (holder_outbox_id)
         ) ENGINE=InnoDB {$charset};";
 
+        $faultSql = "CREATE TABLE {$faults} (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            run_id char(36) NOT NULL,
+            fault_type varchar(64) NOT NULL,
+            event_key_sha256 char(64) NOT NULL,
+            enabled tinyint(1) unsigned NOT NULL DEFAULT 0,
+            expires_at datetime(6) NOT NULL,
+            created_by bigint(20) unsigned NOT NULL,
+            created_at datetime(6) NOT NULL,
+            disabled_at datetime(6) NULL,
+            PRIMARY KEY  (id),
+            UNIQUE KEY exact_fault (run_id,fault_type,event_key_sha256),
+            KEY active_expiry (run_id,enabled,expires_at)
+        ) ENGINE=InnoDB {$charset};";
+
         dbDelta($outboxSql);
         dbDelta($leaseSql);
+        dbDelta($faultSql);
 
         if (!self::tablesAreTransactional()) {
             update_option('oddroom_orderops_health_error', 'DATABASE_ENGINE_UNSUPPORTED', false);
@@ -119,10 +136,16 @@ final class OddRoom_Installer
         return $wpdb->prefix . 'oddroom_orderops_order_leases';
     }
 
+    public static function faultTable(): string
+    {
+        global $wpdb;
+        return $wpdb->prefix . 'oddroom_orderops_fault_controls';
+    }
+
     public static function tablesAreTransactional(): bool
     {
         global $wpdb;
-        foreach ([self::outboxTable(), self::leaseTable()] as $table) {
+        foreach ([self::outboxTable(), self::leaseTable(), self::faultTable()] as $table) {
             $engine = $wpdb->get_var($wpdb->prepare(
                 'SELECT ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s',
                 $table

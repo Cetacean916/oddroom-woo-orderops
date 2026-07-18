@@ -72,31 +72,48 @@ final class OddRoom_Worker
             ]);
 
             if (is_wp_error($response)) {
-                $result = OddRoom_Repository::transportFailure(
-                    $claimed,
-                    $rowToken,
-                    $leaseToken,
-                    'HUBSPOT_RETRYABLE',
-                    self::sanitizeTransportError($response->get_error_message())
-                );
+                self::recordReachability('HOLD', null, 'TRANSPORT_ERROR');
+                $result = self::requiresSlack($claimed)
+                    ? OddRoom_Repository::ambiguousSlackFailure(
+                        $claimed,
+                        $rowToken,
+                        $leaseToken,
+                        self::sanitizeTransportError($response->get_error_message())
+                    )
+                    : OddRoom_Repository::transportFailure(
+                        $claimed,
+                        $rowToken,
+                        $leaseToken,
+                        'HUBSPOT_RETRYABLE',
+                        self::sanitizeTransportError($response->get_error_message())
+                    );
                 self::scheduleFollowup($rowId, $result);
                 return;
             }
 
             $httpStatus = (int) wp_remote_retrieve_response_code($response);
+            self::recordReachability('REACHED', $httpStatus, null);
             $raw = (string) wp_remote_retrieve_body($response);
             try {
                 $envelope = self::validateEnvelope($raw, (string) $claimed->event_key, $phase);
             } catch (Throwable $error) {
-                $result = OddRoom_Repository::transportFailure(
-                    $claimed,
-                    $rowToken,
-                    $leaseToken,
-                    'ADAPTER_RESPONSE_INVALID',
-                    'Adapter response did not satisfy the authenticated envelope.',
-                    $httpStatus,
-                    self::retryAfter($response)
-                );
+                $result = self::requiresSlack($claimed)
+                    ? OddRoom_Repository::ambiguousSlackFailure(
+                        $claimed,
+                        $rowToken,
+                        $leaseToken,
+                        'Adapter response did not establish the Slack outcome.',
+                        $httpStatus
+                    )
+                    : OddRoom_Repository::transportFailure(
+                        $claimed,
+                        $rowToken,
+                        $leaseToken,
+                        'ADAPTER_RESPONSE_INVALID',
+                        'Adapter response did not satisfy the authenticated envelope.',
+                        $httpStatus,
+                        self::retryAfter($response)
+                    );
                 self::scheduleFollowup($rowId, $result);
                 return;
             }
@@ -108,6 +125,13 @@ final class OddRoom_Worker
                 $envelope,
                 $httpStatus
             );
+            if (($result['status'] ?? null) === 'completed') {
+                update_option('oddroom_orderops_last_successful_event', [
+                    'outbox_id' => (int) $claimed->id,
+                    'event_type' => (string) $claimed->event_type,
+                    'observed_at_utc' => gmdate('c'),
+                ], false);
+            }
             self::scheduleFollowup($rowId, $result);
         } finally {
             OddRoom_Scheduler::clearExecution();
@@ -199,5 +223,24 @@ final class OddRoom_Worker
     private static function sanitizeTransportError(string $message): string
     {
         return substr(sanitize_text_field($message), 0, 240);
+    }
+
+    private static function requiresSlack(object $row): bool
+    {
+        return in_array(
+            (string) $row->event_type,
+            ['PAYMENT_CONFIRMED', 'ORDER_CANCELLED', 'ORDER_REFUNDED'],
+            true
+        );
+    }
+
+    private static function recordReachability(string $status, ?int $httpStatus, ?string $errorCode): void
+    {
+        update_option('oddroom_orderops_last_reachability', [
+            'status' => $status,
+            'http_status' => $httpStatus,
+            'error_code' => $errorCode,
+            'observed_at_utc' => gmdate('c'),
+        ], false);
     }
 }

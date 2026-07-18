@@ -8,15 +8,36 @@ final class OddRoom_Repository
 
     public static function insertOrderCreated(WC_Order $order): array
     {
-        global $wpdb;
-        $shopId = self::requiredConfig('ODDROOM_ORDEROPS_SHOP_INSTANCE_ID');
-        $runId = self::requiredConfig('ODDROOM_ORDEROPS_RUN_ID');
-        $orderId = (int) $order->get_id();
-        $eventKey = "v1:{$shopId}:{$orderId}:ORDER_CREATED";
         $created = $order->get_date_created();
         if (!$created) {
             throw new DomainException('Order creation time is unavailable.');
         }
+        return self::insertEvent($order, 'ORDER_CREATED', $created, 'date_created');
+    }
+
+    public static function insertEvent(
+        WC_Order $order,
+        string $eventType,
+        DateTimeInterface $occurredAt,
+        string $occurredAtSource
+    ): array {
+        global $wpdb;
+        $allowedSources = [
+            'ORDER_CREATED' => 'date_created',
+            'PAYMENT_CONFIRMED' => 'date_paid',
+            'ORDER_CANCELLED' => '_oddroom_orderops_cancelled_at_utc',
+            'ORDER_REFUNDED' => 'full_refund_completion',
+        ];
+        if (($allowedSources[$eventType] ?? null) !== $occurredAtSource) {
+            throw new DomainException('Event occurrence source is invalid.');
+        }
+
+        $shopId = self::requiredConfig('ODDROOM_ORDEROPS_SHOP_INSTANCE_ID');
+        $runId = self::requiredConfig('ODDROOM_ORDEROPS_RUN_ID');
+        $orderId = (int) $order->get_id();
+        $eventKey = "v1:{$shopId}:{$orderId}:{$eventType}";
+        $stateRank = OddRoom_Canonical_Payload::rankFor($eventType);
+        $occurredTimestamp = $occurredAt->getTimestamp();
 
         $items = [];
         foreach ($order->get_items('line_item') as $itemId => $item) {
@@ -39,9 +60,9 @@ final class OddRoom_Repository
             'event_key' => $eventKey,
             'shop_instance_id' => $shopId,
             'run_id' => $runId,
-            'event_type' => 'ORDER_CREATED',
-            'occurred_at_utc' => gmdate('Y-m-d\\TH:i:s\\Z', $created->getTimestamp()),
-            'occurred_at_source' => 'date_created',
+            'event_type' => $eventType,
+            'occurred_at_utc' => gmdate('Y-m-d\\TH:i:s\\Z', $occurredTimestamp),
+            'occurred_at_source' => $occurredAtSource,
             'order' => [
                 'id' => $orderId,
                 'number' => (string) $order->get_order_number(),
@@ -65,16 +86,20 @@ final class OddRoom_Repository
              attempt_count,automatic_attempt_count,max_attempts,manual_retry_count,manual_attempt_pending,
              adapter_dispatch_state,slack_status,operator_wait_epoch,resolved_operator_wait_epoch,
              created_at,updated_at)
-            VALUES (%s,%s,%s,%s,%d,'ORDER_CREATED',%s,'date_created',10,%s,%s,'pending','created',
-                    0,0,6,0,0,'not_started','not_required',0,0,UTC_TIMESTAMP(6),UTC_TIMESTAMP(6))",
+            VALUES (%s,%s,%s,%s,%d,%s,%s,%s,%d,%s,%s,'pending','created',
+                    0,0,6,0,0,'not_started',%s,0,0,UTC_TIMESTAMP(6),UTC_TIMESTAMP(6))",
             OddRoom_Canonical_Payload::SCHEMA_VERSION,
             $shopId,
             $runId,
             $eventKey,
             $orderId,
-            gmdate('Y-m-d H:i:s', $created->getTimestamp()),
+            $eventType,
+            gmdate('Y-m-d H:i:s', $occurredTimestamp),
+            $occurredAtSource,
+            $stateRank,
             $payload,
-            OddRoom_Canonical_Payload::hash($payload)
+            OddRoom_Canonical_Payload::hash($payload),
+            $eventType === 'ORDER_CREATED' ? 'not_required' : 'pending'
         ));
         if ($inserted === false) {
             throw new RuntimeException('Outbox insert failed.');
@@ -84,6 +109,19 @@ final class OddRoom_Repository
             throw new RuntimeException('Outbox row lookup failed.');
         }
         return ['row' => $row, 'inserted' => $inserted === 1];
+    }
+
+    public static function findEvent(int $orderId, string $eventType): ?object
+    {
+        global $wpdb;
+        $table = OddRoom_Installer::outboxTable();
+        $row = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$table} WHERE shop_instance_id = %s AND order_id = %d AND event_type = %s",
+            self::requiredConfig('ODDROOM_ORDEROPS_SHOP_INSTANCE_ID'),
+            $orderId,
+            $eventType
+        ));
+        return is_object($row) ? $row : null;
     }
 
     public static function find(int $rowId): ?object
@@ -404,11 +442,306 @@ final class OddRoom_Repository
         return self::finish($claimedRow, $rowToken, $leaseToken, $result, $httpStatus);
     }
 
+    public static function ambiguousSlackFailure(
+        object $claimedRow,
+        string $rowToken,
+        string $leaseToken,
+        string $message,
+        ?int $httpStatus = null
+    ): array {
+        $result = [
+            'schema_version' => '1',
+            'event_key' => (string) $claimedRow->event_key,
+            'result' => 'operator_review',
+            'processing_phase' => (string) $claimedRow->processing_phase,
+            'remote_contact_id' => self::nullableString($claimedRow->remote_contact_id),
+            'remote_deal_id' => self::nullableString($claimedRow->remote_deal_id),
+            'slack_status' => 'outcome_unknown',
+            'slack_message_ts' => self::nullableString($claimedRow->slack_message_ts),
+            'retryable' => false,
+            'retry_after_seconds' => null,
+            'error_code' => 'SLACK_OUTCOME_UNKNOWN',
+            'error_message' => $message,
+        ];
+        return self::finish($claimedRow, $rowToken, $leaseToken, $result, $httpStatus);
+    }
+
     public static function all(int $limit = 100): array
     {
         global $wpdb;
         $table = OddRoom_Installer::outboxTable();
         return $wpdb->get_results($wpdb->prepare("SELECT * FROM {$table} ORDER BY id DESC LIMIT %d", $limit));
+    }
+
+    public static function queryForAdmin(array $filters): array
+    {
+        global $wpdb;
+        $table = OddRoom_Installer::outboxTable();
+        [$whereSql, $whereArgs] = self::adminWhere($filters);
+        $sorts = [
+            'id' => 'id',
+            'order_id' => 'order_id',
+            'event_type' => 'event_type',
+            'status' => 'status',
+            'occurred_at_utc' => 'occurred_at_utc',
+            'updated_at' => 'updated_at',
+        ];
+        $sort = $sorts[(string) ($filters['sort'] ?? 'id')] ?? 'id';
+        $direction = strtoupper((string) ($filters['direction'] ?? 'DESC')) === 'ASC' ? 'ASC' : 'DESC';
+        $page = max(1, (int) ($filters['page'] ?? 1));
+        $perPage = min(100, max(1, (int) ($filters['per_page'] ?? 50)));
+        $offset = ($page - 1) * $perPage;
+        $sql = "SELECT *,
+                    CASE WHEN locked_at IS NULL THEN NULL
+                         ELSE TIMESTAMPDIFF(SECOND,locked_at,UTC_TIMESTAMP(6)) END AS lock_age_seconds
+                FROM {$table} WHERE {$whereSql}
+                ORDER BY {$sort} {$direction}, id {$direction} LIMIT %d OFFSET %d";
+        return $wpdb->get_results($wpdb->prepare($sql, ...array_merge($whereArgs, [$perPage, $offset])));
+    }
+
+    public static function countForAdmin(array $filters): int
+    {
+        global $wpdb;
+        $table = OddRoom_Installer::outboxTable();
+        [$whereSql, $whereArgs] = self::adminWhere($filters);
+        $sql = "SELECT COUNT(*) FROM {$table} WHERE {$whereSql}";
+        return $whereArgs === []
+            ? (int) $wpdb->get_var($sql)
+            : (int) $wpdb->get_var($wpdb->prepare($sql, ...$whereArgs));
+    }
+
+    public static function shouldSchedule(object $row): bool
+    {
+        if ($row->action_id !== null || $row->lock_token !== null) {
+            return false;
+        }
+        if ((string) $row->status === 'pending') {
+            return true;
+        }
+        return (string) $row->status === 'retry_wait'
+            && is_string($row->next_attempt_at)
+            && $row->next_attempt_at !== ''
+            && self::isDue($row->next_attempt_at);
+    }
+
+    public static function manualRetry(int $rowId, int $administratorId): array
+    {
+        global $wpdb;
+        if ($rowId < 1 || $administratorId < 1) {
+            throw new InvalidArgumentException('Manual retry input is invalid.');
+        }
+        if (OddRoom_Scheduler::exactCandidates(OddRoom_Scheduler::HOOK, $rowId) !== []) {
+            throw new RuntimeException('ACTION_CONFLICT');
+        }
+        $table = OddRoom_Installer::outboxTable();
+        $wpdb->query('START TRANSACTION');
+        try {
+            $row = $wpdb->get_row($wpdb->prepare(
+                "SELECT * FROM {$table} WHERE id=%d FOR UPDATE",
+                $rowId
+            ));
+            if (!$row) {
+                throw new RuntimeException('ROW_NOT_FOUND');
+            }
+            if ((string) $row->status === 'operator_wait') {
+                throw new RuntimeException('OPERATOR_WAIT_REQUIRES_RESOLVE_OUTCOME');
+            }
+            if ((string) $row->status !== 'failed'
+                || $row->action_id !== null
+                || $row->lock_token !== null) {
+                throw new RuntimeException('ROW_NOT_MANUALLY_RETRYABLE');
+            }
+            $updated = $wpdb->query($wpdb->prepare(
+                "UPDATE {$table}
+                 SET status='pending', manual_retry_count=manual_retry_count+1,
+                     manual_attempt_pending=1, next_attempt_at=NULL, action_id=NULL,
+                     error_code=NULL, retryable=1, last_error=NULL,
+                     updated_at=UTC_TIMESTAMP(6)
+                 WHERE id=%d AND status='failed' AND action_id IS NULL AND lock_token IS NULL",
+                $rowId
+            ));
+            if ($updated !== 1) {
+                throw new RuntimeException('MANUAL_RETRY_CONFLICT');
+            }
+            $wpdb->query('COMMIT');
+        } catch (Throwable $error) {
+            $wpdb->query('ROLLBACK');
+            throw $error;
+        }
+
+        $actionId = OddRoom_Scheduler::scheduleBusiness($rowId);
+        if ($actionId < 1
+            || OddRoom_Scheduler::exactCandidates(OddRoom_Scheduler::HOOK, $rowId) !== [$actionId]) {
+            throw new RuntimeException('MANUAL_RETRY_SCHEDULE_FAILED');
+        }
+        return ['status' => 'scheduled', 'action_id' => $actionId, 'idempotent' => false];
+    }
+
+    public static function resolveOutcome(array $input): array
+    {
+        global $wpdb;
+        $rowId = (int) ($input['row_id'] ?? 0);
+        $epoch = (int) ($input['epoch'] ?? 0);
+        $administratorId = (int) ($input['administrator_id'] ?? 0);
+        $decision = strtoupper((string) ($input['decision'] ?? ''));
+        $evidenceRef = self::validateEvidenceRef((string) ($input['evidence_ref'] ?? ''));
+        $decisions = ['CONFIRMED_POSTED', 'CONFIRMED_NOT_POSTED', 'RETRY_AFTER_DUE', 'UNRESOLVED'];
+        if ($rowId < 1 || $epoch < 1 || $administratorId < 1 || !in_array($decision, $decisions, true)) {
+            throw new InvalidArgumentException('Resolve Outcome input is invalid.');
+        }
+        $table = OddRoom_Installer::outboxTable();
+        $scheduleAt = null;
+        $wpdb->query('START TRANSACTION');
+        try {
+            $row = $wpdb->get_row($wpdb->prepare(
+                "SELECT * FROM {$table} WHERE id=%d FOR UPDATE",
+                $rowId
+            ));
+            if (!$row) {
+                throw new RuntimeException('ROW_NOT_FOUND');
+            }
+            if ((int) $row->resolved_operator_wait_epoch === $epoch) {
+                if ((string) $row->last_operator_resolution === $decision) {
+                    $wpdb->query('COMMIT');
+                    return [
+                        'status' => (string) $row->status,
+                        'action_id' => (int) ($row->action_id ?? 0),
+                        'idempotent' => true,
+                    ];
+                }
+                throw new DomainException('CHECKPOINT_CONFLICT');
+            }
+            if (OddRoom_Scheduler::exactCandidates(OddRoom_Scheduler::HOOK, $rowId) !== []) {
+                throw new RuntimeException('ACTION_CONFLICT');
+            }
+            if ((string) $row->status !== 'operator_wait'
+                || (int) $row->operator_wait_epoch !== $epoch
+                || (int) $row->resolved_operator_wait_epoch >= $epoch
+                || $row->action_id !== null
+                || $row->lock_token !== null) {
+                throw new RuntimeException('OPERATOR_WAIT_EPOCH_CONFLICT');
+            }
+
+            $reason = (string) $row->operator_wait_reason;
+            if ($decision !== 'UNRESOLVED'
+                && !in_array($reason, ['SLACK_OUTCOME_UNKNOWN', 'RESUME_PHASE_CONFLICT'], true)) {
+                throw new RuntimeException('RESOLUTION_NOT_ALLOWED_FOR_REASON');
+            }
+            if ($decision === 'UNRESOLVED') {
+                $updated = $wpdb->query($wpdb->prepare(
+                    "UPDATE {$table}
+                     SET last_operator_resolution='UNRESOLVED', operator_evidence_ref=%s,
+                         operator_resolved_at=UTC_TIMESTAMP(6), operator_resolved_by=%d,
+                         updated_at=UTC_TIMESTAMP(6)
+                     WHERE id=%d AND status='operator_wait' AND operator_wait_epoch=%d
+                       AND resolved_operator_wait_epoch<%d AND action_id IS NULL AND lock_token IS NULL",
+                    $evidenceRef,
+                    $administratorId,
+                    $rowId,
+                    $epoch,
+                    $epoch
+                ));
+                if ($updated !== 1) {
+                    throw new RuntimeException('OPERATOR_WAIT_EPOCH_CONFLICT');
+                }
+                $wpdb->query('COMMIT');
+                return ['status' => 'operator_wait', 'action_id' => 0, 'idempotent' => false];
+            }
+
+            $contactId = OddRoom_State_Machine::checkpoint(
+                self::nullableString($row->remote_contact_id),
+                self::validateIdentifier($input['remote_contact_id'] ?? null, 'remote_contact_id')
+            );
+            $dealId = OddRoom_State_Machine::checkpoint(
+                self::nullableString($row->remote_deal_id),
+                self::validateIdentifier($input['remote_deal_id'] ?? null, 'remote_deal_id')
+            );
+            $slackTs = self::nullableString($row->slack_message_ts);
+            $phase = 'completed';
+            $status = 'completed';
+            $slackStatus = 'posted';
+            $nextAttempt = null;
+            $manualPending = 0;
+            $manualIncrement = 0;
+            $processed = true;
+            $retryable = 0;
+
+            if ($decision === 'CONFIRMED_POSTED') {
+                $slackTs = OddRoom_State_Machine::checkpoint(
+                    $slackTs,
+                    self::validateIdentifier($input['slack_message_ts'] ?? null, 'slack_message_ts')
+                );
+                if ($contactId === null || $dealId === null || $slackTs === null) {
+                    throw new InvalidArgumentException('Confirmed posted requires Contact, Deal, and Slack identifiers.');
+                }
+            } else {
+                $phase = self::validateResumePhase((string) ($input['verified_phase'] ?? ''));
+                self::assertResumeCheckpoints($phase, $contactId, $dealId);
+                $status = $decision === 'RETRY_AFTER_DUE' ? 'retry_wait' : 'pending';
+                $slackStatus = 'pending';
+                $manualPending = 1;
+                $manualIncrement = 1;
+                $processed = false;
+                $retryable = 1;
+                if ($decision === 'RETRY_AFTER_DUE') {
+                    $nextAttempt = self::normalizeFutureDue((string) ($input['due_at_utc'] ?? ''));
+                    $scheduleAt = strtotime($nextAttempt . ' UTC');
+                }
+            }
+
+            $updated = $wpdb->query($wpdb->prepare(
+                "UPDATE {$table}
+                 SET status=%s, processing_phase=%s,
+                     remote_contact_id=NULLIF(%s,''), remote_deal_id=NULLIF(%s,''),
+                     slack_status=%s, slack_message_ts=NULLIF(%s,''),
+                     next_attempt_at=NULLIF(%s,''), action_id=NULL,
+                     manual_attempt_pending=%d,
+                     manual_retry_count=manual_retry_count+%d,
+                     error_code=NULL, retryable=%d, last_error=NULL,
+                     operator_wait_reason=NULL, resolved_operator_wait_epoch=%d,
+                     last_operator_resolution=%s, operator_evidence_ref=%s,
+                     operator_resolved_at=UTC_TIMESTAMP(6), operator_resolved_by=%d,
+                     processed_at=CASE WHEN %d=1 THEN UTC_TIMESTAMP(6) ELSE NULL END,
+                     updated_at=UTC_TIMESTAMP(6)
+                 WHERE id=%d AND status='operator_wait' AND operator_wait_epoch=%d
+                   AND resolved_operator_wait_epoch<%d AND action_id IS NULL AND lock_token IS NULL",
+                $status,
+                $phase,
+                $contactId ?? '',
+                $dealId ?? '',
+                $slackStatus,
+                $slackTs ?? '',
+                $nextAttempt ?? '',
+                $manualPending,
+                $manualIncrement,
+                $retryable,
+                $epoch,
+                $decision,
+                $evidenceRef,
+                $administratorId,
+                $processed ? 1 : 0,
+                $rowId,
+                $epoch,
+                $epoch
+            ));
+            if ($updated !== 1) {
+                throw new RuntimeException('OPERATOR_WAIT_EPOCH_CONFLICT');
+            }
+            $wpdb->query('COMMIT');
+        } catch (Throwable $error) {
+            $wpdb->query('ROLLBACK');
+            throw $error;
+        }
+
+        if ($decision === 'CONFIRMED_POSTED') {
+            return ['status' => 'completed', 'action_id' => 0, 'idempotent' => false];
+        }
+        $actionId = OddRoom_Scheduler::scheduleBusiness($rowId, $scheduleAt);
+        if ($actionId < 1
+            || OddRoom_Scheduler::exactCandidates(OddRoom_Scheduler::HOOK, $rowId) !== [$actionId]) {
+            throw new RuntimeException('RESOLUTION_SCHEDULE_FAILED');
+        }
+        return ['status' => $status, 'action_id' => $actionId, 'idempotent' => false];
     }
 
     public static function counts(): array
@@ -544,5 +877,96 @@ final class OddRoom_Repository
     {
         $clean = sanitize_text_field($message);
         return substr($clean, 0, 500);
+    }
+
+    private static function adminWhere(array $filters): array
+    {
+        global $wpdb;
+        $where = ['1=1'];
+        $args = [];
+        $statuses = ['pending', 'processing', 'retry_wait', 'operator_wait', 'failed', 'completed'];
+        $events = ['ORDER_CREATED', 'PAYMENT_CONFIRMED', 'ORDER_CANCELLED', 'ORDER_REFUNDED'];
+        $status = (string) ($filters['status'] ?? '');
+        $event = (string) ($filters['event_type'] ?? '');
+        if (in_array($status, $statuses, true)) {
+            $where[] = 'status=%s';
+            $args[] = $status;
+        }
+        if (in_array($event, $events, true)) {
+            $where[] = 'event_type=%s';
+            $args[] = $event;
+        }
+        $search = trim((string) ($filters['search'] ?? ''));
+        if ($search !== '') {
+            $like = '%' . $wpdb->esc_like(substr($search, 0, 191)) . '%';
+            $where[] = '(event_key LIKE %s OR CAST(order_id AS CHAR) LIKE %s)';
+            $args[] = $like;
+            $args[] = $like;
+        }
+        return [implode(' AND ', $where), $args];
+    }
+
+    private static function validateEvidenceRef(string $value): string
+    {
+        $value = trim(sanitize_text_field($value));
+        if ($value === '' || strlen($value) > 255) {
+            throw new InvalidArgumentException('A bounded execution-evidence reference is required.');
+        }
+        return $value;
+    }
+
+    private static function validateIdentifier(mixed $value, string $field): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        if (!is_string($value)) {
+            throw new InvalidArgumentException($field . ' is invalid.');
+        }
+        $value = trim($value);
+        $max = $field === 'slack_message_ts' ? 64 : 128;
+        if ($value === '' || strlen($value) > $max || preg_match('/[\x00-\x1F\x7F]/', $value)) {
+            throw new InvalidArgumentException($field . ' is invalid.');
+        }
+        return $value;
+    }
+
+    private static function validateResumePhase(string $phase): string
+    {
+        $allowed = ['created', 'deal_resolved', 'contact_upserted', 'deal_upserted', 'associated', 'slack_pending'];
+        if (!in_array($phase, $allowed, true)) {
+            throw new InvalidArgumentException('Verified resume phase is invalid.');
+        }
+        return $phase;
+    }
+
+    private static function assertResumeCheckpoints(string $phase, ?string $contactId, ?string $dealId): void
+    {
+        $rank = array_search($phase, [
+            'created', 'deal_resolved', 'contact_upserted', 'deal_upserted', 'associated', 'slack_pending',
+        ], true);
+        if ($rank >= 2 && $contactId === null) {
+            throw new InvalidArgumentException('Verified phase requires a Contact identifier.');
+        }
+        if ($rank >= 3 && $dealId === null) {
+            throw new InvalidArgumentException('Verified phase requires a Deal identifier.');
+        }
+    }
+
+    private static function normalizeFutureDue(string $value): string
+    {
+        global $wpdb;
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/', $value)) {
+            throw new InvalidArgumentException('Service due time must be an exact UTC timestamp.');
+        }
+        $date = DateTimeImmutable::createFromFormat('!Y-m-d\\TH:i:s\\Z', $value, new DateTimeZone('UTC'));
+        if (!$date || $date->format('Y-m-d\\TH:i:s\\Z') !== $value) {
+            throw new InvalidArgumentException('Service due time is invalid.');
+        }
+        $database = $date->format('Y-m-d H:i:s');
+        if ((int) $wpdb->get_var($wpdb->prepare('SELECT %s > UTC_TIMESTAMP(6)', $database)) !== 1) {
+            throw new InvalidArgumentException('Service due time must be in the future.');
+        }
+        return $database;
     }
 }

@@ -1,0 +1,13 @@
+{
+  "name": "oddroom-woo-orderops",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Deterministic browser and accessibility validation for the OddRoom OrderOps staging storefront.",
+  "scripts": {
+    "validate:ui": "node tests/ui_quality.mjs"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.12.1",
+    "playwright": "1.61.1"
+  }
+}

@@ -109,6 +109,7 @@ services:
       HUBSPOT_RUNTIME_TOKEN: ${HUBSPOT_RUNTIME_TOKEN:?runtime material is required}
       HUBSPOT_PIPELINE_ID: ${HUBSPOT_PIPELINE_ID:?runtime material is required}
       HUBSPOT_INITIAL_STAGE_ID: ${HUBSPOT_INITIAL_STAGE_ID:?runtime material is required}
+      SLACK_CHANNEL_ID: ${SLACK_CHANNEL_ID:?runtime material is required}
     volumes:
       - n8n_data:/home/node/.n8n
       - ../workflow:/workspace/workflow:ro

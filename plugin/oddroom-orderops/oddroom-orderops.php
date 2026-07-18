@@ -19,7 +19,10 @@ require_once __DIR__ . '/includes/class-oddroom-repository.php';
 require_once __DIR__ . '/includes/class-oddroom-scheduler.php';
 require_once __DIR__ . '/includes/class-oddroom-worker.php';
 require_once __DIR__ . '/includes/class-oddroom-recovery.php';
+require_once __DIR__ . '/includes/class-oddroom-faults.php';
 require_once __DIR__ . '/includes/class-oddroom-events.php';
+require_once __DIR__ . '/includes/class-oddroom-reconciliation.php';
+require_once __DIR__ . '/includes/class-oddroom-storefront.php';
 require_once __DIR__ . '/includes/class-oddroom-admin.php';
 require_once __DIR__ . '/includes/class-oddroom-cli.php';
 
@@ -39,6 +42,14 @@ add_action('plugins_loaded', static function (): void {
     OddRoom_Installer::maybeUpgrade();
     OddRoom_Scheduler::boot();
     OddRoom_Events::boot();
+    OddRoom_Faults::boot();
+    OddRoom_Reconciliation::boot();
+    OddRoom_Storefront::boot();
     OddRoom_Admin::boot();
     OddRoom_CLI::boot();
 }, 20);
+
+register_deactivation_hook(__FILE__, static function (): void {
+    OddRoom_Reconciliation::unschedule();
+    wp_clear_scheduled_hook('oddroom_orderops_fault_cleanup');
+});

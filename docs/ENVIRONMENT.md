@@ -22,7 +22,7 @@ Observed before the first PF07 business action was scheduled:
 - Initialized Action Scheduler: `4.0.0`
 - Normalized loaded Action Scheduler source: `plugin:action-scheduler/`
 - WordPress database schema: `61833`
-- Outbox and order-lease engines: `InnoDB`
+- Outbox, order-lease, and fault-control engines: `InnoDB`
 - Database clock: UTC with microsecond precision
 
 Compatibility is satisfied: WooCommerce 10.9.4 requires WordPress 6.9 or later and PHP 7.4 or later; Action Scheduler 4.0.0 requires WordPress 6.8 or later and PHP 7.2 or later. The selected versions exceed each minimum.
@@ -30,3 +30,15 @@ Compatibility is satisfied: WooCommerce 10.9.4 requires WordPress 6.9 or later a
 The isolated argument-aware uniqueness preflight passed against this exact initialized version/source identity. Synthetic row IDs `101` and `102` received distinct non-zero action IDs with one exact pending/in-progress candidate each. A duplicate unique schedule for row `101` returned raw ID `0`, the exact resolver reused the original ID, and cancellation left zero candidates. It inserted or changed no business row and consumed no business attempt or lease. Any loaded version/source change invalidates this result and keeps business scheduling disabled until the preflight passes again.
 
 No system-wide package was installed during bootstrap. Host passwordless sudo is unavailable and is not required by the selected container and user-scope path.
+
+## Browser and accessibility validation pin
+
+- Browser driver: Playwright `1.61.1`
+- Browser executable: host Google Chrome, with its exact observed version recorded in each evidence run
+- Accessibility engine and ruleset: axe-core `4.12.1`, default WCAG-impact rules
+- Public/storefront mode: `full_document`
+- PF07 administrator mode: `scoped`, root selector `.oddroom-orderops`, including every PF07-owned notice, details/action surface, and table inside that root
+- Required viewports: `390`, `768`, and `1440` CSS pixels
+- Failure threshold: zero `critical` or `serious` violations; no manual PF07-introduced reclassification
+
+The validation also records document `scrollWidth` versus `clientWidth`, broken image responses, clipped primary actions, console errors, and keyboard reachability. The intentionally wide administrator data table must scroll only inside `.oddroom-table-wrap`; page-level horizontal overflow remains a failure.

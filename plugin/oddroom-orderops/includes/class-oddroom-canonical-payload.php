@@ -14,6 +14,14 @@ final class OddRoom_Canonical_Payload
         'ORDER_REFUNDED' => 40,
     ];
 
+    public static function rankFor(string $eventType): int
+    {
+        if (!isset(self::EVENT_RANKS[$eventType])) {
+            throw new InvalidArgumentException('Unsupported event type.');
+        }
+        return self::EVENT_RANKS[$eventType];
+    }
+
     public static function encode(array $input): string
     {
         self::requireKeys($input, [
@@ -22,9 +30,7 @@ final class OddRoom_Canonical_Payload
         ]);
 
         $eventType = (string) $input['event_type'];
-        if (!isset(self::EVENT_RANKS[$eventType])) {
-            throw new InvalidArgumentException('Unsupported event type.');
-        }
+        $stateRank = self::rankFor($eventType);
 
         $order = self::normalizeOrder($input['order']);
         $payload = [
@@ -35,7 +41,7 @@ final class OddRoom_Canonical_Payload
             'event_type' => $eventType,
             'occurred_at_utc' => (string) $input['occurred_at_utc'],
             'occurred_at_source' => (string) $input['occurred_at_source'],
-            'state_rank' => self::EVENT_RANKS[$eventType],
+            'state_rank' => $stateRank,
             'order' => $order,
         ];
 
@@ -158,4 +164,3 @@ final class OddRoom_Canonical_Payload
         return function_exists('mb_strlen') ? mb_strlen($value, 'UTF-8') : strlen($value);
     }
 }
-
