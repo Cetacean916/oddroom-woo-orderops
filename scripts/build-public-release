@@ -1,0 +1,105 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+from pathlib import Path, PurePosixPath
+import shutil
+import stat
+import sys
+
+
+def fail(message: str) -> None:
+    raise SystemExit(f"FAIL: {message}")
+
+
+if len(sys.argv) != 2:
+    fail("usage: scripts/build-public-release <empty-output-directory>")
+
+source_root = Path(__file__).resolve().parent.parent
+output_root = Path(sys.argv[1]).resolve()
+allowlist_path = source_root / "release/public-allowlist.json"
+builder_path = Path(__file__).resolve()
+
+if output_root == source_root or source_root in output_root.parents:
+    fail("output must not be inside the source tree")
+if not output_root.exists() or not output_root.is_dir():
+    fail("output directory must already exist")
+if any(output_root.iterdir()):
+    fail("output directory must be empty")
+if (output_root / ".git").exists():
+    fail("output directory must be non-Git")
+
+document = json.loads(allowlist_path.read_text(encoding="utf-8"))
+paths = document.get("paths")
+if document.get("schema_version") != 1 or not isinstance(paths, list) or not paths:
+    fail("allowlist schema is invalid")
+if len(paths) != len(set(paths)):
+    fail("allowlist contains a duplicate")
+if "release/public-allowlist.json" not in paths or "scripts/build-public-release" not in paths:
+    fail("allowlist must include itself and the builder")
+
+copied: list[dict[str, object]] = []
+for raw in paths:
+    if not isinstance(raw, str) or raw == "":
+        fail("allowlist path must be a non-empty string")
+    if "\\" in raw or "\x00" in raw:
+        fail(f"allowlist path must use canonical POSIX separators: {raw!r}")
+    pure = PurePosixPath(raw)
+    if raw != pure.as_posix():
+        fail(f"allowlist path is not canonical POSIX form: {raw!r}")
+    raw_parts = raw.split("/")
+    if pure.is_absolute() or any(part in ("", ".", "..") for part in raw_parts):
+        fail(f"unsafe allowlist path: {raw}")
+    source = source_root.joinpath(*pure.parts)
+    cursor = source_root
+    for part in pure.parts:
+        cursor = cursor / part
+        try:
+            component_metadata = cursor.lstat()
+        except FileNotFoundError:
+            fail(f"allowlisted path is missing: {raw}")
+        if stat.S_ISLNK(component_metadata.st_mode):
+            fail(f"source path contains a symlink component: {raw}")
+    resolved_source = source.resolve(strict=True)
+    try:
+        resolved_source.relative_to(source_root)
+    except ValueError:
+        fail(f"resolved path escaped source root: {raw}")
+    metadata = source.lstat()
+    if not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1:
+        fail(f"source is not a single-link regular file: {raw}")
+    destination = output_root.joinpath(*pure.parts)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    data = source.read_bytes()
+    destination.write_bytes(data)
+    normalized_mode = 0o755 if metadata.st_mode & 0o111 else 0o644
+    os.chmod(destination, normalized_mode)
+    copied.append({
+        "path": raw,
+        "mode": format(normalized_mode, "04o"),
+        "sha256": hashlib.sha256(data).hexdigest(),
+    })
+
+manifest = {
+    "schema_version": 1,
+    "builder_sha256": hashlib.sha256(builder_path.read_bytes()).hexdigest(),
+    "allowlist_sha256": hashlib.sha256(allowlist_path.read_bytes()).hexdigest(),
+    "files": copied,
+}
+manifest_path = output_root / "release/public-build-manifest.json"
+manifest_path.parent.mkdir(parents=True, exist_ok=True)
+manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+os.chmod(manifest_path, 0o644)
+
+actual = sorted(
+    path.relative_to(output_root).as_posix()
+    for path in output_root.rglob("*")
+    if path.is_file()
+)
+expected = sorted(paths + ["release/public-build-manifest.json"])
+if actual != expected:
+    fail("candidate inventory differs from allowlist plus generated manifest")
+
+print(f"PASS: built {len(paths)} allowlisted files plus generated manifest")

@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "builder_sha256": "74d6cc6db4a88be6fa427656fb44e121aaeedc3d908c26b60091d60e52f91a31",
+  "allowlist_sha256": "ea84e99952510ecbb1a1c12e862479b8683e7c680fdf8606f546d16bd1e2eb74",
+  "files": [
+    {
+      "path": ".env.example",
+      "mode": "0644",
+      "sha256": "fda1a5cd4b0fca9632a93022a4529ebb7768eb2d248d952f6db94f0af8528688"
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "mode": "0644",
+      "sha256": "89251a065a33eb4017ecc91a821bb173cd727a8621a4d352e4b53161a23b87ef"
+    },
+    {
+      "path": ".gitignore",
+      "mode": "0644",
+      "sha256": "c1f751c0346db82614bd98379ccfabc0f7a9489b730f77f11d42e6a81dea119d"
+    },
+    {
+      "path": "ASSET-LICENSES.md",
+      "mode": "0644",
+      "sha256": "7fdfe6441b5077c967a3319669b3d8249c70b712aa76c717b92ab7f5f5745751"
+    },
+    {
+      "path": "GOVERNANCE.md",
+      "mode": "0644",
+      "sha256": "1079aa6109888650e2ecc1fbfeed0b3900ea7fc504a65f384bfc6e0b1326aa49"
+    },
+    {
+      "path": "LICENSE",
+      "mode": "0644",
+      "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643"
+    },
+    {
+      "path": "README.md",
+      "mode": "0644",
+      "sha256": "7feb622b1facf4c2cc0078a2e42b1178c497a6795820e81b1602e7818c3ecdce"
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES.md",
+      "mode": "0644",
+      "sha256": "1afa503637ef57c82a364b4e4017056d5481c01bd356e437d3b472daa5a0243a"
+    },
+    {
+      "path": "docs/ARCHITECTURE.md",
+      "mode": "0644",
+      "sha256": "397e472ee6c06f353da2674b3544de258c998bacb03b77930bcec2e8f2bb3f01"
+    },
+    {
+      "path": "docs/CREDENTIAL-HANDLING.md",
+      "mode": "0644",
+      "sha256": "31d9e87568f35b756a2835b77574bc06360ae885d9cf43c2be70174f8c5c507d"
+    },
+    {
+      "path": "docs/ENVIRONMENT.md",
+      "mode": "0644",
+      "sha256": "5b095c758250bf18f6fb4bcb91cf9099e9071f7d4c1eca93ea8d6cfe5b7e4bf1"
+    },
+    {
+      "path": "docs/INPUT-INVENTORY.md",
+      "mode": "0644",
+      "sha256": "cc4aa1fa1032c64ed7e13b6ffa656c6b0762858e670b3a6dd083dc4e65f445ad"
+    },
+    {
+      "path": "plugin/oddroom-orderops/includes/class-oddroom-canonical-payload.php",
+      "mode": "0644",
+      "sha256": "cab043249ec2c7a8109015978e8a4fdc4a9dc4718f1f19a15e015cd65dcb8e95"
+    },
+    {
+      "path": "plugin/oddroom-orderops/includes/class-oddroom-retry-policy.php",
+      "mode": "0644",
+      "sha256": "25d0990edb8e94b8752d00374cfe89b2eeda8a5ebc96e57c98dba631ccb3547f"
+    },
+    {
+      "path": "plugin/oddroom-orderops/includes/class-oddroom-signature.php",
+      "mode": "0644",
+      "sha256": "b0d5827e336d2adb2684b8aedd1dfba86aec9682d8cfb93234af664aeb68e359"
+    },
+    {
+      "path": "plugin/oddroom-orderops/includes/class-oddroom-state-machine.php",
+      "mode": "0644",
+      "sha256": "5a95fe32c11386fecd6a71d715389debbf955dc751d8d9ca4d4af2d9d30e0c72"
+    },
+    {
+      "path": "plugin/oddroom-orderops/oddroom-orderops.php",
+      "mode": "0644",
+      "sha256": "db3f26ab1a8a67ea27f1fde4b86b8dda62aa8ad434b8a952d5ef80bdfeff6dc9"
+    },
+    {
+      "path": "plugin/oddroom-orderops/tests/run.php",
+      "mode": "0644",
+      "sha256": "f1ee3620e59cbd15c5b899ddc285691286063280093d1a2814b4cf3e2412ea81"
+    },
+    {
+      "path": "release/public-allowlist.json",
+      "mode": "0644",
+      "sha256": "ea84e99952510ecbb1a1c12e862479b8683e7c680fdf8606f546d16bd1e2eb74"
+    },
+    {
+      "path": "scripts/build-public-release",
+      "mode": "0755",
+      "sha256": "74d6cc6db4a88be6fa427656fb44e121aaeedc3d908c26b60091d60e52f91a31"
+    },
+    {
+      "path": "scripts/ci",
+      "mode": "0755",
+      "sha256": "268dfe9122ae8d734ff4e9cc1afefbfcf3b6b6db0a86d5560e9b9424164bef8b"
+    },
+    {
+      "path": "scripts/validate-public",
+      "mode": "0755",
+      "sha256": "487d7dfa77b13da828dfb2cc1946fd7c449e61adafd889e3f02be4242e300df5"
+    },
+    {
+      "path": "tests/test_public_builder.py",
+      "mode": "0644",
+      "sha256": "07723845b890e95da6e4ebf31cfa62bccad8dc4cc3c3cce77b352297f8988093"
+    }
+  ]
+}

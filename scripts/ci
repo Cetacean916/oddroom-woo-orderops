@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+project_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+cd "$project_root"
+
+python3 tests/test_public_builder.py
+
+if command -v php >/dev/null 2>&1; then
+  while IFS= read -r file; do
+    php -l "$file" >/dev/null
+  done < <(find plugin -type f -name '*.php' -print | sort)
+  php plugin/oddroom-orderops/tests/run.php
+elif command -v docker >/dev/null 2>&1; then
+  docker run --rm --volume "$project_root:/workspace:ro" --workdir /workspace php:8.3-cli \
+    sh -eu -c 'find plugin -type f -name "*.php" -print | sort | while IFS= read -r file; do php -l "$file" >/dev/null; done; php plugin/oddroom-orderops/tests/run.php'
+else
+  printf 'FAIL: PHP 8.1+ or Docker is required\n' >&2
+  exit 1
+fi
+
+if test -f release/public-build-manifest.json; then
+  ./scripts/validate-public --pre-public
+fi
+
+printf 'PASS: public-safe CI checks\n'

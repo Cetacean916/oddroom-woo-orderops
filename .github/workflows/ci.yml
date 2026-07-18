@@ -1,0 +1,16 @@
+name: public-safe-ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run public-safe checks
+        run: ./scripts/ci

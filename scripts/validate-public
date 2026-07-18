@@ -1,0 +1,67 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import json
+from pathlib import Path
+import re
+import shutil
+import subprocess
+import sys
+
+
+def fail(message: str) -> None:
+    raise SystemExit(f"FAIL: {message}")
+
+
+if len(sys.argv) != 2 or sys.argv[1] not in ("--pre-public", "--post-public"):
+    fail("usage: scripts/validate-public <--pre-public|--post-public>")
+
+root = Path(__file__).resolve().parent.parent
+allowlist = json.loads((root / "release/public-allowlist.json").read_text(encoding="utf-8"))["paths"]
+manifest_path = root / "release/public-build-manifest.json"
+if manifest_path.exists():
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest_paths = [entry["path"] for entry in manifest.get("files", [])]
+    if manifest_paths != allowlist:
+        fail("generated manifest order or inventory differs from allowlist")
+
+for forbidden in ("evidence/raw", "backups", "runtime", ".env", "reports/FINAL-REPORT.md"):
+    if any(path == forbidden or path.startswith(forbidden + "/") for path in allowlist):
+        fail(f"protected path is allowlisted: {forbidden}")
+
+text_suffixes = {".md", ".php", ".py", ".yml", ".yaml", ".json", ".txt", ".example", ""}
+secret_patterns = [
+    re.compile(r"-----BEGIN (?:OPENSSH|RSA|EC|DSA) PRIVATE KEY-----"),
+    re.compile(r"(?i)authorization\s*:\s*bearer\s+[a-z0-9._-]{12,}"),
+    re.compile(r"(?i)(?:api[_-]?key|token|password|secret)\s*=\s*[^<\s][^\s]{7,}"),
+    re.compile("/" + "home/" + r"[^/<\s]+/"),
+]
+for relative in allowlist:
+    path = root / relative
+    if not path.is_file():
+        fail(f"allowlisted file is missing: {relative}")
+    if path.suffix.lower() not in text_suffixes and path.name not in ("ci", "build-public-release", "validate-public"):
+        continue
+    try:
+        text = path.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        continue
+    for pattern in secret_patterns:
+        if pattern.search(text):
+            fail(f"public-bound secret or owner-path pattern in {relative}")
+
+if shutil.which("php"):
+    subprocess.run(["php", "plugin/oddroom-orderops/tests/run.php"], cwd=root, check=True)
+elif shutil.which("docker"):
+    subprocess.run([
+        "docker", "run", "--rm", "--volume", f"{root}:/workspace:ro",
+        "--workdir", "/workspace", "php:8.3-cli",
+        "php", "plugin/oddroom-orderops/tests/run.php",
+    ], check=True)
+else:
+    fail("PHP 8.1+ or Docker is required for plugin tests")
+
+if sys.argv[1] == "--post-public":
+    fail("post-public observations do not exist before the ordered release step")
+
+print("PASS: pre-public tree, protected-path, credential-pattern, and unit checks")
