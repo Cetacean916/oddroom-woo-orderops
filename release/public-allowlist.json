@@ -18,6 +18,7 @@
     "docs/ERROR-CODES.md",
     "docs/INPUT-INVENTORY.md",
     "infra/compose.yaml",
+    "infra/nginx.conf",
     "plugin/oddroom-orderops/assets/css/storefront.css",
     "plugin/oddroom-orderops/assets/fonts/DoHyeon-Regular.woff2",
     "plugin/oddroom-orderops/assets/fonts/NotoSansKR-Bold.woff2",

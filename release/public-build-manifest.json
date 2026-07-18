@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "builder_sha256": "74d6cc6db4a88be6fa427656fb44e121aaeedc3d908c26b60091d60e52f91a31",
-  "allowlist_sha256": "efa9ae7b096ef4daf4d8d238b0a8c2a4887ffb6ada4b8805eb4108217edf54a1",
+  "allowlist_sha256": "5883aad60f81dc5c412a02e25fdff399b3798b5a000f768dbd7dcba50bd46e25",
   "files": [
     {
       "path": ".env.example",
       "mode": "0644",
-      "sha256": "7cda01cc8183a41551dbb9c0a036ddb84f472b112246132e638d299354d02497"
+      "sha256": "ace1db68c8972218ba4485a7443363871cfe6ed5eea4384f63d39a0b84aaa309"
     },
     {
       "path": ".github/workflows/ci.yml",
@@ -51,12 +51,12 @@
     {
       "path": "THIRD_PARTY_NOTICES.md",
       "mode": "0644",
-      "sha256": "53cb2714b14baad5ed75608c888b1de77121e4ba848500da79b79b991c9b6985"
+      "sha256": "ca452a7c914b0b0992e5a201ee7d9ffcdd435bd50ea14b217283761079e381e9"
     },
     {
       "path": "docs/ARCHITECTURE.md",
       "mode": "0644",
-      "sha256": "9275aa8fc9785ba9971cca1f54d9f046ee77e8df4d4b8ea5ac5aac7d81ad701e"
+      "sha256": "5876b59054710a0a17ad92a3b295261312476722bf1412ebc0c8cdc27b6f3185"
     },
     {
       "path": "docs/CREDENTIAL-HANDLING.md",
@@ -71,7 +71,7 @@
     {
       "path": "docs/ENVIRONMENT.md",
       "mode": "0644",
-      "sha256": "5cb12fee5d1dc734911fe3b5e1b173536fbb06fbc8fe2b04b43867384e6aca00"
+      "sha256": "02cb32cc3ed609594e25357342d810cf08db01c836e1161a7349baee3436532a"
     },
     {
       "path": "docs/ERROR-CODES.md",
@@ -86,7 +86,12 @@
     {
       "path": "infra/compose.yaml",
       "mode": "0644",
-      "sha256": "4d2ae554041c03c3e80197a123192e55e75833d171de6ca4eb22b90c41c2eb04"
+      "sha256": "2609bca987b877c5d64f55f431b28cab559a51eb9d0938c83338752063e1810e"
+    },
+    {
+      "path": "infra/nginx.conf",
+      "mode": "0644",
+      "sha256": "b0c7f9f7c02cbd3ac387868945f879c5fe2dc8673ec7230f2d9bf2d881368faf"
     },
     {
       "path": "plugin/oddroom-orderops/assets/css/storefront.css",
@@ -146,7 +151,7 @@
     {
       "path": "plugin/oddroom-orderops/includes/class-oddroom-faults.php",
       "mode": "0644",
-      "sha256": "af2e340b219571a5f2965cbe5669137fdcf58b08c73856bc67996bec8a39e6b9"
+      "sha256": "32386821e9cdd09ae58a7e1a451641d76dbc173758ed973a1135b37eed142bbe"
     },
     {
       "path": "plugin/oddroom-orderops/includes/class-oddroom-installer.php",
@@ -166,7 +171,7 @@
     {
       "path": "plugin/oddroom-orderops/includes/class-oddroom-repository.php",
       "mode": "0644",
-      "sha256": "44babd5f00f0ce9b30317724767c4a9802095ba7271f04ec4d111d9833c7bf8e"
+      "sha256": "104dbc270b67657b24a534259f39ec02dd2866c19c229e790e724e13cbb36682"
     },
     {
       "path": "plugin/oddroom-orderops/includes/class-oddroom-retry-policy.php",
@@ -176,7 +181,7 @@
     {
       "path": "plugin/oddroom-orderops/includes/class-oddroom-scheduler.php",
       "mode": "0644",
-      "sha256": "253f0f37ea92722cfd280792cdc8a0c91f9a3b5ff7234903ee4d65d20f7fb163"
+      "sha256": "21e6a79e4734822a6a8b6bfa8fdb302d891b34f2f0827ee570d697bc2c07c40e"
     },
     {
       "path": "plugin/oddroom-orderops/includes/class-oddroom-signature.php",
@@ -196,7 +201,7 @@
     {
       "path": "plugin/oddroom-orderops/includes/class-oddroom-worker.php",
       "mode": "0644",
-      "sha256": "c72c33b46c04a1902bb7fdb0b82813fd0999a70abf13b8072537046d5cbdc9c7"
+      "sha256": "8ab9343d081873abe6b85035946cbb07742866b775fd74d5feb64505b2921235"
     },
     {
       "path": "plugin/oddroom-orderops/oddroom-orderops.php",
@@ -211,12 +216,12 @@
     {
       "path": "plugin/oddroom-orderops/uninstall.php",
       "mode": "0644",
-      "sha256": "5ff1df598ce9d82fd2f6ec301bdbdfae145fcd20992f1f6a3f5087d343335146"
+      "sha256": "5eddcc10d5223a5fe5660205d7ec5193238891f5a19ee00239213b1e869892c7"
     },
     {
       "path": "release/public-allowlist.json",
       "mode": "0644",
-      "sha256": "efa9ae7b096ef4daf4d8d238b0a8c2a4887ffb6ada4b8805eb4108217edf54a1"
+      "sha256": "5883aad60f81dc5c412a02e25fdff399b3798b5a000f768dbd7dcba50bd46e25"
     },
     {
       "path": "scripts/build-public-release",
@@ -271,7 +276,7 @@
     {
       "path": "tests/test_vsl_contract.py",
       "mode": "0755",
-      "sha256": "abfa7e57e1f9ea56d63b68f71ea851f27d31e3731db1116df1956c6f62cbb2e1"
+      "sha256": "d751a63beb0e7335d7f34cfcd406b154cc0b6fc704b505b1675adbb687a1fa76"
     },
     {
       "path": "tests/ui_quality.mjs",

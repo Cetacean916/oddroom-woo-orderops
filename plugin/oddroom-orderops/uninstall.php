@@ -8,8 +8,26 @@ if (!defined('ODDROOM_ORDEROPS_REMOVE_DATA') || ODDROOM_ORDEROPS_REMOVE_DATA !==
 
 global $wpdb;
 
-if (function_exists('as_unschedule_all_actions')) {
-    as_unschedule_all_actions('oddroom_orderops_process', [], 'oddroom-orderops');
+if (function_exists('as_get_scheduled_actions') && class_exists('ActionScheduler')) {
+    $actionIds = [];
+    foreach (['pending', 'in-progress'] as $status) {
+        foreach (as_get_scheduled_actions([
+            'hook' => 'oddroom_orderops_process',
+            'group' => 'oddroom-orderops',
+            'status' => $status,
+            'per_page' => -1,
+            'orderby' => 'none',
+        ], 'ids') as $actionId) {
+            $actionIds[(int) $actionId] = true;
+        }
+    }
+    foreach (array_keys($actionIds) as $actionId) {
+        try {
+            ActionScheduler::store()->cancel_action($actionId);
+        } catch (Throwable $error) {
+            // Exact table removal remains authoritative for the opt-in uninstall.
+        }
+    }
 }
 wp_clear_scheduled_hook('oddroom_orderops_reconcile_hourly');
 wp_clear_scheduled_hook('oddroom_orderops_fault_cleanup');

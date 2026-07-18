@@ -14,6 +14,8 @@ WooCommerce order fact
 
 WordPress owns retry and recovery state. n8n has no independent retry loop. The outbox is the only business delivery ledger, while the order lease table stores coordination state only.
 
+The on-demand HTTPS route terminates at a pinned nginx ingress. Only the storefront and `/webhook/oddroom-orderops-v1` are routed; WordPress administration and the n8n editor remain private. nginx buffers and caps the raw request before proxying, while n8n verifies HMAC against the unchanged bytes before decoding JSON or reaching any external node.
+
 Every external effect is fenced by the current outbox lock token and serialized by shop and order. Remote identifiers and Slack timestamps are write-once checkpoints. Ambiguous Slack transmission moves the row to protected operator review instead of automatic retry.
 
 ## Slack response-loss boundary

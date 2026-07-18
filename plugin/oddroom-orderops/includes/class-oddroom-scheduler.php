@@ -57,10 +57,10 @@ final class OddRoom_Scheduler
     {
         $identity = self::runtimeIdentity();
         if (!$identity['initialized']) {
-            return ['ok' => false, 'code' => 'ACTION_SCHEDULER_NOT_READY'] + $identity;
+            return self::healthFailure('ACTION_SCHEDULER_NOT_READY', $identity);
         }
         if ($identity['version'] === null || version_compare($identity['version'], '4.0.0', '<')) {
-            return ['ok' => false, 'code' => 'ACTION_SCHEDULER_VERSION_UNSUPPORTED'] + $identity;
+            return self::healthFailure('ACTION_SCHEDULER_VERSION_UNSUPPORTED', $identity);
         }
         if ($requirePreflight) {
             $record = get_option(self::PREFLIGHT_OPTION);
@@ -69,10 +69,29 @@ final class OddRoom_Scheduler
                 && ($record['version'] ?? null) === $identity['version']
                 && ($record['source'] ?? null) === $identity['source'];
             if (!$matches) {
-                return ['ok' => false, 'code' => 'ACTION_SCHEDULER_PREFLIGHT_REQUIRED'] + $identity;
+                return self::healthFailure('ACTION_SCHEDULER_PREFLIGHT_REQUIRED', $identity);
             }
         }
+        self::clearSchedulerHealth();
         return ['ok' => true, 'code' => null] + $identity;
+    }
+
+    private static function healthFailure(string $code, array $identity): array
+    {
+        update_option('oddroom_orderops_health_error', $code, false);
+        return ['ok' => false, 'code' => $code] + $identity;
+    }
+
+    private static function clearSchedulerHealth(): void
+    {
+        $current = get_option('oddroom_orderops_health_error');
+        if (in_array($current, [
+            'ACTION_SCHEDULER_NOT_READY',
+            'ACTION_SCHEDULER_VERSION_UNSUPPORTED',
+            'ACTION_SCHEDULER_PREFLIGHT_REQUIRED',
+        ], true)) {
+            update_option('oddroom_orderops_health_error', '', false);
+        }
     }
 
     public static function runPreflight(): array
@@ -172,6 +191,27 @@ final class OddRoom_Scheduler
             }
         }
         return $actionId;
+    }
+
+    public static function deferContentionRequeue(int $rowId, int $actionId): void
+    {
+        if ($rowId < 1 || $actionId < 1) {
+            return;
+        }
+        register_shutdown_function(static function () use ($rowId, $actionId): void {
+            $row = OddRoom_Repository::find($rowId);
+            if (!$row
+                || (int) ($row->action_id ?? 0) !== $actionId
+                || $row->lock_token !== null
+                || !in_array((string) $row->status, ['pending', 'retry_wait'], true)
+                || self::exactCandidates(self::HOOK, $rowId) !== []) {
+                return;
+            }
+            if (!OddRoom_Repository::unlinkCompletedAction($rowId, $actionId)) {
+                return;
+            }
+            self::scheduleBusiness($rowId, time() + 2);
+        });
     }
 
     public static function exactCandidates(string $hook, int $rowId): array

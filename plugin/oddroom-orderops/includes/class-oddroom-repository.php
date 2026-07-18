@@ -163,6 +163,20 @@ final class OddRoom_Repository
         return $updated === 1;
     }
 
+    public static function unlinkCompletedAction(int $rowId, int $actionId): bool
+    {
+        global $wpdb;
+        $table = OddRoom_Installer::outboxTable();
+        $updated = $wpdb->query($wpdb->prepare(
+            "UPDATE {$table} SET action_id = NULL, updated_at = UTC_TIMESTAMP(6)
+             WHERE id = %d AND action_id = %d AND lock_token IS NULL
+               AND (status = 'pending' OR (status = 'retry_wait' AND next_attempt_at <= UTC_TIMESTAMP(6)))",
+            $rowId,
+            $actionId
+        ));
+        return $updated === 1;
+    }
+
     public static function recordSchedulingError(int $rowId, string $code, bool $terminal): void
     {
         global $wpdb;

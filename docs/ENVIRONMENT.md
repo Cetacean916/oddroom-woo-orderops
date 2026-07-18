@@ -8,9 +8,13 @@
 - GitHub CLI: `2.45.0`
 - WordPress CLI container: `2.12.0`
 - n8n Community container selected for project creation: `2.25.7`
+- nginx staging ingress image: `nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10`
+- ngrok agent: `3.39.9`, installed in the owner user executable path because host passwordless sudo is unavailable
 - Queue runner mode: `FOREGROUND_WP_CLI`
 - Hosting mode: `ON_DEMAND_HTTPS_TUNNEL`
 - n8n restore mode: `REPROVISIONED_RESTORE`
+
+The ingress exposes the storefront and the exact production webhook only. It keeps WordPress administration and the n8n editor off the public route, forwards the observed HTTPS scheme, and rejects request bodies above `262144` bytes before n8n executes. Host ports are parameterized so the original, compatibility, and restored Compose projects cannot collide.
 
 ## Initialized project runtime
 

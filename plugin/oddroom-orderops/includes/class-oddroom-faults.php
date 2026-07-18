@@ -7,10 +7,14 @@ final class OddRoom_Faults
     public const BEFORE_SLACK_POST = 'BEFORE_SLACK_POST';
     public const SUPPRESS_OUTBOX_INSERT = 'SUPPRESS_OUTBOX_INSERT';
     public const SUPPRESS_SCHEDULE = 'SUPPRESS_SCHEDULE';
+    public const PAUSE_AFTER_CLAIM = 'PAUSE_AFTER_CLAIM';
+    public const PAUSE_AFTER_DISPATCH = 'PAUSE_AFTER_DISPATCH';
     private const TYPES = [
         self::BEFORE_SLACK_POST,
         self::SUPPRESS_OUTBOX_INSERT,
         self::SUPPRESS_SCHEDULE,
+        self::PAUSE_AFTER_CLAIM,
+        self::PAUSE_AFTER_DISPATCH,
     ];
 
     public static function boot(): void

@@ -4,6 +4,7 @@ defined('ABSPATH') || defined('ODDROOM_ORDEROPS_TESTING') || exit;
 
 final class OddRoom_Worker
 {
+    private const TEST_PAUSE_SECONDS = 120;
     private const ALLOWED_RESULTS = [
         'completed', 'duplicate_noop', 'stale_ignored',
         'retryable_error', 'operator_review', 'terminal_error',
@@ -32,15 +33,20 @@ final class OddRoom_Worker
 
             $claim = OddRoom_Repository::claim($rowId, $executionId);
             if (!$claim) {
+                OddRoom_Scheduler::deferContentionRequeue($rowId, $executionId);
                 return;
             }
             $claimed = $claim['row'];
             $rowToken = $claim['row_token'];
             $leaseToken = $claim['lease_token'];
 
+            self::pauseForCrashFixture($claimed, OddRoom_Faults::PAUSE_AFTER_CLAIM);
+
             if (!OddRoom_Repository::markDispatched($claimed, $rowToken, $leaseToken)) {
                 return;
             }
+
+            self::pauseForCrashFixture($claimed, OddRoom_Faults::PAUSE_AFTER_DISPATCH);
 
             $timestamp = time();
             $secret = self::secret();
@@ -242,5 +248,19 @@ final class OddRoom_Worker
             'error_code' => $errorCode,
             'observed_at_utc' => gmdate('c'),
         ], false);
+    }
+
+    private static function pauseForCrashFixture(object $row, string $faultType): void
+    {
+        if (!OddRoom_Repository::testMode()) {
+            return;
+        }
+        if (OddRoom_Faults::isActiveForEvent(
+            (int) $row->order_id,
+            (string) $row->event_type,
+            $faultType
+        )) {
+            sleep(self::TEST_PAUSE_SECONDS);
+        }
     }
 }

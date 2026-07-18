@@ -9,6 +9,7 @@ import re
 ROOT = Path(__file__).resolve().parent.parent
 WORKFLOW = json.loads((ROOT / "workflow/oddroom-orderops-vsl.json").read_text(encoding="utf-8"))
 COMPOSE = (ROOT / "infra/compose.yaml").read_text(encoding="utf-8")
+NGINX = (ROOT / "infra/nginx.conf").read_text(encoding="utf-8")
 PLUGIN = "\n".join(
     path.read_text(encoding="utf-8")
     for path in sorted((ROOT / "plugin/oddroom-orderops").rglob("*.php"))
@@ -79,11 +80,15 @@ require(not re.search(r"Bearer\\s+[A-Za-z0-9._-]{12,}", code), "Bearer credentia
 
 for digest in (
     "wordpress@sha256:", "mariadb@sha256:", "docker.n8n.io/n8nio/n8n@sha256:",
-    "n8nio/runners@sha256:",
+    "n8nio/runners@sha256:", "nginx@sha256:",
 ):
     require(digest in COMPOSE, f"container digest is not pinned: {digest}")
-require('"127.0.0.1:18081:80"' in COMPOSE, "WordPress is not loopback-bound")
-require('"127.0.0.1:15678:5678"' in COMPOSE, "n8n editor is not loopback-bound")
+require('"127.0.0.1:${PF07_WORDPRESS_PORT:-18081}:80"' in COMPOSE, "WordPress is not loopback-bound")
+require('"127.0.0.1:${PF07_N8N_PORT:-15678}:5678"' in COMPOSE, "n8n editor is not loopback-bound")
+require('"127.0.0.1:${PF07_PUBLIC_PORT:-18080}:8080"' in COMPOSE, "public ingress is not loopback-bound")
+require("client_max_body_size 256k;" in NGINX, "ingress raw-body cap changed")
+require("location = /webhook/oddroom-orderops-v1" in NGINX, "production webhook route changed")
+require("wp-admin" in NGINX and "wp-login" in NGINX and "return 404;" in NGINX, "WordPress administration is exposed by ingress")
 require("SLACK_CHANNEL_ID" in COMPOSE, "Slack destination fact is not runtime-bound")
 owner_home_paths = set(re.findall("/" + r"home/[^/<\s]+(?:/[^<\s]*)?", COMPOSE))
 require(owner_home_paths == {"/" + "home/node/.n8n"}, "compose contains a non-canonical owner-home path")
@@ -100,6 +105,9 @@ require("expires_at>UTC_TIMESTAMP(6)" in PLUGIN, "database-clock fault expiry au
 require("INTERVAL %d MINUTE" in PLUGIN and "$minutes > 30" in PLUGIN, "fault expiry is not bounded to 30 minutes")
 require("public const GROUP = 'oddroom-orderops'" in PLUGIN, "scheduler group changed")
 require("[$rowId]" in PLUGIN, "canonical positional integer argument path is absent")
+require("deferContentionRequeue" in PLUGIN, "order-lease contention does not defer a replacement action")
+require("unlinkCompletedAction" in PLUGIN, "completed contending actions cannot be unlinked atomically")
+require("register_shutdown_function" in PLUGIN, "contention requeue runs before Action Scheduler completes the old action")
 for hook in (
     "woocommerce_payment_complete",
     "woocommerce_order_status_cancelled",
