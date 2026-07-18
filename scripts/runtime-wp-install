@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+project_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+compose=(docker compose --env-file "$project_root/runtime/runtime.env" -f "$project_root/infra/compose.yaml" -p pf07-orderops-original)
+
+"${compose[@]}" up -d db wordpress n8n task-runners
+
+for _ in $(seq 1 60); do
+  if curl -fsS --max-time 2 http://127.0.0.1:18081/ >/dev/null 2>&1; then
+    break
+  fi
+  sleep 2
+done
+curl -fsS --max-time 5 http://127.0.0.1:18081/ >/dev/null
+
+if ! "${compose[@]}" --profile tools run --rm wpcli core is-installed >/dev/null 2>&1; then
+  admin_password=$(tr -d '\r\n' < "$project_root/runtime/secrets/wordpress_admin_password")
+  "${compose[@]}" --profile tools run --rm -T wpcli core install \
+    --url=http://127.0.0.1:18081 \
+    --title='OddRoom OrderOps Staging' \
+    --admin_user=oddroom-operator \
+    --admin_email=pf07-admin@example.com \
+    --admin_password="$admin_password" \
+    --skip-email
+fi
+
+"${compose[@]}" --profile tools run --rm wpcli core update --version=7.0.2 --force
+"${compose[@]}" --profile tools run --rm wpcli core update-db
+"${compose[@]}" --profile tools run --rm wpcli option update blog_public 0
+"${compose[@]}" --profile tools run --rm wpcli option update timezone_string Asia/Seoul
+"${compose[@]}" --profile tools run --rm wpcli option update permalink_structure '/%postname%/'
+"${compose[@]}" --profile tools run --rm wpcli rewrite flush --hard
+"${compose[@]}" --profile tools run --rm wpcli plugin install \
+  https://github.com/woocommerce/action-scheduler/releases/download/4.0.0/action-scheduler.zip \
+  --activate --force
+"${compose[@]}" --profile tools run --rm wpcli plugin install woocommerce --version=10.9.4 --activate --force
+"${compose[@]}" --profile tools run --rm wpcli option update woocommerce_currency KRW
+"${compose[@]}" --profile tools run --rm wpcli option update woocommerce_enable_guest_checkout yes
+"${compose[@]}" --profile tools run --rm wpcli plugin activate oddroom-orderops
+"${compose[@]}" --profile tools run --rm wpcli oddroom-orderops preflight
+"${compose[@]}" --profile tools run --rm wpcli oddroom-orderops environment

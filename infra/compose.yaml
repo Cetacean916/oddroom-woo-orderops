@@ -1,0 +1,137 @@
+name: pf07-orderops
+
+services:
+  db:
+    image: mariadb@sha256:a794d9eb009e20de605858a11f32f63b4075cbd197c650436f0e3b457e4caed7
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: oddroom_orderops
+      MARIADB_USER: oddroom
+      MARIADB_PASSWORD: ${PF07_DB_PASSWORD:?runtime material is required}
+      MARIADB_ROOT_PASSWORD: ${PF07_DB_ROOT_PASSWORD:?runtime material is required}
+      TZ: UTC
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-time-zone=+00:00
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "healthcheck.sh --connect --innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    networks: [private]
+
+  wordpress:
+    image: wordpress@sha256:d40b86dbdfcfad808a2029acf6543c670c4a61c29f70b9d24605e7d0b31ab83d
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_USER: oddroom
+      WORDPRESS_DB_PASSWORD: ${PF07_DB_PASSWORD:?runtime material is required}
+      WORDPRESS_DB_NAME: oddroom_orderops
+      WORDPRESS_TABLE_PREFIX: wp_
+      WORDPRESS_DEBUG: "1"
+      WORDPRESS_CONFIG_EXTRA: |
+        define('WP_ENVIRONMENT_TYPE', 'staging');
+        define('DISALLOW_FILE_EDIT', true);
+        define('WP_DEBUG_LOG', true);
+        define('WP_DEBUG_DISPLAY', false);
+        define('ODDROOM_ORDEROPS_SHOP_INSTANCE_ID', getenv('ODDROOM_SHOP_INSTANCE_ID'));
+        define('ODDROOM_ORDEROPS_RUN_ID', getenv('ODDROOM_RUN_ID'));
+        define('ODDROOM_ORDEROPS_WEBHOOK_URL', getenv('ODDROOM_WEBHOOK_URL'));
+        define('ODDROOM_ORDEROPS_TEST_MODE', true);
+      ODDROOM_SHOP_INSTANCE_ID: ${ODDROOM_SHOP_INSTANCE_ID:?runtime material is required}
+      ODDROOM_RUN_ID: ${ODDROOM_RUN_ID:?runtime material is required}
+      ODDROOM_WEBHOOK_URL: http://n8n:5678/webhook/oddroom-orderops-v1
+      ODDROOM_WEBHOOK_HMAC_KEY: ${ODDROOM_WEBHOOK_HMAC_KEY:?runtime material is required}
+      ODDROOM_TEST_MODE: "true"
+      TZ: UTC
+    volumes:
+      - wordpress_data:/var/www/html
+      - ../plugin/oddroom-orderops:/var/www/html/wp-content/plugins/oddroom-orderops:ro
+    ports:
+      - "127.0.0.1:18081:80"
+    networks: [private]
+
+  wpcli:
+    image: wordpress@sha256:f8aeb68164c6a04f5dcc91da30d8ffa096b0f7fafb7a65f144c2dd62587caca0
+    user: "33:33"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_USER: oddroom
+      WORDPRESS_DB_PASSWORD: ${PF07_DB_PASSWORD:?runtime material is required}
+      WORDPRESS_DB_NAME: oddroom_orderops
+      ODDROOM_SHOP_INSTANCE_ID: ${ODDROOM_SHOP_INSTANCE_ID:?runtime material is required}
+      ODDROOM_RUN_ID: ${ODDROOM_RUN_ID:?runtime material is required}
+      ODDROOM_WEBHOOK_URL: http://n8n:5678/webhook/oddroom-orderops-v1
+      ODDROOM_WEBHOOK_HMAC_KEY: ${ODDROOM_WEBHOOK_HMAC_KEY:?runtime material is required}
+      ODDROOM_TEST_MODE: "true"
+      TZ: UTC
+    volumes:
+      - wordpress_data:/var/www/html
+      - ../plugin/oddroom-orderops:/var/www/html/wp-content/plugins/oddroom-orderops:ro
+    entrypoint: ["wp"]
+    networks: [private]
+    profiles: [tools]
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n@sha256:761374d4eb841b0a22771d6bd68f0e8d827b4979ae4e490045517b13fc1259dd
+    restart: unless-stopped
+    environment:
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:?runtime material is required}
+      N8N_RUNNERS_MODE: external
+      N8N_RUNNERS_BROKER_LISTEN_ADDRESS: 0.0.0.0
+      N8N_RUNNERS_AUTH_TOKEN: ${N8N_RUNNERS_AUTH_TOKEN:?runtime material is required}
+      N8N_NATIVE_PYTHON_RUNNER: "true"
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
+      N8N_DIAGNOSTICS_ENABLED: "false"
+      N8N_VERSION_NOTIFICATIONS_ENABLED: "false"
+      N8N_PERSONALIZATION_ENABLED: "false"
+      N8N_TEMPLATES_ENABLED: "false"
+      N8N_DEFAULT_BINARY_DATA_MODE: filesystem
+      N8N_EXECUTIONS_DATA_SAVE_ON_SUCCESS: all
+      N8N_EXECUTIONS_DATA_SAVE_ON_ERROR: all
+      EXECUTIONS_TIMEOUT: "300"
+      EXECUTIONS_TIMEOUT_MAX: "300"
+      GENERIC_TIMEZONE: UTC
+      TZ: UTC
+      WEBHOOK_URL: http://127.0.0.1:15678/
+      ODDROOM_WEBHOOK_HMAC_KEY: ${ODDROOM_WEBHOOK_HMAC_KEY:?runtime material is required}
+      HUBSPOT_RUNTIME_TOKEN: ${HUBSPOT_RUNTIME_TOKEN:?runtime material is required}
+      HUBSPOT_PIPELINE_ID: ${HUBSPOT_PIPELINE_ID:?runtime material is required}
+      HUBSPOT_INITIAL_STAGE_ID: ${HUBSPOT_INITIAL_STAGE_ID:?runtime material is required}
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ../workflow:/workspace/workflow:ro
+    ports:
+      - "127.0.0.1:15678:5678"
+    networks: [private]
+
+  task-runners:
+    image: n8nio/runners@sha256:d890fe221de44d75e1900eaf83f4499ad63503bfcc97cb04f0abfe5bc48bc0a6
+    restart: unless-stopped
+    depends_on: [n8n]
+    environment:
+      N8N_RUNNERS_TASK_BROKER_URI: http://n8n:5679
+      N8N_RUNNERS_AUTH_TOKEN: ${N8N_RUNNERS_AUTH_TOKEN:?runtime material is required}
+      N8N_RUNNERS_AUTO_SHUTDOWN_TIMEOUT: "0"
+      N8N_RUNNERS_TASK_TIMEOUT: "300"
+    networks: [private]
+
+volumes:
+  mariadb_data:
+  wordpress_data:
+  n8n_data:
+
+networks:
+  private:
+    internal: false

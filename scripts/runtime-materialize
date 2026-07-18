@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 2 ]]; then
+  echo "usage: scripts/runtime-materialize READINESS_JSON RUN_ID" >&2
+  exit 64
+fi
+
+readiness_file=$1
+run_id=$2
+project_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+runtime_dir="$project_root/runtime"
+secret_dir="$runtime_dir/secrets"
+
+[[ -f "$readiness_file" ]] || { echo "readiness file is missing" >&2; exit 66; }
+[[ "$run_id" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ ]] || {
+  echo "RUN_ID is not a UUIDv4" >&2
+  exit 65
+}
+
+umask 077
+mkdir -p "$secret_dir"
+
+locator() {
+  jq -er --arg alias "$1" '.credential_locators[$alias]' "$readiness_file"
+}
+
+copy_locator() {
+  local alias=$1
+  local destination=$2
+  local source_path
+  source_path=$(locator "$alias")
+  [[ -f "$source_path" && -s "$source_path" ]] || { echo "$alias locator is unavailable" >&2; exit 66; }
+  install -m 600 "$source_path" "$destination"
+}
+
+copy_locator WEBHOOK_HMAC_KEY "$secret_dir/webhook_hmac_key"
+copy_locator N8N_ENCRYPTION_KEY "$secret_dir/n8n_encryption_key"
+copy_locator HUBSPOT_RUNTIME_TOKEN "$secret_dir/hubspot_runtime_token"
+copy_locator WORDPRESS_ADMIN_PASSWORD "$secret_dir/wordpress_admin_password"
+
+db_password=$(openssl rand -hex 32)
+db_root_password=$(openssl rand -hex 32)
+runner_token=$(openssl rand -hex 32)
+n8n_key=$(tr -d '\r\n' < "$secret_dir/n8n_encryption_key")
+hmac_key=$(tr -d '\r\n' < "$secret_dir/webhook_hmac_key")
+hubspot_token=$(tr -d '\r\n' < "$secret_dir/hubspot_runtime_token")
+shop_id=$(jq -er '.SHOP_INSTANCE_ID' "$readiness_file")
+pipeline_id=$(jq -er '.hubspot.pipeline_internal_id' "$readiness_file")
+stage_id=$(jq -er '.hubspot.initial_stage_internal_id' "$readiness_file")
+
+for value_name in n8n_key hmac_key hubspot_token shop_id pipeline_id stage_id; do
+  [[ -n "${!value_name}" && "${!value_name}" != *$'\n'* ]] || { echo "invalid runtime value: $value_name" >&2; exit 65; }
+done
+
+runtime_env="$runtime_dir/runtime.env"
+{
+  printf 'PF07_DB_PASSWORD=%s\n' "$db_password"
+  printf 'PF07_DB_ROOT_PASSWORD=%s\n' "$db_root_password"
+  printf 'N8N_RUNNERS_AUTH_TOKEN=%s\n' "$runner_token"
+  printf 'N8N_ENCRYPTION_KEY=%s\n' "$n8n_key"
+  printf 'ODDROOM_WEBHOOK_HMAC_KEY=%s\n' "$hmac_key"
+  printf 'HUBSPOT_RUNTIME_TOKEN=%s\n' "$hubspot_token"
+  printf 'ODDROOM_SHOP_INSTANCE_ID=%s\n' "$shop_id"
+  printf 'ODDROOM_RUN_ID=%s\n' "$run_id"
+  printf 'HUBSPOT_PIPELINE_ID=%s\n' "$pipeline_id"
+  printf 'HUBSPOT_INITIAL_STAGE_ID=%s\n' "$stage_id"
+} > "$runtime_env"
+chmod 600 "$runtime_env"
+
+printf 'runtime material ready: mode=%s aliases=%s\n' \
+  "$(stat -c '%a' "$runtime_env")" \
+  "WEBHOOK_HMAC_KEY,N8N_ENCRYPTION_KEY,HUBSPOT_RUNTIME_TOKEN,WORDPRESS_ADMIN_PASSWORD"

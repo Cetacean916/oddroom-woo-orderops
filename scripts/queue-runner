@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+project_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+compose_project=${PF07_COMPOSE_PROJECT:-pf07-orderops-original}
+poll_seconds=${PF07_QUEUE_POLL_SECONDS:-5}
+mode=${1:---loop}
+
+[[ "$poll_seconds" =~ ^[1-9][0-9]*$ ]] || { echo "PF07_QUEUE_POLL_SECONDS must be a positive integer" >&2; exit 64; }
+[[ "$mode" == "--loop" || "$mode" == "--once" ]] || { echo "usage: scripts/queue-runner [--loop|--once]" >&2; exit 64; }
+
+compose=(
+  docker compose
+  --env-file "$project_root/runtime/runtime.env"
+  -f "$project_root/infra/compose.yaml"
+  -p "$compose_project"
+)
+
+run_once() {
+  "${compose[@]}" --profile tools run --rm wpcli oddroom-orderops recover
+  "${compose[@]}" --profile tools run --rm wpcli action-scheduler run \
+    --hooks=oddroom_orderops_process \
+    --batch-size=25 \
+    --batches=1 \
+    --force
+}
+
+if [[ "$mode" == "--once" ]]; then
+  run_once
+  exit 0
+fi
+
+while true; do
+  run_once
+  sleep "$poll_seconds"
+done

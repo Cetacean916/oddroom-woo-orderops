@@ -12,7 +12,21 @@
 - Hosting mode: `ON_DEMAND_HTTPS_TUNNEL`
 - n8n restore mode: `REPROVISIONED_RESTORE`
 
-The exact initialized WordPress, WooCommerce, PHP, Action Scheduler version and loaded-source identity remain intentionally unclaimed until the project runtime exists. They must be recorded and pass the argument-aware uniqueness preflight before the first PF07 business action is scheduled.
+## Initialized project runtime
+
+Observed before the first PF07 business action was scheduled:
+
+- WordPress: `7.0.2`
+- WooCommerce: `10.9.4`
+- PHP: `8.3.32`
+- Initialized Action Scheduler: `4.0.0`
+- Normalized loaded Action Scheduler source: `plugin:action-scheduler/`
+- WordPress database schema: `61833`
+- Outbox and order-lease engines: `InnoDB`
+- Database clock: UTC with microsecond precision
+
+Compatibility is satisfied: WooCommerce 10.9.4 requires WordPress 6.9 or later and PHP 7.4 or later; Action Scheduler 4.0.0 requires WordPress 6.8 or later and PHP 7.2 or later. The selected versions exceed each minimum.
+
+The isolated argument-aware uniqueness preflight passed against this exact initialized version/source identity. Synthetic row IDs `101` and `102` received distinct non-zero action IDs with one exact pending/in-progress candidate each. A duplicate unique schedule for row `101` returned raw ID `0`, the exact resolver reused the original ID, and cancellation left zero candidates. It inserted or changed no business row and consumed no business attempt or lease. Any loaded version/source change invalidates this result and keeps business scheduling disabled until the preflight passes again.
 
 No system-wide package was installed during bootstrap. Host passwordless sudo is unavailable and is not required by the selected container and user-scope path.
-

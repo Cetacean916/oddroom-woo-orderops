@@ -5,6 +5,21 @@ project_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$project_root"
 
 python3 tests/test_public_builder.py
+python3 tests/test_vsl_contract.py
+jq -e . workflow/oddroom-orderops-vsl.json >/dev/null
+bash -n scripts/ci scripts/queue-runner scripts/runtime-materialize scripts/runtime-wp-install
+
+PF07_DB_PASSWORD=x \
+PF07_DB_ROOT_PASSWORD=x \
+N8N_RUNNERS_AUTH_TOKEN=x \
+N8N_ENCRYPTION_KEY=x \
+ODDROOM_WEBHOOK_HMAC_KEY=x \
+HUBSPOT_RUNTIME_TOKEN=x \
+ODDROOM_SHOP_INSTANCE_ID=pf07-synthetic \
+ODDROOM_RUN_ID=00000000-0000-4000-8000-000000000000 \
+HUBSPOT_PIPELINE_ID=default \
+HUBSPOT_INITIAL_STAGE_ID=appointmentscheduled \
+docker compose -f infra/compose.yaml config --quiet
 
 if command -v php >/dev/null 2>&1; then
   while IFS= read -r file; do

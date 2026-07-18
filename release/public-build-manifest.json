@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "builder_sha256": "74d6cc6db4a88be6fa427656fb44e121aaeedc3d908c26b60091d60e52f91a31",
-  "allowlist_sha256": "ea84e99952510ecbb1a1c12e862479b8683e7c680fdf8606f546d16bd1e2eb74",
+  "allowlist_sha256": "bcfadfa265348bd9025226a22797b8141d4f4f5a5fa5d90d31c7de6fefa62344",
   "files": [
     {
       "path": ".env.example",
       "mode": "0644",
-      "sha256": "fda1a5cd4b0fca9632a93022a4529ebb7768eb2d248d952f6db94f0af8528688"
+      "sha256": "f9fff7a02272ff47a3e64ace24e01e64f768326ebdedc1079f6b55ed192aa14e"
     },
     {
       "path": ".github/workflows/ci.yml",
@@ -36,7 +36,7 @@
     {
       "path": "README.md",
       "mode": "0644",
-      "sha256": "7feb622b1facf4c2cc0078a2e42b1178c497a6795820e81b1602e7818c3ecdce"
+      "sha256": "20a216e17630ba8bbe343de7f30d79411a4650c0afd980b4afa6545b6ff57a7f"
     },
     {
       "path": "THIRD_PARTY_NOTICES.md",
@@ -56,7 +56,12 @@
     {
       "path": "docs/ENVIRONMENT.md",
       "mode": "0644",
-      "sha256": "5b095c758250bf18f6fb4bcb91cf9099e9071f7d4c1eca93ea8d6cfe5b7e4bf1"
+      "sha256": "6dc04a9971620661f98cf67f21cc70c7692424019d7a96aebc286b7b46f75a9c"
+    },
+    {
+      "path": "docs/ERROR-CODES.md",
+      "mode": "0644",
+      "sha256": "49d23b19a1b2a6645da2ae24d00b17d60819819df35c1f61707df8805e428f99"
     },
     {
       "path": "docs/INPUT-INVENTORY.md",
@@ -64,14 +69,54 @@
       "sha256": "cc4aa1fa1032c64ed7e13b6ffa656c6b0762858e670b3a6dd083dc4e65f445ad"
     },
     {
+      "path": "infra/compose.yaml",
+      "mode": "0644",
+      "sha256": "4ca3c15ca2ae80f4f645255fcacf0043cb693504b2f4698ee3dc69f0112e26fd"
+    },
+    {
+      "path": "plugin/oddroom-orderops/includes/class-oddroom-admin.php",
+      "mode": "0644",
+      "sha256": "c0386b77f6b6541afd6e1372daec3c89ebf2e0c1e02084eb0aa243edc382f8ed"
+    },
+    {
       "path": "plugin/oddroom-orderops/includes/class-oddroom-canonical-payload.php",
       "mode": "0644",
       "sha256": "cab043249ec2c7a8109015978e8a4fdc4a9dc4718f1f19a15e015cd65dcb8e95"
     },
     {
+      "path": "plugin/oddroom-orderops/includes/class-oddroom-cli.php",
+      "mode": "0644",
+      "sha256": "d3496daecf0348d20ad60ec888c256f68f825f0b9ba89cab2d553282f21c60ea"
+    },
+    {
+      "path": "plugin/oddroom-orderops/includes/class-oddroom-events.php",
+      "mode": "0644",
+      "sha256": "963e31b51b5fce02affe7fd80ed7fca359dae4410abaf040553817d066cf68db"
+    },
+    {
+      "path": "plugin/oddroom-orderops/includes/class-oddroom-installer.php",
+      "mode": "0644",
+      "sha256": "ce7104deffc82e9e67bc05f316119afb6de2467ac976b82aa1bccd56a7f475c9"
+    },
+    {
+      "path": "plugin/oddroom-orderops/includes/class-oddroom-recovery.php",
+      "mode": "0644",
+      "sha256": "7bef20f09769cbf7050492ea78c15aa98571542adf3a911715d11a66b34dd85c"
+    },
+    {
+      "path": "plugin/oddroom-orderops/includes/class-oddroom-repository.php",
+      "mode": "0644",
+      "sha256": "75b1220272d76b21a9a6a2c070519568b38f89af4e1a5f7c921a9f048e6ae555"
+    },
+    {
       "path": "plugin/oddroom-orderops/includes/class-oddroom-retry-policy.php",
       "mode": "0644",
       "sha256": "25d0990edb8e94b8752d00374cfe89b2eeda8a5ebc96e57c98dba631ccb3547f"
+    },
+    {
+      "path": "plugin/oddroom-orderops/includes/class-oddroom-scheduler.php",
+      "mode": "0644",
+      "sha256": "253f0f37ea92722cfd280792cdc8a0c91f9a3b5ff7234903ee4d65d20f7fb163"
     },
     {
       "path": "plugin/oddroom-orderops/includes/class-oddroom-signature.php",
@@ -84,19 +129,24 @@
       "sha256": "5a95fe32c11386fecd6a71d715389debbf955dc751d8d9ca4d4af2d9d30e0c72"
     },
     {
+      "path": "plugin/oddroom-orderops/includes/class-oddroom-worker.php",
+      "mode": "0644",
+      "sha256": "626c2387f572cdcbfda420fc5b3c025d30372ca8645140fccf909f1799066135"
+    },
+    {
       "path": "plugin/oddroom-orderops/oddroom-orderops.php",
       "mode": "0644",
-      "sha256": "db3f26ab1a8a67ea27f1fde4b86b8dda62aa8ad434b8a952d5ef80bdfeff6dc9"
+      "sha256": "22de5257ac7c4867d067deab9a3a0fb973611fd34ac5de37eba8f3443fa455cd"
     },
     {
       "path": "plugin/oddroom-orderops/tests/run.php",
       "mode": "0644",
-      "sha256": "f1ee3620e59cbd15c5b899ddc285691286063280093d1a2814b4cf3e2412ea81"
+      "sha256": "3b87e1183b77507e51034be58f22e2df5145f9f9f8cb572fdcc0569b70ee272d"
     },
     {
       "path": "release/public-allowlist.json",
       "mode": "0644",
-      "sha256": "ea84e99952510ecbb1a1c12e862479b8683e7c680fdf8606f546d16bd1e2eb74"
+      "sha256": "bcfadfa265348bd9025226a22797b8141d4f4f5a5fa5d90d31c7de6fefa62344"
     },
     {
       "path": "scripts/build-public-release",
@@ -106,17 +156,42 @@
     {
       "path": "scripts/ci",
       "mode": "0755",
-      "sha256": "268dfe9122ae8d734ff4e9cc1afefbfcf3b6b6db0a86d5560e9b9424164bef8b"
+      "sha256": "ea5f4dc00ef4edc30e06900c13149e7752a4fac3a97544cd276eee7e88c19056"
+    },
+    {
+      "path": "scripts/queue-runner",
+      "mode": "0755",
+      "sha256": "99a4ccf77b8787775d057f9243075e26ea687d921ee8cdb074e84e7866f0ab44"
+    },
+    {
+      "path": "scripts/runtime-materialize",
+      "mode": "0755",
+      "sha256": "a120b905c074603b10dcc8961bc389bc6c5246d3a241dbdb1d886be020803a6a"
+    },
+    {
+      "path": "scripts/runtime-wp-install",
+      "mode": "0755",
+      "sha256": "cfb48d672b2cf009d2efbbddf999a2f9d32df110ba26ff810e4edba44ceabb4c"
     },
     {
       "path": "scripts/validate-public",
       "mode": "0755",
-      "sha256": "487d7dfa77b13da828dfb2cc1946fd7c449e61adafd889e3f02be4242e300df5"
+      "sha256": "506e3fb4a3525e88384e97991a9416997ea4105d74847a3f093339e7a9e1fbd5"
     },
     {
       "path": "tests/test_public_builder.py",
       "mode": "0644",
       "sha256": "07723845b890e95da6e4ebf31cfa62bccad8dc4cc3c3cce77b352297f8988093"
+    },
+    {
+      "path": "tests/test_vsl_contract.py",
+      "mode": "0755",
+      "sha256": "c1600629ab9742b738af5ae4692d410c02a6dc285c2df43aab03cb1b5d85ab45"
+    },
+    {
+      "path": "workflow/oddroom-orderops-vsl.json",
+      "mode": "0644",
+      "sha256": "f964ca02634683dfe2069082f3c71dad6b640fc300ca420bb34c552bf109ca71"
     }
   ]
 }

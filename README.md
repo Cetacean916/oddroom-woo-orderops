@@ -13,6 +13,20 @@ This repository is built from a separate non-Git implementation source by a deny
 
 The project is complete only when the active PF07 contract records `FINAL_PASS`. A local tree, private CI run, or public repository does not by itself establish completion.
 
+## Vertical slice status
+
+The protected staging acceptance run has reached `VSL_PASS` for `ORDER_CREATED`:
+
+- WooCommerce creates immutable, hash-checked outbox snapshots.
+- Action Scheduler 4.0.0 passes the isolated argument-aware uniqueness preflight before business scheduling.
+- A database row claim and order-scoped InnoDB lease fence concurrent workers.
+- WordPress signs the exact stored bytes and a dedicated n8n 2.25.7 adapter verifies the raw body before side effects.
+- n8n uses only fixed HubSpot `2026-03` Deal batch read/upsert endpoints for this slice.
+- WordPress persists the returned Deal checkpoint and complete envelope under the row fencing token.
+- Endpoint outage retains the immutable snapshot and bounded retry state; the foreground WP-CLI runner recovers without an administrator page load.
+
+This is a milestone, not final project completion. Contact association, the remaining event types, Slack, full reconciliation/operator controls, clean restore, public case deployment, and release gates remain later ordered work.
+
 ## Local checks
 
 ```bash
@@ -20,7 +34,12 @@ The project is complete only when the active PF07 contract records `FINAL_PASS`.
 ./scripts/validate-public --pre-public
 ```
 
+During an authorized on-demand acceptance window, the foreground queue process is:
+
+```bash
+./scripts/queue-runner --loop
+```
+
 ## Claims boundary
 
 This staging project uses synthetic data and a non-monetary checkout path. It does not claim production scale, real payment processing, formal exactly-once delivery, or elimination of the Slack accepted/response-lost window.
-

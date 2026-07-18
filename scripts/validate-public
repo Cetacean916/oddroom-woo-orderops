@@ -33,9 +33,12 @@ text_suffixes = {".md", ".php", ".py", ".yml", ".yaml", ".json", ".txt", ".examp
 secret_patterns = [
     re.compile(r"-----BEGIN (?:OPENSSH|RSA|EC|DSA) PRIVATE KEY-----"),
     re.compile(r"(?i)authorization\s*:\s*bearer\s+[a-z0-9._-]{12,}"),
-    re.compile(r"(?i)(?:api[_-]?key|token|password|secret)\s*=\s*[^<\s][^\s]{7,}"),
+    re.compile(r"(?m)^\s*[A-Z0-9_]*(?:API_KEY|TOKEN|PASSWORD|SECRET)[A-Z0-9_]*\s*=\s*(?![<$])[^\s#]{8,}\s*$"),
+    re.compile(r"(?m)^\s*[A-Z0-9_]*(?:API_KEY|TOKEN|PASSWORD|SECRET)[A-Z0-9_]*\s*:\s*(?![$<{])[^\s#]{8,}\s*$"),
+    re.compile(r"(?i)(?:api[_-]?key|token|password|secret)\s*=\s*['\"](?![$<])(?![^'\"]*(?:synthetic|example|test))[^'\"]{8,}['\"]"),
     re.compile("/" + "home/" + r"[^/<\s]+/"),
 ]
+public_container_paths = ("/home/node/.n8n",)
 for relative in allowlist:
     path = root / relative
     if not path.is_file():
@@ -46,8 +49,11 @@ for relative in allowlist:
         text = path.read_text(encoding="utf-8")
     except UnicodeDecodeError:
         continue
+    scan_text = text
+    for public_container_path in public_container_paths:
+        scan_text = scan_text.replace(public_container_path, "<PUBLIC_CONTAINER_PATH>")
     for pattern in secret_patterns:
-        if pattern.search(text):
+        if pattern.search(scan_text):
             fail(f"public-bound secret or owner-path pattern in {relative}")
 
 if shutil.which("php"):

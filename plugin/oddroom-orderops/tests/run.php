@@ -5,6 +5,7 @@ require_once __DIR__ . '/../includes/class-oddroom-canonical-payload.php';
 require_once __DIR__ . '/../includes/class-oddroom-signature.php';
 require_once __DIR__ . '/../includes/class-oddroom-state-machine.php';
 require_once __DIR__ . '/../includes/class-oddroom-retry-policy.php';
+require_once __DIR__ . '/../includes/class-oddroom-worker.php';
 
 $tests = 0;
 $assert = static function (bool $condition, string $message) use (&$tests): void {
@@ -62,5 +63,35 @@ $assert(OddRoom_Retry_Policy::delayAfter(5) === 21600, 'Production retry schedul
 $assert(OddRoom_Retry_Policy::attemptKind(6, 6) === 'automatic', 'Automatic attempt classification failed.');
 $assert(OddRoom_Retry_Policy::attemptKind(7, 6) === 'manual', 'Manual attempt classification failed.');
 
-fwrite(STDOUT, "PASS: {$tests} bootstrap unit assertions\n");
+$envelope = [
+    'schema_version' => '1',
+    'event_key' => $input['event_key'],
+    'result' => 'completed',
+    'processing_phase' => 'completed',
+    'remote_contact_id' => null,
+    'remote_deal_id' => 'synthetic-deal-1',
+    'slack_status' => 'not_required',
+    'slack_message_ts' => null,
+    'retryable' => false,
+    'retry_after_seconds' => null,
+    'error_code' => null,
+    'error_message' => null,
+];
+$validated = OddRoom_Worker::validateEnvelope(
+    json_encode($envelope, JSON_THROW_ON_ERROR),
+    $input['event_key'],
+    'created'
+);
+$assert($validated['remote_deal_id'] === 'synthetic-deal-1', 'Valid VSL envelope failed.');
 
+$invalidEnvelopeRejected = false;
+try {
+    $badEnvelope = $envelope;
+    $badEnvelope['event_key'] = 'wrong-event';
+    OddRoom_Worker::validateEnvelope(json_encode($badEnvelope, JSON_THROW_ON_ERROR), $input['event_key'], 'created');
+} catch (UnexpectedValueException $error) {
+    $invalidEnvelopeRejected = true;
+}
+$assert($invalidEnvelopeRejected, 'Mismatched response event key was accepted.');
+
+fwrite(STDOUT, "PASS: {$tests} bootstrap unit assertions\n");
