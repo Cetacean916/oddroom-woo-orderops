@@ -4,7 +4,7 @@
   "run_id": "PF07-ACCEPTANCE-RUN",
   "started_at": "2026-07-18T22:15:01.569548Z",
   "finished_at": "2026-07-18T22:15:01.569548Z",
-  "source_tree_sha256": "5cdb515367fc68a03dfc475449f90e92c604037802b708eacb74542423c6972d",
+  "source_tree_sha256": "87300de2b289766dd0c7cb458912f4f636cda76bfe9879d25e0c9c239a32d603",
   "command_or_probe": "recorded redaction of protected acceptance observation",
   "exit_code": 0,
   "observations": {
@@ -17,7 +17,8 @@
     "migration_idempotent": true,
     "uninstall_preserves_by_default": true,
     "opt_in_removal": "PASS",
-    "scheduler_failure_branches": "PASS"
+    "scheduler_failure_branches": "PASS",
+    "source_tree_binding": "DOCUMENTATION_ONLY_REBIND_EXECUTABLE_BYTES_UNCHANGED"
   },
   "artifact_hashes": {},
   "redaction_state": "PUBLIC_REDACTED",
@@ -27,8 +28,9 @@
     "script_sha256": "79e626c47a9d60bcc12ec333c311eb945ffb997dd671ce186574979da7504049"
   },
   "source_acceptance_id": "GATE-09-COMPATIBILITY",
-  "source_record_sha256": "82195dbe657e3ae6a572df4b4f9af1be531b5942680933a81ff4c0f75d64b4da",
+  "source_record_sha256": "bd0dff685d8fbbe33b0339bcf2d3ca7e6aafaf2b9159f66d55fbb1c55156ea4d",
   "source_artifact_hashes": {
-    "security_compatibility_trace": "0c699209a81f114a746f6ef256ae61ced72fb56dea9b7a7d328086c871f82cc4"
+    "security_compatibility_trace": "0c699209a81f114a746f6ef256ae61ced72fb56dea9b7a7d328086c871f82cc4",
+    "source_tree_rebind": "70dd63bf2d103cee5d1f39cef1027ab93445d98301784290977843cd1275b943"
   }
 }

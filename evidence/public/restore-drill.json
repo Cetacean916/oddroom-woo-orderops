@@ -4,7 +4,7 @@
   "run_id": "PF07-ACCEPTANCE-RUN",
   "started_at": "2026-07-18T23:07:43.578848Z",
   "finished_at": "2026-07-18T23:16:09.934847Z",
-  "source_tree_sha256": "5cdb515367fc68a03dfc475449f90e92c604037802b708eacb74542423c6972d",
+  "source_tree_sha256": "87300de2b289766dd0c7cb458912f4f636cda76bfe9879d25e0c9c239a32d603",
   "command_or_probe": "recorded redaction of protected acceptance observation",
   "exit_code": 0,
   "observations": {
@@ -23,7 +23,8 @@
     "original_runtime_calls": 0,
     "active_runtime_after_restore": "RESTORED",
     "original_outbound_runtime_enabled": false,
-    "formal_backup_manifest_verified": true
+    "formal_backup_manifest_verified": true,
+    "source_tree_binding": "DOCUMENTATION_ONLY_REBIND_EXECUTABLE_BYTES_UNCHANGED"
   },
   "artifact_hashes": {},
   "redaction_state": "PUBLIC_REDACTED",
@@ -33,11 +34,12 @@
     "script_sha256": "79e626c47a9d60bcc12ec333c311eb945ffb997dd671ce186574979da7504049"
   },
   "source_acceptance_id": "GATE-10",
-  "source_record_sha256": "76ce9891891006cdcc1900869a66902fb1aa32d9596b04749585ac4880e6a22a",
+  "source_record_sha256": "f7315d3862a0e7c64b7555c35c9962fb76cd73b74034c8b74cd4f32a89d2e4a9",
   "source_artifact_hashes": {
+    "restore_backup_integrity": "c422495b4b93e747e467c4477cff6342920247411a62b6c968d13ee1a34fabc1",
+    "restore_duplicate_trace": "04c3838c2a7631153f2c6c1f3ede0a05af0522b8652fc61e026e679ef319c07a",
     "restore_execution_trace": "3e3e55cd043d4a450653d9661df2139e48b587dc3ca438c1fba9d1d62fa4e3e7",
     "restore_hubspot_readback": "b45386745cd8ebaf14be884905b76eeef75a6764857fc558b7bb16052ebdb11f",
-    "restore_duplicate_trace": "04c3838c2a7631153f2c6c1f3ede0a05af0522b8652fc61e026e679ef319c07a",
-    "restore_backup_integrity": "c422495b4b93e747e467c4477cff6342920247411a62b6c968d13ee1a34fabc1"
+    "source_tree_rebind": "70dd63bf2d103cee5d1f39cef1027ab93445d98301784290977843cd1275b943"
   }
 }

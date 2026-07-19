@@ -91,7 +91,7 @@
     {
       "path": "docs/ENVIRONMENT.md",
       "mode": "0644",
-      "sha256": "02cb32cc3ed609594e25357342d810cf08db01c836e1161a7349baee3436532a"
+      "sha256": "257b6ab7eb721c365c826581ec42fbd23c92a7b2f2235c289bbd5b0d374b0cc5"
     },
     {
       "path": "docs/ERROR-CODES.md",
@@ -111,87 +111,87 @@
     {
       "path": "evidence/public/acceptance-matrix.json",
       "mode": "0644",
-      "sha256": "7dac382c22bb815be9b16e83dc67419e3cfc2c1d4135bb10ce7e9bd39fb7e9e4"
+      "sha256": "091ae4e654dc5a0cf93962c42bfcd0441c846bdce1fcea62fb08d2d99b8b0c43"
     },
     {
       "path": "evidence/public/duplicate-suppression.json",
       "mode": "0644",
-      "sha256": "b2e24b0215a3d8bf212e441f76f311096202b7d1b04dc0c089a7cecfe41fea52"
+      "sha256": "0a63f753a662e1afd2488d04ad5aa38f36f6f88a6c301a993d20ed1f9d88a5eb"
     },
     {
       "path": "evidence/public/e2e-normal-order.json",
       "mode": "0644",
-      "sha256": "7bc785dbfef4feae81d9d1d6f08541edb03fd337fb76e8032627fc10155d8c3b"
+      "sha256": "3475c2e4b7b64927a0ef3760dc02a5fa85b2feb8327a1362f56bb34c055dbcac"
     },
     {
       "path": "evidence/public/e2e-variable-coupon-order.json",
       "mode": "0644",
-      "sha256": "065962a24629cd1a47ec0ea2c6885461f53601ba0140fea641b8bb13c47bd0b7"
+      "sha256": "a8164296ad5b691afb6c01bcee90cc023f8ec527684fe3638d71c254fae70645"
     },
     {
       "path": "evidence/public/evidence-manifest.sha256",
       "mode": "0644",
-      "sha256": "1bd30c8511d648ee37a48da22e9c7e5cf3a786d6f5ff4bc07bfc2fca612934f0"
+      "sha256": "efc6c39ec48577892b845da5eedb58dd4b3b154ff275bacf8f5ac7d66e1c5b10"
     },
     {
       "path": "evidence/public/hmac-rejection.json",
       "mode": "0644",
-      "sha256": "263932a58443b9f1185973e7e41b8a95481c2bd6b18b6e598eaf710428500d2a"
+      "sha256": "20a5bd8e07aab0f03b523450442c966fa4ba0236f6fcfee908108e562e8fdd65"
     },
     {
       "path": "evidence/public/hpos-compatibility.json",
       "mode": "0644",
-      "sha256": "8b04d5a89f3323c9dc769206ebe3e9749e18ce8959a4049829cfbe9641ec714e"
+      "sha256": "ddaf0b5fb22d50f3eea0724fc20df383067747c65393997073370023997dbece"
     },
     {
       "path": "evidence/public/operator-outcome-resolution.json",
       "mode": "0644",
-      "sha256": "908b4bf8fbb0036fe0d6e8ae76db6737168179e444779bbf9fe96008ef22b1d8"
+      "sha256": "1397f85cc976c3cd624cc25d9da1650ae4df24f44a40664307d00411f112e16a"
     },
     {
       "path": "evidence/public/outage-retry.json",
       "mode": "0644",
-      "sha256": "07e6c1e77d846ea0ae6772ae51a46172b2579d97282a915ea237f1f8b64cf4c7"
+      "sha256": "b89c8646eeefecb53eeed6f990a139886437951a3bc18f7556ec487c7e6791b3"
     },
     {
       "path": "evidence/public/partial-failure-recovery.json",
       "mode": "0644",
-      "sha256": "8ccfcbd018a4dafb533138923ca757ea3ebe64dd4474e3c50b82444304da6d0c"
+      "sha256": "61a8ef33e8652d07711c30acc03de6e4fb063f1fa6fbb2ca7b38f64ac9b91c8d"
     },
     {
       "path": "evidence/public/product-quality.json",
       "mode": "0644",
-      "sha256": "6871ef8596b81fe8667ef00e53c78511aa7b6f622e3abafbf12c9519f491d58d"
+      "sha256": "6ecb0e1a84228fd5e0f04d7a15ec8d75a422266843a303e224e511b088778ea6"
     },
     {
       "path": "evidence/public/raw-byte-resource-bounds.json",
       "mode": "0644",
-      "sha256": "384513099a6d26c6ee886632db575fab55bc8eebfac4781b8d68c9d22e9ffcc8"
+      "sha256": "2569cbb4bb024035fc4099bb4a29f5b630f27348ae7224593eefbdfabc075085"
     },
     {
       "path": "evidence/public/reconciliation-repair.json",
       "mode": "0644",
-      "sha256": "18f89fa4cc3c6967a220d4fb543c6000b89f39fcc093f386d132422f9cf4e28e"
+      "sha256": "50a02b42c7d920108b137d1d2e0972662d1e1e74e7e1f5945918c19d3bf6b02a"
     },
     {
       "path": "evidence/public/restore-drill.json",
       "mode": "0644",
-      "sha256": "2a6cbb394390a03ac8bc411f47c7f991416feec76423e1f7c9e969accaaf3637"
+      "sha256": "d0fd754eeb878b327a787e57771d152cdbdb5cb68bb94fd60bca638b800e967e"
     },
     {
       "path": "evidence/public/retry-exhaustion.json",
       "mode": "0644",
-      "sha256": "e01f37cabd7b1d208c734e7e6e48389d065bd802474d03835ed4937a3ee2f868"
+      "sha256": "b09cb10abd26556e18bbba8543cb443053741cbfd937fc598a0f661d4053ed1f"
     },
     {
       "path": "evidence/public/stale-lease-recovery.json",
       "mode": "0644",
-      "sha256": "4346c883909d8f2ec9484fff12fc35e4de4d0991319e7b36f5ac9a806fb0db78"
+      "sha256": "6b3a5fbe13a07a98acadc305a253207fb0e3f24aebaaefa9d2af24d6ad75421d"
     },
     {
       "path": "evidence/public/state-non-regression.json",
       "mode": "0644",
-      "sha256": "fdd03f0afcd4797bbdc0cecdfe9eb6ab7ba129cd1daad22284bad0bccf358520"
+      "sha256": "5c77de737b6147e0798ed2b2d3580bb341b0dbfb51733b9500e006ada6ff01fc"
     },
     {
       "path": "infra/compose.yaml",

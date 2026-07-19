@@ -4,7 +4,7 @@
   "run_id": "PF07-ACCEPTANCE-RUN",
   "started_at": "2026-07-18T22:41:35.189506Z",
   "finished_at": "2026-07-18T22:44:04.794168Z",
-  "source_tree_sha256": "5cdb515367fc68a03dfc475449f90e92c604037802b708eacb74542423c6972d",
+  "source_tree_sha256": "87300de2b289766dd0c7cb458912f4f636cda76bfe9879d25e0c9c239a32d603",
   "command_or_probe": "recorded redaction of protected acceptance observation",
   "exit_code": 0,
   "observations": {
@@ -17,7 +17,8 @@
     "deal_count": 1,
     "slack_post_count": 1,
     "returned_slack_timestamp_count": 1,
-    "formal_exactly_once_claimed": false
+    "formal_exactly_once_claimed": false,
+    "source_tree_binding": "DOCUMENTATION_ONLY_REBIND_EXECUTABLE_BYTES_UNCHANGED"
   },
   "artifact_hashes": {},
   "redaction_state": "PUBLIC_REDACTED",
@@ -27,10 +28,11 @@
     "script_sha256": "79e626c47a9d60bcc12ec333c311eb945ffb997dd671ce186574979da7504049"
   },
   "source_acceptance_id": "GATE-04",
-  "source_record_sha256": "55db052efb86b4ab2d1fc381f2883fc9e64e6ce80c6da6cda16397ff66ecef56",
+  "source_record_sha256": "be1e6eb6005269141dbda3ae3d343cc77bfada1a5b18701c55bd1c616aaa4b0e",
   "source_artifact_hashes": {
     "duplicate_execution_trace": "2b0cf71fbd60be12434ca4ad3ab202a0514afdd4f7fc4831f41de779f42ec749",
     "duplicate_hubspot_readback": "d05231d24c33ac24926fe36f22b57e66aa5bdcdd940dbd4273bc188d0892377c",
-    "duplicate_manual_conflict": "c64b7f0d11425201c2e8d898aa962658c4d0c5d6375e105f75621600dadf07d7"
+    "duplicate_manual_conflict": "c64b7f0d11425201c2e8d898aa962658c4d0c5d6375e105f75621600dadf07d7",
+    "source_tree_rebind": "70dd63bf2d103cee5d1f39cef1027ab93445d98301784290977843cd1275b943"
   }
 }

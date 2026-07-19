@@ -4,7 +4,7 @@
   "run_id": "PF07-ACCEPTANCE-RUN",
   "started_at": "2026-07-18T20:28:41.834109Z",
   "finished_at": "2026-07-18T20:28:41.834109Z",
-  "source_tree_sha256": "5cdb515367fc68a03dfc475449f90e92c604037802b708eacb74542423c6972d",
+  "source_tree_sha256": "87300de2b289766dd0c7cb458912f4f636cda76bfe9879d25e0c9c239a32d603",
   "command_or_probe": "recorded redaction of protected acceptance observation",
   "exit_code": 0,
   "observations": {
@@ -13,7 +13,8 @@
     "variable_product_orders": 1,
     "coupon_orders": 1,
     "woocommerce_admin_and_storage_observed": true,
-    "immutable_payload_hashes_valid": true
+    "immutable_payload_hashes_valid": true,
+    "source_tree_binding": "DOCUMENTATION_ONLY_REBIND_EXECUTABLE_BYTES_UNCHANGED"
   },
   "artifact_hashes": {},
   "redaction_state": "PUBLIC_REDACTED",
@@ -23,8 +24,9 @@
     "script_sha256": "79e626c47a9d60bcc12ec333c311eb945ffb997dd671ce186574979da7504049"
   },
   "source_acceptance_id": "GATE-01",
-  "source_record_sha256": "ed1ab17e06bd9cb20cd8407c304a5a281effe76c2623852e9f283c13b8377f0b",
+  "source_record_sha256": "09630ae758f5cded033f60542177209d8b2c579c57a8f4a7d9958c720f57bcc5",
   "source_artifact_hashes": {
-    "order_variety_trace": "d4cc054cd799d2dab589cdd8b8680bf768f006d35d70773fb0fd065e3c1ba4a6"
+    "order_variety_trace": "d4cc054cd799d2dab589cdd8b8680bf768f006d35d70773fb0fd065e3c1ba4a6",
+    "source_tree_rebind": "70dd63bf2d103cee5d1f39cef1027ab93445d98301784290977843cd1275b943"
   }
 }

@@ -5,11 +5,13 @@
 - Docker Engine: `29.6.1`
 - Docker Compose: `5.3.1`
 - Git: `2.43.0`
-- GitHub CLI: `2.45.0`
+- GitHub CLI at bootstrap: system `2.45.0`
+- GitHub CLI used for the final visibility transition: `2.96.0`, installed from the maintained official release in the owner user-global executable path after checksum verification because the bootstrap version did not expose the required visibility-consequence flag
 - WordPress CLI container: `2.12.0`
 - n8n Community container selected for project creation: `2.25.7`
 - nginx staging ingress image: `nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10`
 - ngrok agent: `3.39.9`, installed in the owner user executable path because host passwordless sudo is unavailable
+- Toxiproxy: `2.12.0`, official `ghcr.io/shopify/toxiproxy@sha256:9378ed52a28bc50edc1350f936f518f31fa95f0d15917d6eb40b8e376d1a214e`, installed and used as the maintained outage-injection container
 - Queue runner mode: `FOREGROUND_WP_CLI`
 - Hosting mode: `ON_DEMAND_HTTPS_TUNNEL`
 - n8n restore mode: `REPROVISIONED_RESTORE`
@@ -33,7 +35,7 @@ Compatibility is satisfied: WooCommerce 10.9.4 requires WordPress 6.9 or later a
 
 The isolated argument-aware uniqueness preflight passed against this exact initialized version/source identity. Synthetic row IDs `101` and `102` received distinct non-zero action IDs with one exact pending/in-progress candidate each. A duplicate unique schedule for row `101` returned raw ID `0`, the exact resolver reused the original ID, and cancellation left zero candidates. It inserted or changed no business row and consumed no business attempt or lease. Any loaded version/source change invalidates this result and keeps business scheduling disabled until the preflight passes again.
 
-No system-wide package was installed during bootstrap. Host passwordless sudo is unavailable and is not required by the selected container and user-scope path.
+No system-wide package was installed. Host passwordless sudo is unavailable and was not required because the maintained official user-global CLI and container paths fully supported the selected delivery path.
 
 ## Browser and accessibility validation pin
 
