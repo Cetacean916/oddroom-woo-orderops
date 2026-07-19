@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+export PYTHONDONTWRITEBYTECODE=1
 
 project_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$project_root"
@@ -23,6 +24,11 @@ print("PASS: Python source syntax checks")
 PY
 ./scripts/build-workflow --check
 python3 tests/test_vsl_contract.py
+
+if test -f release/public-build-manifest.json; then
+  ./scripts/validate-public --pre-public
+fi
+
 npm ci --prefix infra/task-runner-deps --ignore-scripts --no-audit --no-fund
 node tests/workflow_resume_semantics.mjs
 jq -e . workflow/oddroom-orderops-vsl.json >/dev/null
@@ -69,10 +75,6 @@ elif command -v docker >/dev/null 2>&1; then
 else
   printf 'FAIL: PHP 8.1+ or Docker is required\n' >&2
   exit 1
-fi
-
-if test -f release/public-build-manifest.json; then
-  ./scripts/validate-public --pre-public
 fi
 
 printf 'PASS: public-safe CI checks\n'

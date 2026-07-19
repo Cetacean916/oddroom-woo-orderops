@@ -47,6 +47,7 @@ EVIDENCE_COLLECTOR = (ROOT / "scripts/collect-evidence").read_text(encoding="utf
 MEDIA_RECORDER = (ROOT / "scripts/record-public-media.mjs").read_text(encoding="utf-8")
 STILL_BUILDER = (ROOT / "scripts/build-public-stills.mjs").read_text(encoding="utf-8")
 PUBLIC_VALIDATOR = (ROOT / "scripts/validate-public").read_text(encoding="utf-8")
+CI_SCRIPT = (ROOT / "scripts/ci").read_text(encoding="utf-8")
 
 
 def require(condition: bool, message: str) -> None:
@@ -421,6 +422,11 @@ require('sys.dont_write_bytecode = True' in PUBLIC_VALIDATOR
         and "public candidate contains files outside the generated exact inventory" in PUBLIC_VALIDATOR
         and "public validation mutated the generated exact inventory" in PUBLIC_VALIDATOR,
         "public validation can mutate or accept files outside the exact release inventory")
+require(CI_SCRIPT.index("./scripts/validate-public --pre-public")
+        < CI_SCRIPT.index("npm ci --prefix infra/task-runner-deps"),
+        "CI can generate dependency files before exact public-tree validation")
+require("export PYTHONDONTWRITEBYTECODE=1" in CI_SCRIPT,
+        "CI Python checks can leave bytecode outside the exact public inventory")
 require("run_queue_once()" in GATE06_PROBE
         and "run_action(recovery_second_action)" not in GATE06_PROBE
         and '"payload_rebuilt": payload_rebuilt' in GATE06_PROBE
