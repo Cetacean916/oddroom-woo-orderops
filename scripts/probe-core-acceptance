@@ -27,6 +27,7 @@ SUPPORTED = {
     "reconciliation-repair",
 }
 ROOT = Path(__file__).resolve().parent.parent
+GATE04_CLAIM_HOLD_SECONDS = 45
 
 
 def observed_value(observations: dict, dotted_path: str) -> object:
@@ -592,7 +593,7 @@ def gate04(runtime: ProbeRuntime, suffix: str) -> None:
     baseline = runtime.latest_execution_id()
     first = runtime.start_wpcli(
         ["action-scheduler", "action", "run", str(action_id)],
-        service_environment={"ODDROOM_TEST_PAUSE_SECONDS": "10"},
+        service_environment={"ODDROOM_TEST_PAUSE_SECONDS": str(GATE04_CLAIM_HOLD_SECONDS)},
     )
     try:
         during = runtime.wait_for_claim(row_id)

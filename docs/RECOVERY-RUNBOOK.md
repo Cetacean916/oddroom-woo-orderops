@@ -35,6 +35,12 @@ Use the protected end-run action before declaring the run ended. It disables eve
 
 Create a new runtime root and a UUIDv4 restore-run identity, materialize it from the canonical protected readiness file, and select a Compose project name with no existing containers, volumes, or network. Keep the verified formal backup outside both runtime roots. Then run the exact destructive staging probe with protected path aliases:
 
+`wordpress-database.sql` must be a dump of the WordPress application database only. Do not include `mysql`, `sys`, `performance_schema`, account tables, or `CREATE DATABASE`/`USE` statements. The restore imports into the fresh runtime's configured application database, verifies both fresh root and application credentials, restarts MariaDB, and requires a healthy post-restart service before n8n or WordPress processing can start.
+
+The caller may retain the acceptance `RUN_ID` for evidence correlation, but no inherited runtime secret or database setting may override either Compose project's own protected `runtime.env`. The restore probe rebinds each Compose call to the selected root's exact environment and switches the probe process to the replacement environment before target helper scripts or event processing run.
+
+Because a repeated drill can restore the same local next-order sequence after an earlier synthetic attempt already created a remote Deal, order selection checks the exact HubSpot order key before any restored action runs. A colliding synthetic candidate is canceled and removed only from the new local runtime, with zero n8n, HubSpot, or Slack call, and selection advances within a fixed 20-candidate bound. The selected candidate must have zero preexisting Deals before its created/payment flow begins.
+
 ```bash
 PF07_RUNTIME_ROOT=<NEW_RUNTIME_ROOT> \
 PF07_COMPOSE_PROJECT=<NEW_COMPOSE_PROJECT> \

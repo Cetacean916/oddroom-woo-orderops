@@ -37,6 +37,7 @@ RUNTIME_WP_INSTALL = (ROOT / "scripts/runtime-wp-install").read_text(encoding="u
 GATE06_PROBE = (ROOT / "scripts/probe-gate06").read_text(encoding="utf-8")
 GATE06_LEASE_PROBE = (ROOT / "scripts/probe-gate06-lease").read_text(encoding="utf-8")
 GATE06_OPERATOR_PROBE = (ROOT / "scripts/probe-gate06-operator").read_text(encoding="utf-8")
+CORE_ACCEPTANCE_PROBE = (ROOT / "scripts/probe-core-acceptance").read_text(encoding="utf-8")
 GATE09_COMPATIBILITY_PROBE = (ROOT / "scripts/probe-gate09-compatibility").read_text(encoding="utf-8")
 GATE09_PRODUCT_PROBE = (ROOT / "scripts/probe-gate09-product-quality").read_text(encoding="utf-8")
 GATE10_RESTORE_PROBE = (ROOT / "scripts/probe-clean-restore").read_text(encoding="utf-8")
@@ -269,6 +270,15 @@ require("schedulingSuppressed" in SCHEDULER
         and "self::scheduleEligibleRow($row);" in SCHEDULER,
         "global eligible-row repair bypasses the active schedule-suppression fixture")
 require("unlinkFinishedEligibleAction" in PLUGIN, "completed eligible actions cannot be unlinked atomically")
+require("$transitionedAt = (string) $wpdb->get_var('SELECT UTC_TIMESTAMP(6)')" in REPOSITORY
+        and "'SELECT DATE_ADD(%s, INTERVAL %d SECOND)'" in REPOSITORY
+        and "lock_expires_at = NULL, updated_at = %s" in REPOSITORY,
+        "retry due time and updated_at do not share one database-clock anchor")
+link_action_source = REPOSITORY.split("public static function linkAction", 1)[1].split(
+    "public static function unlinkFinishedEligibleAction", 1
+)[0]
+require("updated_at" not in link_action_source,
+        "Action Scheduler ID linking overwrites the retry transition time anchor")
 require("register_shutdown_function" in PLUGIN, "contention requeue runs before Action Scheduler completes the old action")
 require("linkedEligibleRows" in SCHEDULER and "unlinkFinishedEligibleAction" in SCHEDULER,
         "finished pending/retry action links cannot be repaired")
@@ -372,6 +382,9 @@ require("DEFAULT_TEST_PAUSE_SECONDS = 120" in WORKER
         and "integer from 1 through 120" in WORKER
         and "sleep(self::testPauseSeconds())" in WORKER,
         "staging concurrency probes cannot select a bounded worker hold interval")
+require("GATE04_CLAIM_HOLD_SECONDS = 45" in CORE_ACCEPTANCE_PROBE
+        and '"ODDROOM_TEST_PAUSE_SECONDS": str(GATE04_CLAIM_HOLD_SECONDS)' in CORE_ACCEPTANCE_PROBE,
+        "GATE-04 does not retain the live claim long enough for rival workers and Manual Retry")
 require("PAUSE_AFTER_RESPONSE" in FAULTS
         and "pauseForCrashFixture($claimed, OddRoom_Faults::PAUSE_AFTER_RESPONSE)" in WORKER,
         "staging response-loss probes cannot stop after an observed adapter response")
@@ -454,10 +467,19 @@ require("gate10_restore_trace" in GATE10_RESTORE_PROBE
         and "project_resource_count" in GATE10_RESTORE_PROBE
         and "wordpress_quiescence" in GATE10_RESTORE_PROBE
         and "n8n_reprovision_state" in GATE10_RESTORE_PROBE
+        and 'environment.update(runtime_env)' in GATE10_RESTORE_PROBE
+        and 'os.environ.update(final_env)' in GATE10_RESTORE_PROBE
+        and 'b"CREATE DATABASE" not in upper and b"\\nUSE `" not in upper' in GATE10_RESTORE_PROBE
+        and 'exec mariadb -uroot -p"$MARIADB_ROOT_PASSWORD" "$MARIADB_DATABASE"' in GATE10_RESTORE_PROBE
+        and "verify_database_credentials" in GATE10_RESTORE_PROBE
+        and 'compose(final_root, final_project, "restart", "db", timeout=300)' in GATE10_RESTORE_PROBE
+        and "def discard_unprocessed_restore_candidate" in GATE10_RESTORE_PROBE
+        and "for _selection_attempt in range(20)" in GATE10_RESTORE_PROBE
+        and '"preexisting_remote_collision_count": collision_count' in GATE10_RESTORE_PROBE
         and "hubspot_deals" in GATE10_RESTORE_PROBE
         and "duplicate_replay" in GATE10_RESTORE_PROBE
         and "https_observation" in GATE10_RESTORE_PROBE,
-        "Gate-10 probe omits clean-resource, quiescence, reprovision, remote, duplicate, HTTPS, or artifact evidence")
+        "Gate-10 probe omits clean-resource, runtime-environment isolation, database-isolation, collision-safe order selection, quiescence, reprovision, remote, duplicate, HTTPS, or artifact evidence")
 fixtures = FIXTURE_MANIFEST.get("fixtures")
 require(isinstance(fixtures, list) and len(fixtures) == 15,
         "acceptance fixture inventory differs from the 15 canonical records")

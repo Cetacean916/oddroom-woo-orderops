@@ -119,6 +119,30 @@ def validator_forbidden_roots() -> set[str]:
 validator_forbidden_roots()
 
 
+def validator_dependency_install_boundary() -> None:
+    module = ast.parse(VALIDATOR_SOURCE.read_text(encoding="utf-8"))
+    candidate_function = next(
+        (
+            node for node in module.body
+            if isinstance(node, ast.FunctionDef) and node.name == "candidate_files"
+        ),
+        None,
+    )
+    if candidate_function is None:
+        raise AssertionError("public validator candidate inventory function is unavailable")
+    constants = {
+        node.value for node in ast.walk(candidate_function)
+        if isinstance(node, ast.Constant) and isinstance(node.value, str)
+    }
+    if ".git" not in constants or "node_modules" not in constants:
+        raise AssertionError(
+            "public validator must exclude Git metadata and installed node_modules from candidate bytes"
+        )
+
+
+validator_dependency_install_boundary()
+
+
 def symlink_ancestor(root: Path, source: Path) -> None:
     external = root / "external"
     external.mkdir()

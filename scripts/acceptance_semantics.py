@@ -735,7 +735,7 @@ def _operator(path: Path) -> dict:
 def _restore(path: Path) -> dict:
     value = _load(path)
     _root(value, "clean-restore", {
-        "https", "backup", "quiescence", "compose", "run_identity", "reprovision",
+        "https", "backup", "quiescence", "compose", "run_identity", "order_selection", "reprovision",
         "credential_smokes", "order_flow", "remote_observations", "duplicate_replay", "runtime",
     })
 
@@ -834,6 +834,23 @@ def _restore(path: Path) -> dict:
     pre = identity["pre_restore_run_sha256"]
     _require(isinstance(pre, list) and bool(pre) and all(_sha(item, "GATE-10 pre-restore run") for item in pre), "GATE-10 pre-restore run inventory differs")
     _require(len(pre) == len(set(pre)) and restore_run_sha not in pre, "GATE-10 RESTORE_RUN_ID is not distinct")
+
+    selection = value["order_selection"]
+    _exact(selection, {
+        "bounded_candidate_limit", "preexisting_remote_collision_count",
+        "discarded_unprocessed_candidate_count", "selected_remote_deal_count_before",
+    }, "GATE-10 restored order selection")
+    candidate_limit = _integer(selection["bounded_candidate_limit"], "GATE-10 candidate limit", 1)
+    collision_count = _integer(selection["preexisting_remote_collision_count"], "GATE-10 remote collision count")
+    discarded_count = _integer(selection["discarded_unprocessed_candidate_count"], "GATE-10 discarded candidate count")
+    selected_deals_before = _integer(selection["selected_remote_deal_count_before"], "GATE-10 selected preexisting Deal count")
+    _require(
+        candidate_limit == 20
+        and collision_count < candidate_limit
+        and discarded_count == collision_count
+        and selected_deals_before == 0,
+        "GATE-10 restored order selection did not establish an unused bounded candidate",
+    )
 
     reprovision = value["reprovision"]
     _exact(reprovision, {"mode", "outbound_enabled_during_restore", "owner_setup_exit_code", "workflow_import_exit_code", "workflow_publish_exit_code", "imported_credential_count", "credential_binding_count", "workflow_active"}, "GATE-10 reprovision")

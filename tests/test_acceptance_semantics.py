@@ -358,6 +358,12 @@ with tempfile.TemporaryDirectory(prefix="pf07-semantic-test-") as temporary:
             "pre_restore_run_sha256": ["7" * 64],
             "remote_order_key_sha256": "8" * 64,
         },
+        "order_selection": {
+            "bounded_candidate_limit": 20,
+            "preexisting_remote_collision_count": 1,
+            "discarded_unprocessed_candidate_count": 1,
+            "selected_remote_deal_count_before": 0,
+        },
         "reprovision": {
             "mode": "REPROVISIONED_RESTORE",
             "outbound_enabled_during_restore": False,
@@ -412,5 +418,13 @@ with tempfile.TemporaryDirectory(prefix="pf07-semantic-test-") as temporary:
         pass
     else:
         raise SystemExit("FAIL: GATE-10 accepted a duplicate replay with a new n8n execution")
+    invalid_selection = copy.deepcopy(restore)
+    invalid_selection["order_selection"]["selected_remote_deal_count_before"] = 1
+    try:
+        derive(directory, "clean-restore", "gate10_restore_trace", invalid_selection)
+    except AcceptanceSemanticError:
+        pass
+    else:
+        raise SystemExit("FAIL: GATE-10 accepted a selected order key with a preexisting Deal")
 
 print("PASS: acceptance evidence semantics are derived from executable-artifact observations")

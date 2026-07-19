@@ -166,8 +166,7 @@ final class OddRoom_Repository
         $updated = $wpdb->query($wpdb->prepare(
             "UPDATE {$table} SET action_id = %d,
                     last_error = CASE WHEN error_code LIKE 'ACTION_%' THEN NULL ELSE last_error END,
-                    error_code = CASE WHEN error_code LIKE 'ACTION_%' THEN NULL ELSE error_code END,
-                    updated_at = UTC_TIMESTAMP(6)
+                    error_code = CASE WHEN error_code LIKE 'ACTION_%' THEN NULL ELSE error_code END
              WHERE id = %d AND action_id IS NULL AND lock_token IS NULL
                AND (status = 'pending' OR status = 'retry_wait')",
             $actionId,
@@ -386,9 +385,14 @@ final class OddRoom_Repository
             OddRoom_State_Machine::assertMonotonic((string) $row->processing_phase, (string) $result['processing_phase']);
 
             $transition = self::transitionFor($row, $result);
+            $transitionedAt = (string) $wpdb->get_var('SELECT UTC_TIMESTAMP(6)');
+            if ($transitionedAt === '') {
+                throw new RuntimeException('DATABASE_CLOCK_UNAVAILABLE');
+            }
             $nextAttemptAt = $transition['delay'] !== null
                 ? $wpdb->get_var($wpdb->prepare(
-                    'SELECT DATE_ADD(UTC_TIMESTAMP(6), INTERVAL %d SECOND)',
+                    'SELECT DATE_ADD(%s, INTERVAL %d SECOND)',
+                    $transitionedAt,
                     $transition['delay']
                 ))
                 : null;
@@ -402,7 +406,7 @@ final class OddRoom_Repository
                      operator_wait_reason = NULLIF(%s,''),
                      operator_wait_epoch = operator_wait_epoch + %d,
                      processed_at = NULLIF(%s,''), lock_token = NULL, locked_at = NULL,
-                     lock_expires_at = NULL, updated_at = UTC_TIMESTAMP(6)
+                     lock_expires_at = NULL, updated_at = %s
                  WHERE id = %d AND lock_token = %s AND status = 'processing'",
                 $transition['status'],
                 $transition['phase'],
@@ -418,6 +422,7 @@ final class OddRoom_Repository
                 $transition['operator_wait_reason'] ?? '',
                 $transition['operator_wait_reason'] !== null ? 1 : 0,
                 $transition['status'] === 'completed' ? gmdate('Y-m-d H:i:s') : null,
+                $transitionedAt,
                 (int) $row->id,
                 $rowToken
             ));

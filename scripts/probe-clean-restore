@@ -73,6 +73,9 @@ def project_name(name: str) -> str:
 
 
 def compose(root: Path, project: str, *arguments: str, tools: bool = False, timeout: int = 600) -> subprocess.CompletedProcess[str]:
+    runtime_env = parse_env_file(root / "runtime/runtime.env")
+    environment = os.environ.copy()
+    environment.update(runtime_env)
     command = [
         "docker", "compose", "--env-file", str(root / "runtime/runtime.env"),
         "-f", str(root / "infra/compose.yaml"), "-p", project,
@@ -80,7 +83,7 @@ def compose(root: Path, project: str, *arguments: str, tools: bool = False, time
     if tools:
         command += ["--profile", "tools"]
     command += list(arguments)
-    return run(command, label="clean-restore Compose action", timeout=timeout)
+    return run(command, label="clean-restore Compose action", timeout=timeout, environment=environment)
 
 
 def wp_json(root: Path, project: str, code: str) -> object:
@@ -257,16 +260,40 @@ def wait_for_database(container: str) -> None:
 
 
 def restore_database(container: str, dump: Path) -> None:
-    with dump.open("rb") as source:
-        result = subprocess.run(
-            ["docker", "exec", "-i", container, "sh", "-c", 'exec mariadb -uroot -p"$MARIADB_ROOT_PASSWORD"'],
-            stdin=source,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            check=False,
-        )
+    dump_bytes = dump.read_bytes()
+    upper = dump_bytes.upper()
+    require(b"CREATE TABLE `WP_" in upper, "WordPress database backup has no application schema")
+    require(
+        b"CREATE DATABASE" not in upper and b"\nUSE `" not in upper,
+        "WordPress database backup is not application-database-only",
+    )
+    result = subprocess.run(
+        [
+            "docker", "exec", "-i", container, "sh", "-c",
+            'exec mariadb -uroot -p"$MARIADB_ROOT_PASSWORD" "$MARIADB_DATABASE"',
+        ],
+        input=dump_bytes,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
     if result.returncode != 0:
         raise ProbeRuntimeError("fresh WordPress database import failed")
+
+
+def verify_database_credentials(container: str) -> None:
+    result = subprocess.run(
+        [
+            "docker", "exec", container, "sh", "-eu", "-c",
+            'mariadb-admin ping -uroot -p"$MARIADB_ROOT_PASSWORD" --silent >/dev/null; '
+            'test "$(mariadb -u"$MARIADB_USER" -p"$MARIADB_PASSWORD" "$MARIADB_DATABASE" '
+            '--batch --skip-column-names -e "SELECT 1")" = 1',
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    require(result.returncode == 0, "fresh database runtime credentials failed after import")
 
 
 def restore_wordpress_volume(volume: str, backup: Path, archive: Path) -> None:
@@ -391,6 +418,48 @@ def hubspot_deals(env: dict[str, str], root: Path, order_key: str) -> list[dict]
         and isinstance(item.get("properties"), dict)
         and item["properties"].get("oddroom_wc_order_key") == order_key
     ]
+
+
+def discard_unprocessed_restore_candidate(runtime: ProbeRuntime, created: dict) -> None:
+    order_id = int(created["order_id"])
+    row_id = int(created["outbox_id"])
+    action_id = int(created["action_id"])
+    code = f"""
+global $wpdb;
+$orderId={order_id};$rowId={row_id};$actionId={action_id};
+$initial=OddRoom_Scheduler::exactCandidates(OddRoom_Scheduler::HOOK,$rowId);
+if($initial!==[$actionId]){{throw new RuntimeException('RESTORE_COLLISION_ACTION_MISMATCH');}}
+if(!class_exists('ActionScheduler')){{throw new RuntimeException('ACTION_SCHEDULER_UNAVAILABLE');}}
+ActionScheduler::store()->cancel_action($actionId);
+$remaining=OddRoom_Scheduler::exactCandidates(OddRoom_Scheduler::HOOK,$rowId);
+if($remaining!==[]){{throw new RuntimeException('RESTORE_COLLISION_ACTION_REMAINS');}}
+$order=wc_get_order($orderId);
+if(!($order instanceof WC_Order)){{throw new RuntimeException('RESTORE_COLLISION_ORDER_MISSING');}}
+$order->delete(true);
+$deleted=(int)$wpdb->delete(OddRoom_Installer::outboxTable(),['order_id'=>$orderId],['%d']);
+$leases=(int)$wpdb->get_var($wpdb->prepare(
+    'SELECT COUNT(*) FROM '.OddRoom_Installer::leaseTable().' WHERE holder_outbox_id=%d',
+    $rowId
+));
+echo wp_json_encode([
+    'initial_candidate_count'=>count($initial),
+    'remaining_candidate_count'=>count($remaining),
+    'deleted_outbox_count'=>$deleted,
+    'order_exists_after'=>wc_get_order($orderId) instanceof WC_Order,
+    'lease_count_after'=>$leases,
+]);
+"""
+    value = runtime.wpcli_json(["eval", code])
+    require(
+        value == {
+            "initial_candidate_count": 1,
+            "remaining_candidate_count": 0,
+            "deleted_outbox_count": 1,
+            "order_exists_after": False,
+            "lease_count_after": 0,
+        },
+        "colliding restored order candidate was not discarded locally",
+    )
 
 
 def set_public_origin(root: Path, readiness: Path) -> str:
@@ -771,6 +840,7 @@ def main() -> None:
 
     domain = set_public_origin(final_root, readiness)
     final_env = parse_env_file(final_root / "runtime/runtime.env")
+    os.environ.update(final_env)
     require(final_env["ODDROOM_SHOP_INSTANCE_ID"] == original_env["ODDROOM_SHOP_INSTANCE_ID"], "restored shop identity differs")
     require(sha(final_env["ODDROOM_RUN_ID"]) not in pre_run_hashes, "RESTORE_RUN_ID was used before the restore")
 
@@ -783,6 +853,10 @@ def main() -> None:
     compose(final_root, final_project, "up", "-d", "db", timeout=300)
     wait_for_database(f"{final_project}-db-1")
     restore_database(f"{final_project}-db-1", backup["paths"]["wordpress_database"])
+    verify_database_credentials(f"{final_project}-db-1")
+    compose(final_root, final_project, "restart", "db", timeout=300)
+    wait_for_database(f"{final_project}-db-1")
+    verify_database_credentials(f"{final_project}-db-1")
 
     compose(final_root, final_project, "up", "-d", "n8n", "task-runners", timeout=600)
     n8n_port_text = final_env.get("PF07_N8N_PORT", "15678")
@@ -813,12 +887,20 @@ def main() -> None:
     os.environ["ODDROOM_RUN_ID"] = final_env["ODDROOM_RUN_ID"]
     runtime = ProbeRuntime()
     runtime.assert_run_identity()
-    suffix = secrets.token_hex(5)
-    created = runtime.create_order("simple", f"g10-{suffix}", "32500.00")
-    created_row = runtime.order_rows([created["order_id"]], "ORDER_CREATED")["rows"][0]
-    order_key = f"{final_env['ODDROOM_SHOP_INSTANCE_ID']}:{created['order_id']}"
-    deal_before = hubspot_deals(final_env, final_root, order_key)
-    require(len(deal_before) == 0, "restored test order key already exists in HubSpot")
+    collision_count = 0
+    for _selection_attempt in range(20):
+        suffix = secrets.token_hex(5)
+        created = runtime.create_order("simple", f"g10-{suffix}", "32500.00")
+        created_row = runtime.order_rows([created["order_id"]], "ORDER_CREATED")["rows"][0]
+        order_key = f"{final_env['ODDROOM_SHOP_INSTANCE_ID']}:{created['order_id']}"
+        deal_before = hubspot_deals(final_env, final_root, order_key)
+        require(len(deal_before) <= 1, "restored test order key has duplicate preexisting Deals")
+        if not deal_before:
+            break
+        discard_unprocessed_restore_candidate(runtime, created)
+        collision_count += 1
+    else:
+        raise ProbeRuntimeError("no unused restored test order key was found within the bounded selection window")
     created_baseline = runtime.latest_execution_id()
     runtime.run_action(created["action_id"])
     created_details = runtime.wait_for_event_executions(created_baseline, created_row["event_key"], expected=1)
@@ -869,6 +951,12 @@ def main() -> None:
             "restore_run_sha256": sha(final_env["ODDROOM_RUN_ID"]),
             "pre_restore_run_sha256": pre_run_hashes,
             "remote_order_key_sha256": sha(order_key),
+        },
+        "order_selection": {
+            "bounded_candidate_limit": 20,
+            "preexisting_remote_collision_count": collision_count,
+            "discarded_unprocessed_candidate_count": collision_count,
+            "selected_remote_deal_count_before": len(deal_before),
         },
         "reprovision": {
             "mode": "REPROVISIONED_RESTORE",

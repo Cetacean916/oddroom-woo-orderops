@@ -33,11 +33,14 @@ expected_candidate_files: list[str] | None = None
 
 
 def candidate_files() -> list[str]:
-    return sorted(
-        path.relative_to(root).as_posix()
-        for path in root.rglob("*")
-        if path.relative_to(root).parts[0] != ".git" and (path.is_file() or path.is_symlink())
-    )
+    entries: list[str] = []
+    for path in root.rglob("*"):
+        relative = path.relative_to(root)
+        if relative.parts[0] == ".git" or "node_modules" in relative.parts:
+            continue
+        if path.is_file() or path.is_symlink():
+            entries.append(relative.as_posix())
+    return sorted(entries)
 
 
 if manifest_path.exists():
