@@ -20,10 +20,9 @@ final class OddRoom_State_Machine
 
     public static function checkpoint(?string $stored, ?string $returned): ?string
     {
-        if ($stored !== null && $returned !== null && $stored !== $returned) {
+        if ($stored !== null && $stored !== $returned) {
             throw new DomainException('CHECKPOINT_CONFLICT');
         }
         return $stored ?? $returned;
     }
 }
-

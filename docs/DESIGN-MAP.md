@@ -4,11 +4,11 @@ This map was fixed before PF07 storefront styling. The reuse source remains read
 
 | Reused element | PF07 use | Source file |
 | --- | --- | --- |
-| Do Hyeon display lettering | Hero, product names, section numbers, and compact campaign labels | `assets/fonts/DoHyeon-Regular.woff2` |
-| Noto Sans KR interface typography | Navigation, body copy, forms, cart, checkout, account, and WooCommerce notices | `assets/fonts/NotoSansKR-Regular.woff2`, `assets/fonts/NotoSansKR-Bold.woff2` |
+| Do Hyeon display lettering | Compact `ODDROOM!` wordmark only, preserving the source brand mark without using the coarse display face for buyer copy | `assets/fonts/DoHyeon-Regular.woff2` |
+| Noto Sans KR interface typography | Hero and section headings, navigation, product names, body copy, forms, cart, checkout, account, and WooCommerce notices | `assets/fonts/NotoSansKR-Regular.woff2`, `assets/fonts/NotoSansKR-Bold.woff2` |
 | Paper/ink with lime, blue, and hot-pink accents | `#fff8eb` paper, `#080604` ink, `#dbfb4f` lime, `#315dff` blue, and `#ff4f81` hot pink | `assets/css/oddroom-site.css` |
-| Heavy bordered cards and offset shadows | Store promise cards, product cards, proof receipts, buttons, and form panels | `assets/css/oddroom-site.css` |
-| Proof-first commercial rhythm and shopping image | Hero outcome, operations proof strip, three-step recovery story, and shop conversion scene | `README.md`, `asset-credits.json`, `assets/photos/shopping-bags-commons.jpg` |
+| Bordered cards and restrained offset shadows | Store promise cards, product cards, proof receipts, buttons, and form panels, reduced to two-pixel borders and compact shadows for clearer commerce hierarchy | `assets/css/oddroom-site.css` |
+| Proof-first commercial rhythm and shopping image | Buyer outcome, four-fact proof strip, Korean three-step recovery story, and shop conversion scene | `README.md`, `asset-credits.json`, `assets/photos/shopping-bags-commons.jpg` |
 
 ## Copied asset allowlist
 

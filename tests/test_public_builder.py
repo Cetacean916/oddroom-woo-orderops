@@ -4,7 +4,7 @@ from __future__ import annotations
 import ast
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import shutil
 import subprocess
 import sys
@@ -14,6 +14,36 @@ import tempfile
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 BUILDER_SOURCE = PROJECT_ROOT / "scripts/build-public-release"
 VALIDATOR_SOURCE = PROJECT_ROOT / "scripts/validate-public"
+
+
+def builder_allowed_names() -> set[str]:
+    module = ast.parse(BUILDER_SOURCE.read_text(encoding="utf-8"))
+    for node in module.body:
+        if (
+            isinstance(node, ast.Assign)
+            and any(isinstance(target, ast.Name) and target.id == "allowed_names" for target in node.targets)
+            and isinstance(node.value, ast.Set)
+        ):
+            return {
+                item.value for item in node.value.elts
+                if isinstance(item, ast.Constant) and isinstance(item.value, str)
+            }
+    raise AssertionError("public builder exact-name allowlist is unavailable")
+
+
+active_allowlist = json.loads(
+    (PROJECT_ROOT / "release/public-allowlist.json").read_text(encoding="utf-8")
+)["paths"]
+extensionless_allowlisted_names = {
+    PurePosixPath(relative).name
+    for relative in active_allowlist
+    if PurePosixPath(relative).suffix == ""
+}
+missing_extensionless_names = extensionless_allowlisted_names - builder_allowed_names()
+if missing_extensionless_names:
+    raise AssertionError(
+        f"public builder rejects allowlisted extensionless names: {sorted(missing_extensionless_names)}"
+    )
 
 
 def make_source(base: Path) -> Path:

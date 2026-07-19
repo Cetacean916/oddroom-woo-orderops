@@ -1,0 +1,287 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+from datetime import datetime, timezone
+import fcntl
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import shlex
+import shutil
+import stat
+import subprocess
+import sys
+import tempfile
+
+from acceptance_semantics import AcceptanceSemanticError, derive_fixture_observations
+
+
+ROOT = Path(__file__).resolve().parent.parent
+RAW_ROOT = ROOT / "evidence/raw"
+FIXTURE_MANIFEST = ROOT / "fixtures/acceptance-fixtures.json"
+RUNNER = ROOT / "fixtures/run"
+ALLOWED_ARTIFACT_SUFFIXES = {".bin", ".json", ".jsonl", ".log", ".txt"}
+
+
+def fail(message: str) -> None:
+    raise SystemExit(f"FAIL: {message}")
+
+
+def load_json(path: Path) -> dict:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        fail(f"cannot read {path.name}: {error}")
+    if not isinstance(value, dict):
+        fail(f"JSON root is not an object: {path.name}")
+    return value
+
+
+def sha256_bytes(value: bytes) -> str:
+    return hashlib.sha256(value).hexdigest()
+
+
+def sha256_file(path: Path) -> str:
+    return sha256_bytes(path.read_bytes())
+
+
+def source_tree_sha256() -> str:
+    lines: list[str] = []
+    for path in sorted(ROOT.rglob("*")):
+        relative = path.relative_to(ROOT)
+        if not path.is_file() or path.is_symlink():
+            continue
+        if relative.parts[0] in {"evidence", "reports", "runtime", ".git"}:
+            continue
+        if "node_modules" in relative.parts or "__pycache__" in relative.parts or path.suffix == ".pyc":
+            continue
+        if relative.as_posix() == "release/public-build-manifest.json":
+            continue
+        mode = "0755" if path.stat().st_mode & stat.S_IXUSR else "0644"
+        lines.append(f"{relative.as_posix()}\t{mode}\t{sha256_file(path)}")
+    return sha256_bytes(("\n".join(lines) + "\n").encode("utf-8"))
+
+
+def now_utc() -> str:
+    return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+
+
+def resolve_observation(observations: dict, dotted_path: str) -> object:
+    value: object = observations
+    for part in dotted_path.split("."):
+        if not isinstance(value, dict) or part not in value:
+            fail(f"probe omitted required observation: {dotted_path}")
+        value = value[part]
+    return value
+
+
+def assertions_pass(fixture: dict, observations: dict) -> None:
+    for assertion in fixture["assertions"]:
+        actual = resolve_observation(observations, assertion["path"])
+        expected = assertion["expected"]
+        operator = assertion["operator"]
+        passed = actual == expected if operator == "eq" else (
+            operator == "gte"
+            and isinstance(actual, (int, float)) and not isinstance(actual, bool)
+            and isinstance(expected, (int, float)) and actual >= expected
+        )
+        if not passed:
+            fail(f"probe observation failed fixture assertion: {fixture['id']}:{assertion['path']}")
+
+
+parser = argparse.ArgumentParser(description="Execute a real PF07 probe and collect contract-shaped protected evidence.")
+parser.add_argument("--check", action="store_true", help="verify the public fixture bundle without writing evidence")
+parser.add_argument("--fixture")
+parser.add_argument("--run-id-env", default="ODDROOM_RUN_ID")
+parser.add_argument("--replace", action="store_true")
+parser.add_argument("command", nargs=argparse.REMAINDER)
+args = parser.parse_args()
+
+if args.check:
+    if args.fixture or args.command or args.replace:
+        fail("--check cannot be combined with collection arguments")
+    subprocess.run([str(RUNNER), "--public"], cwd=ROOT, check=True)
+    print("PASS: evidence collector and public fixture bundle are executable")
+    raise SystemExit(0)
+
+command = args.command[1:] if args.command and args.command[0] == "--" else args.command
+if not args.fixture or not command:
+    fail("usage: scripts/collect-evidence --fixture <id> [--replace] -- <real probe command>")
+
+manifest = load_json(FIXTURE_MANIFEST)
+fixtures = manifest.get("fixtures")
+fixture = next((item for item in fixtures if item.get("id") == args.fixture), None) if isinstance(fixtures, list) else None
+if not isinstance(fixture, dict):
+    fail(f"unknown fixture: {args.fixture}")
+
+run_id = os.environ.get(args.run_id_env, "")
+if not re.fullmatch(r"[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}", run_id):
+    fail(f"{args.run_id_env} must contain the protected UUIDv4 run identity")
+
+serialized_command = shlex.join(command)
+if re.search(r"(?i)(?:authorization|bearer|hooks\.slack\.com|xox[baprs]-|(?:password|secret|token)=\S+)", serialized_command):
+    fail("probe command contains a probable secret literal; use the protected environment or file input")
+if serialized_command != fixture.get("probe_command"):
+    fail("probe command differs from the exact fixture-bound executable")
+
+record_path = RAW_ROOT / fixture["record"]
+inventory_path = RAW_ROOT / "protected-artifact-inventory.json"
+RAW_ROOT.parent.mkdir(parents=True, exist_ok=True)
+lock_path = RAW_ROOT.parent / ".collect-evidence.lock"
+lock_file = lock_path.open("a+", encoding="utf-8")
+lock_path.chmod(0o600)
+fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+if not args.replace and record_path.exists():
+    fail(f"canonical record already exists: {fixture['record']}; preserve a formal preimage before explicit --replace")
+
+scratch_root = Path(os.environ.get("PF07_SCRATCH_ROOT", tempfile.gettempdir()))
+scratch_root.mkdir(parents=True, exist_ok=True)
+started_at = now_utc()
+with tempfile.TemporaryDirectory(prefix="pf07-evidence-", dir=scratch_root) as temporary:
+    output_dir = Path(temporary)
+    environment = os.environ.copy()
+    environment["PF07_EVIDENCE_OUTPUT_DIR"] = str(output_dir)
+    environment["PF07_FIXTURE_ID"] = fixture["id"]
+    result = subprocess.run(command, cwd=ROOT, env=environment, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+    finished_at = now_utc()
+    if result.returncode != 0:
+        fail(f"real probe exited {result.returncode}; canonical evidence was not changed")
+    try:
+        probe = json.loads(result.stdout)
+    except json.JSONDecodeError as error:
+        fail(f"real probe stdout is not one JSON object: {error}")
+    if not isinstance(probe, dict) or set(probe) != {"observations", "artifacts"}:
+        fail("real probe output must contain exactly observations and artifacts")
+    observations = probe["observations"]
+    artifact_outputs = probe["artifacts"]
+    if not isinstance(observations, dict) or "result" in observations or not isinstance(artifact_outputs, dict):
+        fail("probe observations must be an object without a self-declared result")
+    required_aliases = fixture["required_artifacts"]
+    if set(artifact_outputs) != set(required_aliases):
+        fail("probe artifact aliases differ from the fixture contract")
+    assertions_pass(fixture, observations)
+
+    prepared: dict[str, tuple[Path, str, str]] = {}
+    for alias, relative in artifact_outputs.items():
+        if not isinstance(relative, str) or Path(relative).is_absolute() or ".." in Path(relative).parts:
+            fail(f"probe artifact path must stay below PF07_EVIDENCE_OUTPUT_DIR: {alias}")
+        source = (output_dir / relative).resolve()
+        try:
+            source.relative_to(output_dir.resolve())
+        except ValueError:
+            fail(f"probe artifact escaped its output directory: {alias}")
+        if not source.is_file() or source.is_symlink() or source.suffix not in ALLOWED_ARTIFACT_SUFFIXES:
+            fail(f"probe artifact type is invalid: {alias}")
+        prepared[alias] = (source, sha256_file(source), source.suffix)
+
+    try:
+        derived_observations = derive_fixture_observations(
+            fixture["id"],
+            {alias: details[0] for alias, details in prepared.items()},
+        )
+    except AcceptanceSemanticError as error:
+        fail(f"probe artifact semantics failed before collection: {error}")
+    if derived_observations is not None:
+        for assertion in fixture["assertions"]:
+            if resolve_observation(observations, assertion["path"]) != resolve_observation(derived_observations, assertion["path"]):
+                fail(f"probe observation differs from artifact-derived truth: {fixture['id']}:{assertion['path']}")
+
+    inventory_doc = load_json(inventory_path) if inventory_path.exists() else {"schema_version": 1, "artifacts": {}}
+    inventory = inventory_doc.get("artifacts")
+    if inventory_doc.get("schema_version") != 1 or not isinstance(inventory, dict):
+        fail("protected artifact inventory is invalid")
+
+    destinations: dict[str, Path] = {}
+    for alias, (_source, _digest, suffix) in prepared.items():
+        existing = inventory.get(alias)
+        relative = existing.get("path") if isinstance(existing, dict) else f"artifacts/{alias}{suffix}"
+        if not isinstance(relative, str) or not relative.startswith("artifacts/") or ".." in Path(relative).parts:
+            fail(f"protected artifact inventory path is invalid: {alias}")
+        destination = RAW_ROOT / relative
+        if destination.exists() and not args.replace:
+            fail(f"protected artifact already exists: {alias}")
+        destinations[alias] = destination
+
+    artifact_hashes = {alias: prepared[alias][1] for alias in required_aliases}
+    record = {
+        "schema_version": "1",
+        "acceptance_id": fixture["acceptance_id"],
+        "run_id": run_id,
+        "started_at": started_at,
+        "finished_at": finished_at,
+        "source_tree_sha256": source_tree_sha256(),
+        "command_or_probe": serialized_command,
+        "exit_code": 0,
+        "observations": {"result": "PASS", **observations},
+        "artifact_hashes": artifact_hashes,
+        "redaction_state": "RAW_PROTECTED",
+    }
+
+    RAW_ROOT.mkdir(parents=True, exist_ok=True)
+    transaction = output_dir / "transaction"
+    rollback = output_dir / "rollback"
+    transaction.mkdir(mode=0o700)
+    rollback.mkdir(mode=0o700)
+    staged: dict[Path, Path] = {}
+    for alias, destination in destinations.items():
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        stage = transaction / f"artifact-{alias}{prepared[alias][2]}"
+        shutil.copyfile(prepared[alias][0], stage)
+        stage.chmod(0o600)
+        staged[destination] = stage
+        inventory[alias] = {"path": destination.relative_to(RAW_ROOT).as_posix(), "sha256": prepared[alias][1]}
+
+    record_stage = transaction / "record.json"
+    record_stage.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    record_stage.chmod(0o600)
+    staged[record_path] = record_stage
+    inventory_stage = transaction / "protected-artifact-inventory.json"
+    inventory_stage.write_text(json.dumps(inventory_doc, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    inventory_stage.chmod(0o600)
+    staged[inventory_path] = inventory_stage
+
+    future_hashes: dict[Path, str] = {}
+    for path in sorted(RAW_ROOT.rglob("*")):
+        if path.is_file() and path.name != "evidence-manifest.sha256" and path not in staged:
+            future_hashes[path] = sha256_file(path)
+    for destination, stage in staged.items():
+        future_hashes[destination] = sha256_file(stage)
+    manifest_stage = transaction / "evidence-manifest.sha256"
+    manifest_stage.write_text(
+        "\n".join(
+            f"{digest}  {path.relative_to(ROOT).as_posix()}"
+            for path, digest in sorted(future_hashes.items(), key=lambda item: item[0].as_posix())
+        ) + "\n",
+        encoding="utf-8",
+    )
+    manifest_stage.chmod(0o600)
+    manifest_path = RAW_ROOT / "evidence-manifest.sha256"
+    staged[manifest_path] = manifest_stage
+
+    backups: dict[Path, Path | None] = {}
+    promoted: list[Path] = []
+    try:
+        for index, destination in enumerate(staged):
+            if destination.exists():
+                backup = rollback / f"{index:03d}-{destination.name}"
+                shutil.copy2(destination, backup)
+                backups[destination] = backup
+            else:
+                backups[destination] = None
+        for destination, stage in staged.items():
+            os.replace(stage, destination)
+            destination.chmod(0o600)
+            promoted.append(destination)
+    except BaseException:
+        for destination in reversed(promoted):
+            backup = backups[destination]
+            if backup is None:
+                destination.unlink(missing_ok=True)
+            else:
+                os.replace(backup, destination)
+        raise
+
+print(json.dumps({"status": "PASS", "fixture_id": fixture["id"], "record": fixture["record"], "artifact_count": len(prepared)}, separators=(",", ":")))

@@ -53,3 +53,14 @@ foreach ([
 ] as $option) {
     delete_option($option);
 }
+
+foreach ([
+    'oddroom_checkout_v2_',
+    '_transient_oddroom_checkout_',
+    '_transient_timeout_oddroom_checkout_',
+] as $optionPrefix) {
+    $wpdb->query($wpdb->prepare(
+        "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
+        $wpdb->esc_like($optionPrefix) . '%'
+    ));
+}

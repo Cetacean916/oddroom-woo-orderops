@@ -5,6 +5,7 @@ import hashlib
 import json
 from pathlib import Path
 import re
+import subprocess
 import sys
 
 
@@ -82,6 +83,28 @@ if len(sys.argv) != 2 or sys.argv[1] != "--pre-public":
 
 if not RAW_ROOT.is_dir():
     fail("protected raw evidence root is missing")
+
+protected_fixture_result = subprocess.run(
+    [str(ROOT / "fixtures/run"), "--protected"],
+    cwd=ROOT,
+    text=True,
+    stdout=subprocess.PIPE,
+    stderr=subprocess.PIPE,
+    check=False,
+)
+if protected_fixture_result.returncode != 0:
+    fail("protected fixture semantics failed before public evidence generation")
+try:
+    protected_fixture_summary = json.loads(protected_fixture_result.stdout)
+except json.JSONDecodeError:
+    fail("protected fixture validator did not return machine-readable output")
+if (
+    not isinstance(protected_fixture_summary, dict)
+    or protected_fixture_summary.get("status") != "PASS"
+    or protected_fixture_summary.get("mode") != "protected"
+    or protected_fixture_summary.get("fixture_count") != 15
+):
+    fail("protected fixture validator did not establish all fifteen scenarios")
 
 transform_sha = sha256_bytes(Path(__file__).read_bytes())
 PUBLIC_ROOT.mkdir(parents=True, exist_ok=True)

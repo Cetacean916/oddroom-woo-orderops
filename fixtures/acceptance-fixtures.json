@@ -1,0 +1,311 @@
+{
+  "schema_version": 1,
+  "classification": "PUBLIC_ORIGINAL_SAFE_SYNTHETIC",
+  "fixtures": [
+    {
+      "id": "normal-order",
+      "acceptance_id": "GATE-01",
+      "record": "e2e-normal-order.json",
+      "probe_command": "scripts/probe-core-acceptance --fixture normal-order",
+      "scenario_tags": ["simple-product", "variable-product", "coupon", "immutable-outbox"],
+      "required_artifacts": ["gate01_order_variety_trace"],
+      "assertions": [
+        {"path": "simple_product_orders", "operator": "gte", "expected": 1},
+        {"path": "variable_product_orders", "operator": "gte", "expected": 1},
+        {"path": "coupon_orders", "operator": "gte", "expected": 1},
+        {"path": "woocommerce_admin_and_storage_observed", "operator": "eq", "expected": true},
+        {"path": "immutable_payload_hashes_valid", "operator": "eq", "expected": true}
+      ]
+    },
+    {
+      "id": "variable-input",
+      "acceptance_id": "GATE-03",
+      "record": "e2e-variable-coupon-order.json",
+      "probe_command": "scripts/probe-core-acceptance --fixture variable-input",
+      "scenario_tags": ["three-orders", "distinct-customers", "distinct-products", "distinct-payloads"],
+      "required_artifacts": ["gate03_variable_input_trace"],
+      "assertions": [
+        {"path": "distinct_order_count", "operator": "eq", "expected": 3},
+        {"path": "distinct_customer_alias_count", "operator": "eq", "expected": 3},
+        {"path": "distinct_product_input_count", "operator": "eq", "expected": 3},
+        {"path": "distinct_payload_hash_count", "operator": "eq", "expected": 3},
+        {"path": "fixed_workflow_fixture_used", "operator": "eq", "expected": false}
+      ]
+    },
+    {
+      "id": "state-non-regression",
+      "acceptance_id": "GATE-02",
+      "record": "state-non-regression.json",
+      "probe_command": "scripts/probe-core-acceptance --fixture state-non-regression",
+      "scenario_tags": ["four-events", "same-order-serialization", "delayed-lower-rank", "zero-extra-slack"],
+      "required_artifacts": ["gate02_state_trace"],
+      "assertions": [
+        {"path": "event_type_count", "operator": "eq", "expected": 4},
+        {"path": "event_state_ranks", "operator": "eq", "expected": [10, 20, 30, 40]},
+        {"path": "delayed_lower_rank_results", "operator": "eq", "expected": 2},
+        {"path": "delayed_payment_slack_calls", "operator": "eq", "expected": 0},
+        {"path": "authoritative_rank_regressions", "operator": "eq", "expected": 0},
+        {"path": "pipeline_regressions", "operator": "eq", "expected": 0}
+      ]
+    },
+    {
+      "id": "concurrent-duplicate-suppression",
+      "acceptance_id": "GATE-04",
+      "record": "duplicate-suppression.json",
+      "probe_command": "scripts/probe-core-acceptance --fixture concurrent-duplicate-suppression",
+      "scenario_tags": ["three-workers", "manual-retry-conflict", "row-claim", "order-lease"],
+      "required_artifacts": ["gate04_duplicate_trace"],
+      "assertions": [
+        {"path": "concurrent_workers", "operator": "eq", "expected": 3},
+        {"path": "row_claim_owners", "operator": "eq", "expected": 1},
+        {"path": "order_lease_owners", "operator": "eq", "expected": 1},
+        {"path": "manual_retry_conflicts", "operator": "eq", "expected": 1},
+        {"path": "immutable_row_count", "operator": "eq", "expected": 1},
+        {"path": "deal_count", "operator": "eq", "expected": 1},
+        {"path": "slack_post_count", "operator": "eq", "expected": 1},
+        {"path": "returned_slack_timestamp_count", "operator": "eq", "expected": 1}
+      ]
+    },
+    {
+      "id": "hmac-rejection",
+      "acceptance_id": "GATE-05",
+      "record": "hmac-rejection.json",
+      "probe_command": "scripts/probe-core-acceptance --fixture hmac-rejection",
+      "scenario_tags": ["missing-signature", "mutated-body", "expired-timestamp", "zero-side-effects"],
+      "required_artifacts": ["gate05_hmac_trace"],
+      "assertions": [
+        {"path": "rejected_case_count", "operator": "eq", "expected": 3},
+        {"path": "missing_signature_rejected", "operator": "eq", "expected": true},
+        {"path": "mutated_body_rejected", "operator": "eq", "expected": true},
+        {"path": "expired_timestamp_rejected", "operator": "eq", "expected": true},
+        {"path": "external_call_count", "operator": "eq", "expected": 0},
+        {"path": "valid_exact_whitespace_bytes_accepted", "operator": "eq", "expected": true}
+      ]
+    },
+    {
+      "id": "raw-byte-resource-bounds",
+      "acceptance_id": "GATE-05-RESOURCE-BOUNDS",
+      "record": "raw-byte-resource-bounds.json",
+      "probe_command": "scripts/probe-core-acceptance --fixture raw-byte-resource-bounds",
+      "scenario_tags": ["exact-bytes", "non-ascii", "oversized-chunked", "resource-invalid"],
+      "required_artifacts": ["gate05_resource_trace"],
+      "assertions": [
+        {"path": "exact_byte_valid", "operator": "eq", "expected": true},
+        {"path": "maximum_body_bytes", "operator": "eq", "expected": 262144},
+        {"path": "oversized_observed_bytes", "operator": "eq", "expected": 262145},
+        {"path": "oversized_status", "operator": "eq", "expected": 413},
+        {"path": "oversized_workflow_execution_delta", "operator": "eq", "expected": 0},
+        {"path": "resource_invalid_external_calls", "operator": "eq", "expected": 0}
+      ]
+    },
+    {
+      "id": "outage-retry",
+      "acceptance_id": "GATE-06",
+      "record": "outage-retry.json",
+      "probe_command": "scripts/probe-gate06",
+      "scenario_tags": ["maintained-toxiproxy", "bounded-retry", "foreground-runner", "immutable-payload"],
+      "required_artifacts": ["exhaustion_attempt_trace", "outage_proxy_trace", "slack_checkpoint_trace"],
+      "assertions": [
+        {"path": "automatic_attempt_limit", "operator": "eq", "expected": 6},
+        {"path": "retry_delays_seconds", "operator": "eq", "expected": [2, 5, 10, 20, 30]},
+        {"path": "payload_rebuilt", "operator": "eq", "expected": false},
+        {"path": "manual_retry_preserves_payload", "operator": "eq", "expected": true},
+        {"path": "outage_transport", "operator": "eq", "expected": "maintained_toxiproxy"},
+        {"path": "runner_mode", "operator": "eq", "expected": "foreground_wp_cli_without_admin_page_load"},
+        {"path": "admin_page_load_count", "operator": "eq", "expected": 0},
+        {"path": "recovery_completed_before_attempt_six", "operator": "eq", "expected": true},
+        {"path": "recovery_attempt_count", "operator": "eq", "expected": 2},
+        {"path": "recovery_n8n_execution_count", "operator": "eq", "expected": 1},
+        {"path": "recovery_deal_checkpoint_present", "operator": "eq", "expected": true},
+        {"path": "automatic_action_ids_distinct", "operator": "eq", "expected": true},
+        {"path": "seventh_automatic_action_count", "operator": "eq", "expected": 0},
+        {"path": "terminal_automatic_error", "operator": "eq", "expected": "ATTEMPTS_EXHAUSTED"},
+        {"path": "manual_total_attempt_count", "operator": "eq", "expected": 7},
+        {"path": "manual_automatic_attempt_count", "operator": "eq", "expected": 6},
+        {"path": "manual_followup_action_count", "operator": "eq", "expected": 0},
+        {"path": "slack_first_attempt_calls", "operator": "eq", "expected": 0},
+        {"path": "slack_resume_attempt_calls", "operator": "eq", "expected": 1},
+        {"path": "slack_total_calls", "operator": "eq", "expected": 1},
+        {"path": "slack_payload_immutable", "operator": "eq", "expected": true},
+        {"path": "slack_checkpoints_preserved", "operator": "eq", "expected": true}
+      ]
+    },
+    {
+      "id": "retry-exhaustion",
+      "acceptance_id": "GATE-06-EXHAUSTION",
+      "record": "retry-exhaustion.json",
+      "probe_command": "scripts/derive-gate06-linked-evidence --replace",
+      "scenario_tags": ["six-automatic-attempts", "manual-attempt", "terminal-no-follow-up"],
+      "required_artifacts": ["exhaustion_attempt_trace"],
+      "assertions": [
+        {"path": "terminal_automatic_attempts", "operator": "eq", "expected": 6},
+        {"path": "retry_delays_seconds", "operator": "eq", "expected": [2, 5, 10, 20, 30]},
+        {"path": "automatic_action_ids_distinct", "operator": "eq", "expected": true},
+        {"path": "terminal_error", "operator": "eq", "expected": "ATTEMPTS_EXHAUSTED"},
+        {"path": "follow_up_actions", "operator": "eq", "expected": 0},
+        {"path": "manual_attempt_count_greater_than_automatic", "operator": "eq", "expected": true},
+        {"path": "manual_total_attempt_count", "operator": "eq", "expected": 7},
+        {"path": "manual_automatic_attempt_count", "operator": "eq", "expected": 6},
+        {"path": "manual_retry_count", "operator": "eq", "expected": 1},
+        {"path": "manual_terminal_error", "operator": "eq", "expected": "HUBSPOT_RETRYABLE"},
+        {"path": "manual_terminal_follow_up_actions", "operator": "eq", "expected": 0},
+        {"path": "immutable_payload_preserved", "operator": "eq", "expected": true},
+        {"path": "residual_lock_or_lease_count", "operator": "eq", "expected": 0}
+      ]
+    },
+    {
+      "id": "stale-lease-recovery",
+      "acceptance_id": "GATE-06-LEASE",
+      "record": "stale-lease-recovery.json",
+      "probe_command": "scripts/probe-gate06-lease",
+      "scenario_tags": ["not-started-crash", "in-flight-ambiguity", "second-sweep-noop", "operator-wait"],
+      "required_artifacts": ["gate06_lease_trace"],
+      "assertions": [
+        {"path": "not_started_requeued_once", "operator": "eq", "expected": true},
+        {"path": "counters_preserved", "operator": "eq", "expected": true},
+        {"path": "locks_cleared_exactly", "operator": "eq", "expected": true},
+        {"path": "second_sweep_mutations", "operator": "eq", "expected": 0},
+        {"path": "ambiguous_in_flight_state", "operator": "eq", "expected": "operator_wait"},
+        {"path": "ambiguous_auto_actions", "operator": "eq", "expected": 0}
+      ]
+    },
+    {
+      "id": "partial-failure-recovery",
+      "acceptance_id": "GATE-07",
+      "record": "partial-failure-recovery.json",
+      "probe_command": "scripts/derive-gate06-linked-evidence --replace",
+      "scenario_tags": ["failed-before-slack", "checkpoint-resume", "same-payload", "one-slack-post"],
+      "required_artifacts": ["slack_checkpoint_trace"],
+      "assertions": [
+        {"path": "first_phase", "operator": "eq", "expected": "slack_pending"},
+        {"path": "first_slack_posts", "operator": "eq", "expected": 0},
+        {"path": "crm_checkpoints_persisted_before_retry", "operator": "eq", "expected": true},
+        {"path": "same_immutable_payload", "operator": "eq", "expected": true},
+        {"path": "retry_resume_phase", "operator": "eq", "expected": "slack_pending"},
+        {"path": "distinct_followup_action", "operator": "eq", "expected": true},
+        {"path": "n8n_execution_count", "operator": "eq", "expected": 2},
+        {"path": "final_slack_posts", "operator": "eq", "expected": 1},
+        {"path": "total_slack_posts", "operator": "eq", "expected": 1},
+        {"path": "stored_slack_timestamp_count", "operator": "eq", "expected": 1},
+        {"path": "checkpoint_overwrites", "operator": "eq", "expected": 0},
+        {"path": "residual_action_or_lock_count", "operator": "eq", "expected": 0}
+      ]
+    },
+    {
+      "id": "operator-outcome-resolution",
+      "acceptance_id": "GATE-06-OPERATOR",
+      "record": "operator-outcome-resolution.json",
+      "probe_command": "scripts/probe-gate06-operator",
+      "scenario_tags": ["four-decisions", "epoch-binding", "idempotent-replay", "conflict-no-side-effect"],
+      "required_artifacts": ["gate06_operator_trace"],
+      "assertions": [
+        {"path": "decision_count", "operator": "eq", "expected": 4},
+        {"path": "decisions", "operator": "eq", "expected": ["CONFIRMED_POSTED", "CONFIRMED_NOT_POSTED", "RETRY_AFTER_DUE", "UNRESOLVED"]},
+        {"path": "proven_not_posted_resume_actions", "operator": "eq", "expected": 1},
+        {"path": "proven_resume_total_slack_posts", "operator": "eq", "expected": 1},
+        {"path": "unresolved_state", "operator": "eq", "expected": "operator_wait"},
+        {"path": "unresolved_actions", "operator": "eq", "expected": 0},
+        {"path": "same_decision_replay", "operator": "eq", "expected": "idempotent_noop"},
+        {"path": "conflicting_decision_side_effects", "operator": "eq", "expected": 0}
+      ]
+    },
+    {
+      "id": "reconciliation-repair",
+      "acceptance_id": "GATE-08",
+      "record": "reconciliation-repair.json",
+      "probe_command": "scripts/probe-core-acceptance --fixture reconciliation-repair",
+      "scenario_tags": ["four-missing-events", "schedule-only-repair", "second-scan-noop", "fact-time"],
+      "required_artifacts": ["gate08_reconciliation_trace"],
+      "assertions": [
+        {"path": "supported_event_types", "operator": "eq", "expected": 4},
+        {"path": "missing_event_repairs", "operator": "eq", "expected": 4},
+        {"path": "schedule_only_repairs", "operator": "eq", "expected": 1},
+        {"path": "first_scan_inserted_rows", "operator": "eq", "expected": 4},
+        {"path": "first_scan_scheduled_missing_rows", "operator": "eq", "expected": 4},
+        {"path": "second_scan_mutations", "operator": "eq", "expected": 0},
+        {"path": "payload_mutations", "operator": "eq", "expected": 0},
+        {"path": "protected_cancellation_fact_used", "operator": "eq", "expected": true}
+      ]
+    },
+    {
+      "id": "hpos-compatibility",
+      "acceptance_id": "GATE-09-COMPATIBILITY",
+      "record": "hpos-compatibility.json",
+      "probe_command": "scripts/probe-gate09-compatibility",
+      "scenario_tags": ["hpos-off", "hpos-on", "dependency-failure", "migration", "uninstall", "scheduler-branches"],
+      "required_artifacts": ["gate09_compatibility_trace"],
+      "assertions": [
+        {"path": "hpos_disabled", "operator": "eq", "expected": "PASS"},
+        {"path": "hpos_enabled", "operator": "eq", "expected": "PASS"},
+        {"path": "action_scheduler_version_supported", "operator": "eq", "expected": true},
+        {"path": "activation_dependency_rejection", "operator": "eq", "expected": "PASS"},
+        {"path": "migration_idempotent", "operator": "eq", "expected": true},
+        {"path": "uninstall_preserves_by_default", "operator": "eq", "expected": true},
+        {"path": "opt_in_removal", "operator": "eq", "expected": "PASS"},
+        {"path": "scheduler_failure_branches", "operator": "eq", "expected": "PASS"}
+      ]
+    },
+    {
+      "id": "product-quality",
+      "acceptance_id": "GATE-09",
+      "record": "product-quality.json",
+      "probe_command": "scripts/probe-gate09-product-quality",
+      "scenario_tags": ["storefront", "admin", "three-viewports", "accessibility", "console", "php-log"],
+      "required_artifacts": ["gate09_product_quality_trace"],
+      "assertions": [
+        {"path": "viewport_count", "operator": "eq", "expected": 3},
+        {"path": "storefront_page_count", "operator": "eq", "expected": 6},
+        {"path": "admin_scoped_page_count", "operator": "eq", "expected": 1},
+        {"path": "serious_or_critical_violations", "operator": "eq", "expected": 0},
+        {"path": "page_overflow_failures", "operator": "eq", "expected": 0},
+        {"path": "clipped_action_failures", "operator": "eq", "expected": 0},
+        {"path": "broken_asset_failures", "operator": "eq", "expected": 0},
+        {"path": "console_error_failures", "operator": "eq", "expected": 0},
+        {"path": "php_fatal_warning_count", "operator": "eq", "expected": 0},
+        {"path": "layout_overlap_failures", "operator": "eq", "expected": 0},
+        {"path": "placeholder_or_internal_copy_failures", "operator": "eq", "expected": 0},
+        {"path": "korean_locale_failures", "operator": "eq", "expected": 0},
+        {"path": "unlabeled_control_failures", "operator": "eq", "expected": 0},
+        {"path": "keyboard_operability_failures", "operator": "eq", "expected": 0},
+        {"path": "font_load_failures", "operator": "eq", "expected": 0},
+        {"path": "unresolved_skeleton_failures", "operator": "eq", "expected": 0},
+        {"path": "image_alt_failures", "operator": "eq", "expected": 0},
+        {"path": "failed_resource_count", "operator": "eq", "expected": 0},
+        {"path": "unexpected_http_or_route_failures", "operator": "eq", "expected": 0},
+        {"path": "table_containment_failures", "operator": "eq", "expected": 0}
+      ]
+    },
+    {
+      "id": "clean-restore",
+      "acceptance_id": "GATE-10",
+      "record": "restore-drill.json",
+      "probe_command": "scripts/probe-clean-restore",
+      "scenario_tags": ["fresh-volumes", "credential-recreation", "one-active-runtime", "duplicate-replay"],
+      "required_artifacts": ["gate10_restore_trace"],
+      "assertions": [
+        {"path": "https_mode", "operator": "eq", "expected": "ON_DEMAND_HTTPS_TUNNEL"},
+        {"path": "clean_compose_project", "operator": "eq", "expected": true},
+        {"path": "fresh_wordpress_database_and_volume", "operator": "eq", "expected": true},
+        {"path": "fresh_n8n_runtime_and_volume", "operator": "eq", "expected": true},
+        {"path": "backup_artifact_count", "operator": "eq", "expected": 8},
+        {"path": "original_quiescent_before_snapshot", "operator": "eq", "expected": true},
+        {"path": "reprovisioned_workflow_credential_bindings", "operator": "eq", "expected": true},
+        {"path": "restored_hubspot_credential_smoke", "operator": "eq", "expected": "PASS"},
+        {"path": "restored_slack_credential_smoke", "operator": "eq", "expected": "PASS"},
+        {"path": "new_order_created_and_paid", "operator": "eq", "expected": true},
+        {"path": "restored_created_n8n_executions", "operator": "eq", "expected": 1},
+        {"path": "restored_payment_n8n_executions", "operator": "eq", "expected": 1},
+        {"path": "new_deal_count", "operator": "eq", "expected": 1},
+        {"path": "payment_slack_posts", "operator": "eq", "expected": 1},
+        {"path": "duplicate_additional_slack_posts", "operator": "eq", "expected": 0},
+        {"path": "duplicate_n8n_executions", "operator": "eq", "expected": 0},
+        {"path": "original_runtime_calls", "operator": "eq", "expected": 0},
+        {"path": "active_runtime_after_restore", "operator": "eq", "expected": "RESTORED"},
+        {"path": "original_outbound_runtime_enabled", "operator": "eq", "expected": false},
+        {"path": "restored_webhook_and_queue_enabled", "operator": "eq", "expected": true},
+        {"path": "original_services_stopped", "operator": "eq", "expected": true},
+        {"path": "formal_backup_manifest_verified", "operator": "eq", "expected": true}
+      ]
+    }
+  ]
+}

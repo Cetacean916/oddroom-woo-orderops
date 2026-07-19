@@ -1,0 +1,383 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import json
+import os
+from pathlib import Path
+import re
+import socket
+import subprocess
+import time
+import uuid
+
+from acceptance_semantics import AcceptanceSemanticError, derive_fixture_observations
+from pf07_probe_runtime import ProbeRuntimeError
+
+
+ROOT = Path(__file__).resolve().parent.parent
+AS_4_URL = "https://github.com/woocommerce/action-scheduler/releases/download/4.0.0/action-scheduler.zip"
+AS_OLD_URL = "https://github.com/woocommerce/action-scheduler/releases/download/3.9.3/action-scheduler.zip"
+
+
+def require(condition: bool, message: str) -> None:
+    if not condition:
+        raise ProbeRuntimeError(message)
+
+
+def free_port() -> int:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as handle:
+        handle.bind(("127.0.0.1", 0))
+        return int(handle.getsockname()[1])
+
+
+def execute(command: list[str], *, label: str, environment: dict[str, str], timeout: int = 600, check: bool = True) -> subprocess.CompletedProcess[str]:
+    result = subprocess.run(
+        command,
+        env=environment,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=timeout,
+        check=False,
+    )
+    if check and result.returncode != 0:
+        lines = [line.strip() for line in result.stderr.splitlines() if line.strip()]
+        detail = re.sub(r"https?://\S+", "<url>", lines[-1] if lines else "no diagnostic")[:240]
+        raise ProbeRuntimeError(f"{label} failed with exit code {result.returncode}: {detail}")
+    return result
+
+
+def parse_json(result: subprocess.CompletedProcess[str], label: str) -> object:
+    try:
+        return json.loads(result.stdout.strip())
+    except json.JSONDecodeError as error:
+        raise ProbeRuntimeError(f"{label} did not return one JSON value: {error.msg}") from error
+
+
+def observed_value(observations: dict, dotted_path: str) -> object:
+    value: object = observations
+    for part in dotted_path.split("."):
+        require(isinstance(value, dict) and part in value, f"probe omitted required observation: {dotted_path}")
+        value = value[part]
+    return value
+
+
+def check_record(name: str, details: dict, assertions: list[bool]) -> dict:
+    return {
+        "name": name,
+        "exit_code": 0 if all(assertions) else 1,
+        "assertion_count": len(assertions),
+        "failure_count": sum(int(not assertion) for assertion in assertions),
+        "details": details,
+    }
+
+
+runtime_root = Path(os.environ.get("PF07_RUNTIME_ROOT", "")).resolve()
+compose_file = Path(os.environ.get("PF07_COMPOSE_FILE", runtime_root / "infra/compose.yaml")).resolve()
+runtime_env = Path(os.environ.get("PF07_RUNTIME_ENV", runtime_root / "runtime/runtime.env")).resolve()
+output_dir = Path(os.environ.get("PF07_EVIDENCE_OUTPUT_DIR", "")).resolve()
+require(runtime_root.is_dir() and compose_file.is_file() and runtime_env.is_file(), "restored runtime inputs are missing")
+require(output_dir.is_dir(), "PF07_EVIDENCE_OUTPUT_DIR is missing")
+
+project = f"pf07-g09-{uuid.uuid4().hex[:10]}"
+require(re.fullmatch(r"pf07-g09-[0-9a-f]{10}", project) is not None, "compatibility project identity is invalid")
+port = free_port()
+environment = os.environ.copy()
+environment.update({
+    "PF07_WORDPRESS_PORT": str(port),
+    "ODDROOM_PUBLIC_BASE_URL": f"http://127.0.0.1:{port}",
+})
+compose = [
+    "docker", "compose", "--env-file", str(runtime_env), "-f", str(compose_file),
+    "-p", project,
+]
+cleanup_required = False
+
+
+def compose_run(arguments: list[str], *, label: str, check: bool = True, timeout: int = 600) -> subprocess.CompletedProcess[str]:
+    return execute(compose + arguments, label=label, environment=environment, timeout=timeout, check=check)
+
+
+def wp(arguments: list[str], *, label: str, check: bool = True, timeout: int = 600) -> subprocess.CompletedProcess[str]:
+    return compose_run(["--profile", "tools", "run", "--rm", "-T", "wpcli", *arguments], label=label, check=check, timeout=timeout)
+
+
+def wp_json(arguments: list[str], *, label: str) -> object:
+    return parse_json(wp(arguments, label=label), label)
+
+
+def actual_row_fixture(alias: str) -> dict:
+    code = f"""
+$product=new WC_Product_Simple();$product->set_name('PF07 Scheduler {alias}');$product->set_sku('PF07-SCHED-{alias}');$product->set_regular_price('17000.00');$product->set_status('publish');$product->set_catalog_visibility('hidden');$product->save();
+$order=wc_create_order(['status'=>'pending','created_via'=>'pf07-scheduler-branch']);$order->set_currency('KRW');$order->set_billing_email('pf07+{alias}@example.com');$order->set_billing_first_name('Synthetic');$order->set_billing_last_name('Buyer');$order->add_product($product,1);$order->calculate_totals();$order->save();
+$created=OddRoom_Repository::insertOrderCreated($order);$row=$created['row'];
+echo wp_json_encode(['row_id'=>(int)$row->id,'status'=>(string)$row->status,'action_id'=>$row->action_id===null?null:(int)$row->action_id,'attempt_count'=>(int)$row->attempt_count],JSON_UNESCAPED_SLASHES);
+"""
+    value = wp_json(["eval", code], label="isolated scheduler row creation")
+    require(isinstance(value, dict) and isinstance(value.get("row_id"), int), "isolated scheduler row is missing")
+    return value
+
+
+def scheduler_actual_branch(row_id: int, mode: str) -> dict:
+    require(mode in {"unsupported", "stale"}, "scheduler branch mode is invalid")
+    stale = "$prior=get_option('oddroom_orderops_as_preflight');update_option('oddroom_orderops_as_preflight',['status'=>'PASS','version'=>'4.0.0','source'=>'plugin:stale/'],false);" if mode == "stale" else "$prior=null;"
+    restore = "if($prior!==null){update_option('oddroom_orderops_as_preflight',$prior,false);}" if mode == "stale" else ""
+    code = f"""
+global $wpdb;{stale}
+$before=OddRoom_Repository::find({row_id});$leases=OddRoom_Installer::leaseTable();
+$callsBefore=(int)$wpdb->get_var($wpdb->prepare('SELECT COUNT(*) FROM '.$leases.' WHERE holder_outbox_id=%d',{row_id}));
+$returned=OddRoom_Scheduler::scheduleBusiness({row_id});$after=OddRoom_Repository::find({row_id});
+$result=['returned_action_id'=>(int)$returned,'status'=>(string)$after->status,'action_id'=>$after->action_id===null?null:(int)$after->action_id,'attempt_count'=>(int)$after->attempt_count,'lease_count'=>(int)$wpdb->get_var($wpdb->prepare('SELECT COUNT(*) FROM '.$leases.' WHERE holder_outbox_id=%d',{row_id})),'error_code'=>$after->error_code===null?null:(string)$after->error_code,'candidate_count'=>count(OddRoom_Scheduler::exactCandidates(OddRoom_Scheduler::HOOK,{row_id}))];
+{restore}echo wp_json_encode($result,JSON_UNESCAPED_SLASHES);
+"""
+    value = wp_json(["eval", code], label=f"actual {mode} scheduler branch")
+    require(isinstance(value, dict), "actual scheduler branch result is missing")
+    return value
+
+
+def scheduler_stale_branch(alias: str) -> dict:
+    code = f"""
+global $wpdb;$prior=get_option('oddroom_orderops_as_preflight');update_option('oddroom_orderops_as_preflight',['status'=>'PASS','version'=>'4.0.0','source'=>'plugin:stale/'],false);
+$product=new WC_Product_Simple();$product->set_name('PF07 Scheduler {alias}');$product->set_sku('PF07-SCHED-{alias}');$product->set_regular_price('17000.00');$product->set_status('publish');$product->set_catalog_visibility('hidden');$product->save();
+$order=wc_create_order(['status'=>'pending','created_via'=>'pf07-scheduler-branch']);$order->set_currency('KRW');$order->set_billing_email('pf07+{alias}@example.com');$order->set_billing_first_name('Synthetic');$order->set_billing_last_name('Buyer');$order->add_product($product,1);$order->calculate_totals();$order->save();
+$created=OddRoom_Repository::insertOrderCreated($order);$row=$created['row'];$rowId=(int)$row->id;$leases=OddRoom_Installer::leaseTable();$returned=OddRoom_Scheduler::scheduleBusiness($rowId);$after=OddRoom_Repository::find($rowId);
+$result=['returned_action_id'=>(int)$returned,'status'=>(string)$after->status,'action_id'=>$after->action_id===null?null:(int)$after->action_id,'attempt_count'=>(int)$after->attempt_count,'lease_count'=>(int)$wpdb->get_var($wpdb->prepare('SELECT COUNT(*) FROM '.$leases.' WHERE holder_outbox_id=%d',$rowId)),'error_code'=>$after->error_code===null?null:(string)$after->error_code,'candidate_count'=>count(OddRoom_Scheduler::exactCandidates(OddRoom_Scheduler::HOOK,$rowId))];
+update_option('oddroom_orderops_as_preflight',$prior,false);echo wp_json_encode($result,JSON_UNESCAPED_SLASHES);
+"""
+    value = wp_json(["eval", code], label="actual stale scheduler branch")
+    require(isinstance(value, dict), "actual stale scheduler branch result is missing")
+    return value
+
+
+def write_trace(trace: dict) -> None:
+    alias = "gate09_compatibility_trace"
+    path = output_dir / f"{alias}.json"
+    path.write_text(json.dumps(trace, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    path.chmod(0o600)
+    observations = derive_fixture_observations("hpos-compatibility", {alias: path})
+    require(isinstance(observations, dict), "compatibility semantic derivation is unavailable")
+    manifest = json.loads((ROOT / "fixtures/acceptance-fixtures.json").read_text(encoding="utf-8"))
+    fixture = next(item for item in manifest["fixtures"] if item["id"] == "hpos-compatibility")
+    for assertion in fixture["assertions"]:
+        actual = observed_value(observations, assertion["path"])
+        expected = assertion["expected"]
+        passed = actual == expected if assertion["operator"] == "eq" else (
+            assertion["operator"] == "gte" and isinstance(actual, (int, float)) and not isinstance(actual, bool) and actual >= expected
+        )
+        require(passed, f"artifact-derived compatibility observation failed: {assertion['path']}")
+    print(json.dumps({"observations": observations, "artifacts": {alias: path.name}}, separators=(",", ":")))
+
+
+try:
+    compose_run(["up", "-d", "db", "wordpress"], label="isolated compatibility runtime start", timeout=900)
+    cleanup_required = True
+    admin_password_path = runtime_root / "runtime/secrets/wordpress_admin_password"
+    require(admin_password_path.is_file(), "protected WordPress administrator credential is missing")
+    admin_password = admin_password_path.read_text(encoding="utf-8").strip()
+    require(bool(admin_password) and "\n" not in admin_password, "protected administrator credential is invalid")
+
+    for _ in range(30):
+        ready = wp(["core", "version"], label="isolated WordPress readiness", check=False, timeout=60)
+        if ready.returncode == 0:
+            break
+        time.sleep(1)
+    else:
+        raise ProbeRuntimeError("isolated WordPress did not become ready")
+
+    wp([
+        "core", "install", f"--url=http://127.0.0.1:{port}", "--title=PF07 Compatibility",
+        "--admin_user=oddroom-operator", "--admin_email=pf07-admin@example.com",
+        f"--admin_password={admin_password}", "--skip-email",
+    ], label="isolated WordPress install")
+    wp(["core", "update", "--version=7.0.2", "--force"], label="isolated WordPress exact update", timeout=900)
+    wp(["core", "update-db"], label="isolated WordPress database update")
+    wp(["plugin", "install", AS_4_URL, "--activate", "--force"], label="Action Scheduler 4.0.0 install", timeout=900)
+    wp(["plugin", "install", "woocommerce", "--version=10.9.4", "--force"], label="WooCommerce install", timeout=900)
+
+    rejected = wp(["plugin", "activate", "oddroom-orderops"], label="dependency activation rejection", check=False)
+    inactive = wp(["plugin", "is-active", "oddroom-orderops"], label="dependency inactive readback", check=False).returncode != 0
+    table_count = wp_json([
+        "eval",
+        "global $wpdb;$count=(int)$wpdb->get_var(\"SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN ('wp_oddroom_orderops_outbox','wp_oddroom_orderops_order_leases','wp_oddroom_orderops_fault_controls')\");echo wp_json_encode(['count'=>$count]);",
+    ], label="dependency table readback")
+    require(isinstance(table_count, dict), "dependency table readback is invalid")
+
+    wp(["plugin", "activate", "woocommerce"], label="WooCommerce activation")
+    wp(["option", "update", "woocommerce_currency", "KRW"], label="WooCommerce currency setup")
+    wp(["option", "update", "woocommerce_price_num_decimals", "2"], label="WooCommerce precision setup")
+    activation_after = wp(["plugin", "activate", "oddroom-orderops"], label="OddRoom activation after dependencies", check=False)
+    activation_details = {
+        "activation_without_woocommerce_exit": rejected.returncode,
+        "plugin_active_after_rejection": not inactive,
+        "pf07_table_count_after_rejection": table_count["count"],
+        "activation_after_woocommerce_exit": activation_after.returncode,
+    }
+    activation_check = check_record("activation_dependency_rejection", activation_details, [
+        rejected.returncode != 0,
+        inactive,
+        table_count["count"] == 0,
+        activation_after.returncode == 0,
+    ])
+
+    wp_json(["oddroom-orderops", "preflight"], label="initial isolated preflight")
+    environment_record = wp_json(["oddroom-orderops", "environment"], label="isolated environment")
+    require(isinstance(environment_record, dict), "isolated environment record is invalid")
+
+    wp(["wc", "hpos", "disable"], label="HPOS disable")
+    hpos_off_order = wp_json([
+        "oddroom-orderops", "create-order", "--shape=simple", f"--alias=g09-off-{uuid.uuid4().hex[:8]}", "--amount=18000.00",
+    ], label="HPOS disabled order")
+    require(isinstance(hpos_off_order, dict), "HPOS disabled order result is invalid")
+    off = wp_json([
+        "eval",
+        f"$controller=wc_get_container()->get(Automattic\\WooCommerce\\Internal\\DataStores\\Orders\\CustomOrdersTableController::class);$row=OddRoom_Repository::find({hpos_off_order['outbox_id']});$order=wc_get_order({hpos_off_order['order_id']});echo wp_json_encode(['hpos_enabled'=>$controller->custom_orders_table_usage_is_enabled(),'outbox_row_present'=>$row!==null,'payload_hash_valid'=>$row&&hash_equals((string)$row->payload_hash,hash('sha256',(string)$row->payload_json)),'wc_order_readable'=>$order instanceof WC_Order],JSON_UNESCAPED_SLASHES);",
+    ], label="HPOS disabled readback")
+    require(isinstance(off, dict), "HPOS disabled readback is invalid")
+    hpos_off_check = check_record("hpos_disabled", off, [
+        off.get("hpos_enabled") is False,
+        off.get("outbox_row_present") is True,
+        off.get("payload_hash_valid") is True,
+        off.get("wc_order_readable") is True,
+    ])
+
+    wp(["wc", "hpos", "sync"], label="HPOS synchronization", timeout=900)
+    wp(["wc", "hpos", "enable"], label="HPOS enable")
+    hpos_on_order = wp_json([
+        "oddroom-orderops", "create-order", "--shape=variable", f"--alias=g09-on-{uuid.uuid4().hex[:8]}", "--amount=19000.00",
+    ], label="HPOS enabled order")
+    require(isinstance(hpos_on_order, dict), "HPOS enabled order result is invalid")
+    on = wp_json([
+        "eval",
+        f"$controller=wc_get_container()->get(Automattic\\WooCommerce\\Internal\\DataStores\\Orders\\CustomOrdersTableController::class);$row=OddRoom_Repository::find({hpos_on_order['outbox_id']});$order=wc_get_order({hpos_on_order['order_id']});echo wp_json_encode(['hpos_enabled'=>$controller->custom_orders_table_usage_is_enabled(),'outbox_row_present'=>$row!==null,'payload_hash_valid'=>$row&&hash_equals((string)$row->payload_hash,hash('sha256',(string)$row->payload_json)),'wc_order_readable'=>$order instanceof WC_Order],JSON_UNESCAPED_SLASHES);",
+    ], label="HPOS enabled readback")
+    require(isinstance(on, dict), "HPOS enabled readback is invalid")
+    hpos_on_check = check_record("hpos_enabled", on, [
+        on.get("hpos_enabled") is True,
+        on.get("outbox_row_present") is True,
+        on.get("payload_hash_valid") is True,
+        on.get("wc_order_readable") is True,
+    ])
+
+    migration = wp_json([
+        "eval",
+        "try{global $wpdb;$fault=OddRoom_Installer::faultTable();$wpdb->query('DROP TABLE IF EXISTS '.$fault);update_option('oddroom_orderops_schema_version','1.0.0',false);$starting=(int)$wpdb->get_var(\"SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN ('wp_oddroom_orderops_outbox','wp_oddroom_orderops_order_leases','wp_oddroom_orderops_fault_controls')\");OddRoom_Installer::maybeUpgrade();$tables=[OddRoom_Installer::outboxTable(),OddRoom_Installer::leaseTable(),OddRoom_Installer::faultTable()];$first=[];foreach($tables as $table){$row=$wpdb->get_row('SHOW CREATE TABLE '.$table,ARRAY_N);$first[$table]=hash('sha256',(string)$row[1]);}OddRoom_Installer::install();$second=[];foreach($tables as $table){$row=$wpdb->get_row('SHOW CREATE TABLE '.$table,ARRAY_N);$second[$table]=hash('sha256',(string)$row[1]);}$ending=(int)$wpdb->get_var(\"SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN ('wp_oddroom_orderops_outbox','wp_oddroom_orderops_order_leases','wp_oddroom_orderops_fault_controls')\");echo wp_json_encode(['ok'=>true,'starting_schema_option'=>'1.0.0','starting_table_count'=>$starting,'ending_schema_option'=>get_option('oddroom_orderops_schema_version'),'ending_table_count'=>$ending,'tables_innodb'=>OddRoom_Installer::tablesAreTransactional(),'repeated_schema_unchanged'=>$first===$second],JSON_UNESCAPED_SLASHES);}catch(Throwable $error){echo wp_json_encode(['ok'=>false,'error_class'=>get_class($error),'error_message'=>(string)$error->getMessage()],JSON_UNESCAPED_SLASHES);}",
+    ], label="migration idempotence")
+    require(isinstance(migration, dict), "migration readback is invalid")
+    require(migration.get("ok") is True, f"migration implementation failed: {migration.get('error_class')} {migration.get('error_message')}")
+    migration.pop("ok", None)
+    migration_check = check_record("migration_idempotence", migration, [
+        migration.get("starting_schema_option") == "1.0.0",
+        migration.get("starting_table_count") == 2,
+        migration.get("ending_schema_option") == "1.1.0",
+        migration.get("ending_table_count") == 3,
+        migration.get("tables_innodb") is True,
+        migration.get("repeated_schema_unchanged") is True,
+    ])
+
+    wp(["plugin", "install", AS_OLD_URL, "--activate", "--force"], label="Action Scheduler 3.9.3 install", timeout=900)
+    unsupported_row = actual_row_fixture(f"old-{uuid.uuid4().hex[:8]}")
+    unsupported = scheduler_actual_branch(unsupported_row["row_id"], "unsupported")
+    wp(["plugin", "install", AS_4_URL, "--activate", "--force"], label="Action Scheduler 4.0.0 restore", timeout=900)
+    preflight = wp_json(["oddroom-orderops", "preflight"], label="restored supported preflight")
+    require(isinstance(preflight, dict), "restored preflight record is invalid")
+    stale = scheduler_stale_branch(f"stale-{uuid.uuid4().hex[:8]}")
+    scheduler_unit_raw = compose_run([
+        "exec", "-T", "wordpress", "php", "/var/www/html/wp-content/plugins/oddroom-orderops/tests/scheduler-branches.php",
+    ], label="scheduler branch unit harness")
+    scheduler_unit = parse_json(scheduler_unit_raw, "scheduler branch unit harness")
+    require(isinstance(scheduler_unit, dict), "scheduler branch unit result is invalid")
+    scheduler_details = {
+        "unsupported_version": unsupported,
+        "stale_preflight": stale,
+        "supported_preflight": {
+            "status": preflight.get("status"),
+            "version": preflight.get("version"),
+            "source": preflight.get("source"),
+            "row_101_candidate_count": len(preflight.get("row_101", {}).get("candidate_ids", [])),
+            "row_102_candidate_count": len(preflight.get("row_102", {}).get("candidate_ids", [])),
+            "duplicate_raw_id": preflight.get("duplicate_row_101_raw_id"),
+            "remaining_candidate_count": preflight.get("remaining_candidate_count"),
+        },
+        "isolated_branch_assertions": scheduler_unit.get("assertion_count"),
+        "isolated_branch_failures": scheduler_unit.get("failure_count"),
+    }
+    scheduler_assertions = {
+        "unsupported_return": unsupported.get("returned_action_id") == 0,
+        "unsupported_status": unsupported.get("status") == "pending",
+        "unsupported_action": unsupported.get("action_id") is None,
+        "unsupported_attempt": unsupported.get("attempt_count") == 0,
+        "unsupported_lease": unsupported.get("lease_count") == 0,
+        "unsupported_error": unsupported.get("error_code") == "ACTION_SCHEDULER_VERSION_UNSUPPORTED",
+        "unsupported_candidates": unsupported.get("candidate_count") == 0,
+        "stale_return": stale.get("returned_action_id") == 0,
+        "stale_status": stale.get("status") == "pending",
+        "stale_action": stale.get("action_id") is None,
+        "stale_attempt": stale.get("attempt_count") == 0,
+        "stale_lease": stale.get("lease_count") == 0,
+        "stale_error": stale.get("error_code") == "ACTION_SCHEDULER_PREFLIGHT_REQUIRED",
+        "stale_candidates": stale.get("candidate_count") == 0,
+        "preflight_status": preflight.get("status") == "PASS",
+        "preflight_version": preflight.get("version") == "4.0.0",
+        "preflight_row_101": len(preflight.get("row_101", {}).get("candidate_ids", [])) == 1,
+        "preflight_row_102": len(preflight.get("row_102", {}).get("candidate_ids", [])) == 1,
+        "preflight_duplicate": preflight.get("duplicate_row_101_raw_id") == 0,
+        "preflight_cleanup": preflight.get("remaining_candidate_count") == 0,
+        "unit_exit": scheduler_unit.get("exit_code") == 0,
+        "unit_failures": scheduler_unit.get("failure_count") == 0,
+        "unit_assertions": isinstance(scheduler_unit.get("assertion_count"), int) and scheduler_unit["assertion_count"] >= 20,
+    }
+    scheduler_check = check_record("scheduler_failure_branches", scheduler_details, list(scheduler_assertions.values()))
+
+    preserve = wp_json([
+        "eval",
+        "global $wpdb;$tables=[OddRoom_Installer::outboxTable(),OddRoom_Installer::leaseTable(),OddRoom_Installer::faultTable()];$before=(int)$wpdb->get_var(\"SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN ('wp_oddroom_orderops_outbox','wp_oddroom_orderops_order_leases','wp_oddroom_orderops_fault_controls')\");$rows=(int)$wpdb->get_var('SELECT COUNT(*) FROM '.OddRoom_Installer::outboxTable());define('WP_UNINSTALL_PLUGIN',true);include WP_PLUGIN_DIR.'/oddroom-orderops/uninstall.php';$after=(int)$wpdb->get_var(\"SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN ('wp_oddroom_orderops_outbox','wp_oddroom_orderops_order_leases','wp_oddroom_orderops_fault_controls')\");$rowsAfter=(int)$wpdb->get_var('SELECT COUNT(*) FROM '.OddRoom_Installer::outboxTable());echo wp_json_encode(['tables_before'=>$before,'rows_before'=>$rows,'tables_after'=>$after,'rows_after'=>$rowsAfter,'data_preserved'=>$before===$after&&$rows===$rowsAfter],JSON_UNESCAPED_SLASHES);",
+    ], label="default uninstall preservation")
+    require(isinstance(preserve, dict), "default uninstall readback is invalid")
+    preserve_check = check_record("uninstall_preserve_default", preserve, [
+        preserve.get("tables_before") == 3,
+        isinstance(preserve.get("rows_before"), int) and preserve["rows_before"] >= 2,
+        preserve.get("tables_after") == 3,
+        preserve.get("rows_after") == preserve.get("rows_before"),
+        preserve.get("data_preserved") is True,
+    ])
+
+    removal = wp_json([
+        "eval",
+        "global $wpdb;$before=count(OddRoom_Scheduler::exactCandidates(OddRoom_Scheduler::HOOK,1));$all=as_get_scheduled_actions(['hook'=>OddRoom_Scheduler::HOOK,'group'=>OddRoom_Scheduler::GROUP,'status'=>'pending','per_page'=>-1,'orderby'=>'none'],'ids');$candidatesBefore=count($all);define('WP_UNINSTALL_PLUGIN',true);define('ODDROOM_ORDEROPS_REMOVE_DATA',true);include WP_PLUGIN_DIR.'/oddroom-orderops/uninstall.php';$tables=(int)$wpdb->get_var(\"SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN ('wp_oddroom_orderops_outbox','wp_oddroom_orderops_order_leases','wp_oddroom_orderops_fault_controls')\");$remaining=count(as_get_scheduled_actions(['hook'=>'oddroom_orderops_process','group'=>'oddroom-orderops','status'=>'pending','per_page'=>-1,'orderby'=>'none'],'ids'));echo wp_json_encode(['candidate_actions_before'=>$candidatesBefore,'candidate_actions_after'=>$remaining,'tables_after'=>$tables,'schema_option_after'=>get_option('oddroom_orderops_schema_version',null)],JSON_UNESCAPED_SLASHES);",
+    ], label="opt-in uninstall removal")
+    require(isinstance(removal, dict), "opt-in uninstall readback is invalid")
+    removal_check = check_record("uninstall_opt_in_removal", removal, [
+        isinstance(removal.get("candidate_actions_before"), int) and removal["candidate_actions_before"] >= 1,
+        removal.get("candidate_actions_after") == 0,
+        removal.get("tables_after") == 0,
+        removal.get("schema_option_after") is None,
+    ])
+
+    checks = [hpos_off_check, hpos_on_check, activation_check, migration_check, preserve_check, removal_check, scheduler_check]
+    failed_checks = [f"{check['name']}:{check['failure_count']}" for check in checks if check["exit_code"] != 0 or check["failure_count"] != 0]
+    if scheduler_check["failure_count"]:
+        failed_scheduler = [name for name, passed in scheduler_assertions.items() if not passed]
+        raise ProbeRuntimeError("scheduler branch assertions failed: " + ",".join(failed_scheduler))
+    require(not failed_checks, "isolated compatibility checks failed: " + ",".join(failed_checks))
+    write_trace({
+        "schema_version": 1,
+        "fixture_id": "hpos-compatibility",
+        "environment": {
+            "wordpress": str(environment_record.get("wordpress")),
+            "woocommerce": str(environment_record.get("woocommerce")),
+            "php": str(environment_record.get("php")),
+            "action_scheduler_version": str(preflight.get("version")),
+            "action_scheduler_source": str(preflight.get("source")),
+            "tables_transactional": bool(environment_record.get("tables_transactional")),
+            "database_utc": str(environment_record.get("database_utc")),
+        },
+        "checks": checks,
+    })
+except (ProbeRuntimeError, AcceptanceSemanticError, KeyError, TypeError, ValueError) as error:
+    print(f"probe-gate09-compatibility failed: {error}", file=__import__("sys").stderr)
+    raise SystemExit(1)
+finally:
+    if cleanup_required:
+        cleanup = compose_run(["down", "-v", "--remove-orphans"], label="isolated compatibility cleanup", check=False, timeout=900)
+        if cleanup.returncode != 0:
+            print("probe-gate09-compatibility cleanup failed", file=__import__("sys").stderr)

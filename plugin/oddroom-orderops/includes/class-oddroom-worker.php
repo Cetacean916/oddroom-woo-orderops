@@ -4,7 +4,7 @@ defined('ABSPATH') || defined('ODDROOM_ORDEROPS_TESTING') || exit;
 
 final class OddRoom_Worker
 {
-    private const TEST_PAUSE_SECONDS = 120;
+    private const DEFAULT_TEST_PAUSE_SECONDS = 120;
     private const ALLOWED_RESULTS = [
         'completed', 'duplicate_noop', 'stale_ignored',
         'retryable_error', 'operator_review', 'terminal_error',
@@ -28,6 +28,10 @@ final class OddRoom_Worker
             }
             if (!hash_equals((string) $row->payload_hash, hash('sha256', (string) $row->payload_json))) {
                 OddRoom_Repository::recordSchedulingError($rowId, 'PAYLOAD_HASH_MISMATCH', true);
+                return;
+            }
+            if (in_array((string) $row->processing_phase, ['slack_posted', 'completed'], true)) {
+                OddRoom_Repository::recordSchedulingError($rowId, 'ADAPTER_RESPONSE_INVALID', true);
                 return;
             }
 
@@ -77,9 +81,11 @@ final class OddRoom_Worker
                 'user-agent' => 'OddRoom-OrderOps/0.2.0',
             ]);
 
+            self::pauseForCrashFixture($claimed, OddRoom_Faults::PAUSE_AFTER_RESPONSE);
+
             if (is_wp_error($response)) {
                 self::recordReachability('HOLD', null, 'TRANSPORT_ERROR');
-                $result = self::requiresSlack($claimed)
+                self::requiresSlack($claimed)
                     ? OddRoom_Repository::ambiguousSlackFailure(
                         $claimed,
                         $rowToken,
@@ -93,7 +99,6 @@ final class OddRoom_Worker
                         'HUBSPOT_RETRYABLE',
                         self::sanitizeTransportError($response->get_error_message())
                     );
-                self::scheduleFollowup($rowId, $result);
                 return;
             }
 
@@ -101,17 +106,36 @@ final class OddRoom_Worker
             self::recordReachability('REACHED', $httpStatus, null);
             $raw = (string) wp_remote_retrieve_body($response);
             try {
-                $envelope = self::validateEnvelope($raw, (string) $claimed->event_key, $phase);
+                $envelope = self::validateEnvelope(
+                    $raw,
+                    (string) $claimed->event_key,
+                    $phase,
+                    $httpStatus
+                );
             } catch (Throwable $error) {
-                $result = self::requiresSlack($claimed)
-                    ? OddRoom_Repository::ambiguousSlackFailure(
+                $disposition = self::invalidResponseDisposition(
+                    self::requiresSlack($claimed),
+                    $httpStatus
+                );
+                if ($disposition === 'ambiguous_slack') {
+                    OddRoom_Repository::ambiguousSlackFailure(
                         $claimed,
                         $rowToken,
                         $leaseToken,
                         'Adapter response did not establish the Slack outcome.',
                         $httpStatus
-                    )
-                    : OddRoom_Repository::transportFailure(
+                    );
+                } elseif ($disposition === 'terminal') {
+                    OddRoom_Repository::terminalResponseFailure(
+                        $claimed,
+                        $rowToken,
+                        $leaseToken,
+                        'ADAPTER_RESPONSE_INVALID',
+                        'Adapter returned a terminal HTTP response without a valid authenticated envelope.',
+                        $httpStatus
+                    );
+                } else {
+                    OddRoom_Repository::transportFailure(
                         $claimed,
                         $rowToken,
                         $leaseToken,
@@ -120,7 +144,7 @@ final class OddRoom_Worker
                         $httpStatus,
                         self::retryAfter($response)
                     );
-                self::scheduleFollowup($rowId, $result);
+                }
                 return;
             }
 
@@ -138,13 +162,17 @@ final class OddRoom_Worker
                     'observed_at_utc' => gmdate('c'),
                 ], false);
             }
-            self::scheduleFollowup($rowId, $result);
         } finally {
             OddRoom_Scheduler::clearExecution();
         }
     }
 
-    public static function validateEnvelope(string $raw, string $eventKey, string $requestPhase): array
+    public static function validateEnvelope(
+        string $raw,
+        string $eventKey,
+        string $requestPhase,
+        int $httpStatus
+    ): array
     {
         $value = json_decode($raw, true, 32, JSON_THROW_ON_ERROR);
         if (!is_array($value)) {
@@ -170,10 +198,15 @@ final class OddRoom_Worker
             || !in_array($value['slack_status'], self::ALLOWED_SLACK, true)) {
             throw new UnexpectedValueException('Invalid response state.');
         }
-        foreach (['remote_contact_id', 'remote_deal_id', 'slack_message_ts', 'error_code', 'error_message'] as $key) {
-            if ($value[$key] !== null && !is_string($value[$key])) {
-                throw new UnexpectedValueException('Invalid nullable string.');
-            }
+        self::assertNullableString($value['remote_contact_id'], 128, 'remote_contact_id');
+        self::assertNullableString($value['remote_deal_id'], 128, 'remote_deal_id');
+        self::assertNullableString($value['slack_message_ts'], 64, 'slack_message_ts');
+        self::assertNullableString($value['error_code'], 96, 'error_code');
+        self::assertNullableString($value['error_message'], 500, 'error_message');
+        self::assertPhaseCheckpointConsistency($value);
+        if ($value['error_code'] !== null
+            && preg_match('/\A[A-Z][A-Z0-9_]*\z/D', $value['error_code']) !== 1) {
+            throw new UnexpectedValueException('Invalid stable error code.');
         }
         if (!is_bool($value['retryable'])
             || ($value['retry_after_seconds'] !== null
@@ -182,32 +215,104 @@ final class OddRoom_Worker
         }
         OddRoom_State_Machine::assertMonotonic($requestPhase, $value['processing_phase']);
 
-        if ($value['result'] === 'completed') {
-            if ($value['retryable'] || !$value['remote_deal_id']
-                || !in_array($value['slack_status'], ['posted', 'not_required'], true)
-                || ($value['slack_status'] === 'posted' && !$value['slack_message_ts'])) {
-                throw new UnexpectedValueException('Invalid completion invariant.');
+        if ($value['slack_status'] === 'posted') {
+            if ($value['slack_message_ts'] === null
+                || !in_array($value['processing_phase'], ['slack_posted', 'completed'], true)) {
+                throw new UnexpectedValueException('Invalid posted Slack invariant.');
             }
+        } elseif ($value['slack_message_ts'] !== null) {
+            throw new UnexpectedValueException('Slack timestamp requires posted state.');
         }
-        if ($value['result'] === 'retryable_error'
-            && (!$value['retryable'] || !$value['error_code'])) {
-            throw new UnexpectedValueException('Invalid retryable invariant.');
+        if ($value['slack_status'] === 'failed_before_post'
+            && ($value['processing_phase'] !== 'slack_pending'
+                || !in_array($value['result'], ['retryable_error', 'terminal_error'], true))) {
+            throw new UnexpectedValueException('Invalid pre-post failure invariant.');
         }
-        if (in_array($value['result'], ['operator_review', 'terminal_error'], true)
-            && ($value['retryable'] || !$value['error_code'])) {
-            throw new UnexpectedValueException('Invalid non-retryable invariant.');
+        if ($value['slack_status'] === 'outcome_unknown'
+            && ($value['processing_phase'] !== 'slack_pending' || $value['result'] !== 'operator_review')) {
+            throw new UnexpectedValueException('Invalid unknown Slack outcome invariant.');
+        }
+
+        $successful = in_array($value['result'], ['completed', 'duplicate_noop', 'stale_ignored'], true);
+        if ($successful) {
+            if ($httpStatus !== 200
+                || $value['retryable']
+                || $value['retry_after_seconds'] !== null
+                || $value['processing_phase'] !== 'completed'
+                || $value['remote_deal_id'] === null
+                || !in_array($value['slack_status'], ['posted', 'not_required'], true)
+                || $value['error_code'] !== null
+                || $value['error_message'] !== null) {
+                throw new UnexpectedValueException('Invalid successful response invariant.');
+            }
+            if (in_array($value['result'], ['duplicate_noop', 'stale_ignored'], true)
+                && ($value['slack_status'] !== 'not_required' || $value['slack_message_ts'] !== null)) {
+                throw new UnexpectedValueException('A no-op result cannot establish a new Slack post.');
+            }
+            if ($value['result'] === 'stale_ignored' && $value['remote_contact_id'] !== null) {
+                throw new UnexpectedValueException('A stale short-circuit cannot establish a Contact checkpoint.');
+            }
+        } elseif ($value['result'] === 'retryable_error') {
+            if ($httpStatus < 500 || $httpStatus > 599
+                || !$value['retryable']
+                || $value['error_code'] === null
+                || in_array($value['slack_status'], ['posted', 'outcome_unknown'], true)) {
+                throw new UnexpectedValueException('Invalid retryable response invariant.');
+            }
+        } elseif ($value['result'] === 'operator_review') {
+            if ($httpStatus !== 409
+                || $value['retryable']
+                || $value['retry_after_seconds'] !== null
+                || !in_array($value['error_code'], ['RESUME_PHASE_CONFLICT', 'SLACK_OUTCOME_UNKNOWN'], true)
+                || ($value['error_code'] === 'SLACK_OUTCOME_UNKNOWN'
+                    && $value['slack_status'] !== 'outcome_unknown')
+                || ($value['error_code'] !== 'SLACK_OUTCOME_UNKNOWN'
+                    && $value['slack_status'] === 'outcome_unknown')) {
+                throw new UnexpectedValueException('Invalid operator-review response invariant.');
+            }
+        } elseif ($value['result'] === 'terminal_error') {
+            if ($httpStatus < 400 || $httpStatus > 499 || $httpStatus === 409
+                || $value['retryable']
+                || $value['retry_after_seconds'] !== null
+                || $value['error_code'] === null
+                || in_array($value['slack_status'], ['posted', 'outcome_unknown'], true)) {
+                throw new UnexpectedValueException('Invalid terminal response invariant.');
+            }
         }
         return $value;
     }
 
-    private static function scheduleFollowup(int $rowId, array $result): void
+    private static function assertNullableString(mixed $value, int $maxBytes, string $field): void
     {
-        if (!is_string($result['schedule_at'] ?? null) || $result['schedule_at'] === '') {
+        if ($value === null) {
             return;
         }
-        $timestamp = strtotime($result['schedule_at'] . ' UTC');
-        if ($timestamp !== false) {
-            OddRoom_Scheduler::scheduleBusiness($rowId, $timestamp);
+        if (!is_string($value)
+            || $value === ''
+            || strlen($value) > $maxBytes
+            || trim($value) !== $value
+            || preg_match('/[\x00-\x1F\x7F]/', $value) === 1) {
+            throw new UnexpectedValueException('Invalid bounded response field: ' . $field . '.');
+        }
+    }
+
+    private static function assertPhaseCheckpointConsistency(array $value): void
+    {
+        $phases = [
+            'created', 'deal_resolved', 'contact_upserted', 'deal_upserted',
+            'associated', 'slack_pending', 'slack_posted', 'completed',
+        ];
+        $rank = array_search($value['processing_phase'], $phases, true);
+        if ($rank === false) {
+            throw new UnexpectedValueException('Invalid response phase.');
+        }
+        if ($rank >= 2
+            && $value['result'] !== 'stale_ignored'
+            && $value['remote_contact_id'] === null) {
+            throw new UnexpectedValueException('Response phase requires a Contact checkpoint.');
+        }
+        if ($rank >= 3 && $value['remote_deal_id'] === null) {
+            throw new UnexpectedValueException('Response phase requires a Deal checkpoint.');
         }
     }
 
@@ -222,8 +327,45 @@ final class OddRoom_Worker
 
     private static function retryAfter(array $response): ?int
     {
-        $value = wp_remote_retrieve_header($response, 'retry-after');
-        return is_numeric($value) && (int) $value >= 0 ? (int) $value : null;
+        $header = wp_remote_retrieve_header($response, 'retry-after');
+        if (!is_string($header)) {
+            return null;
+        }
+        $value = trim($header);
+        if ($value === '') {
+            return null;
+        }
+        if (preg_match('/\A[0-9]+\z/D', $value) === 1) {
+            $normalized = ltrim($value, '0');
+            $normalized = $normalized === '' ? '0' : $normalized;
+            $maximum = (string) PHP_INT_MAX;
+            if (strlen($normalized) > strlen($maximum)
+                || (strlen($normalized) === strlen($maximum) && strcmp($normalized, $maximum) > 0)) {
+                return null;
+            }
+            return (int) $normalized;
+        }
+
+        $format = 'D, d M Y H:i:s \\G\\M\\T';
+        $date = DateTimeImmutable::createFromFormat($format, $value, new DateTimeZone('GMT'));
+        $errors = DateTimeImmutable::getLastErrors();
+        if (!$date
+            || ($errors !== false && ($errors['warning_count'] !== 0 || $errors['error_count'] !== 0))
+            || $date->format($format) !== $value) {
+            return null;
+        }
+        return max(0, $date->getTimestamp() - time());
+    }
+
+    private static function invalidResponseDisposition(bool $requiresSlack, int $httpStatus): string
+    {
+        if ($requiresSlack && $httpStatus !== 429) {
+            return 'ambiguous_slack';
+        }
+        if ($httpStatus >= 400 && $httpStatus <= 499 && $httpStatus !== 429) {
+            return 'terminal';
+        }
+        return 'retryable';
     }
 
     private static function sanitizeTransportError(string $message): string
@@ -260,7 +402,19 @@ final class OddRoom_Worker
             (string) $row->event_type,
             $faultType
         )) {
-            sleep(self::TEST_PAUSE_SECONDS);
+            sleep(self::testPauseSeconds());
         }
+    }
+
+    private static function testPauseSeconds(): int
+    {
+        $raw = trim((string) getenv('ODDROOM_TEST_PAUSE_SECONDS'));
+        if ($raw === '') {
+            return self::DEFAULT_TEST_PAUSE_SECONDS;
+        }
+        if (preg_match('/\A(?:[1-9]|[1-9][0-9]|1[01][0-9]|120)\z/D', $raw) !== 1) {
+            throw new RuntimeException('ODDROOM_TEST_PAUSE_SECONDS must be an integer from 1 through 120.');
+        }
+        return (int) $raw;
     }
 }

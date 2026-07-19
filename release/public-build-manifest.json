@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "builder_sha256": "4f1e83b2a1fb19e378718dc7d481dfb23f048bb1db59fb7f329b9db8601cf99c",
-  "allowlist_sha256": "26040a38d145d30803a6b6b011be8d579f26b254f78989713cd8c88cdc971cf5",
+  "builder_sha256": "e7b904eefb36e655e1e125656362c9804e020009a5f5a8750a314c4448e6b82c",
+  "allowlist_sha256": "8af20ac0d9947cfc0aec6cd63df22e487615fe634428a6eaed44e72abb4dbcef",
   "files": [
     {
       "path": ".env.example",
@@ -36,27 +36,27 @@
     {
       "path": "package-lock.json",
       "mode": "0644",
-      "sha256": "c576d1162077f20259528dbfce74a99148aeedd89af5476d2b04a93700792c4c"
+      "sha256": "6a5193f0142bf5c19d4c0d03b84a486bdc59d6e466ca4c87f2d0797c75c3b08f"
     },
     {
       "path": "package.json",
       "mode": "0644",
-      "sha256": "70181316ca46a989961a5b150efdd3cb31814bbb36ca11f875e20b9d92d8cbcc"
+      "sha256": "50e8af765bc36c9453cadb9146d2392742e0ec761cf57e40a135b58b55a6de9d"
     },
     {
       "path": "README.md",
       "mode": "0644",
-      "sha256": "bac54980d56347e7c396f6397fb2e67ac53ebed107764cede5be0ba4e7882548"
+      "sha256": "6042c1f68921d5f92e09fc26a1c2243215fbc3eb47daa14278490de217b42dbc"
     },
     {
       "path": "THIRD_PARTY_NOTICES.md",
       "mode": "0644",
-      "sha256": "ca452a7c914b0b0992e5a201ee7d9ffcdd435bd50ea14b217283761079e381e9"
+      "sha256": "4edc4a6c21ae7e4dc6aa5ae74c606f56b2a86f56563e2b3f536ea91291147a20"
     },
     {
       "path": "case-study/README.md",
       "mode": "0644",
-      "sha256": "d8625935ffe9e231f349e69ac62c0021ef3dd49b3fae0cd518ddf1df5b0fa8f3"
+      "sha256": "17b8a26ff1b987e50d568f8777ba5bc6856d012ec1005a6b9e2a0926a6478f9a"
     },
     {
       "path": "case-study/architecture.svg",
@@ -66,7 +66,7 @@
     {
       "path": "docs/ARCHITECTURE.md",
       "mode": "0644",
-      "sha256": "5876b59054710a0a17ad92a3b295261312476722bf1412ebc0c8cdc27b6f3185"
+      "sha256": "ebf1e441681182cb2443fe01e0be881f34b9f17dd5f308098ca4ad1afeb42d7d"
     },
     {
       "path": "docs/CLAIMS-BOUNDARY.md",
@@ -81,132 +81,167 @@
     {
       "path": "docs/DEPLOYMENT.md",
       "mode": "0644",
-      "sha256": "dd551ea4d7b006472ba7ae80f241eff2cb29bedbd87724a1c03c272b9743bfae"
+      "sha256": "af8f9fb9d561a9686e350dda8e8613d090bc5412ed23da5ef387b4f68172cfc7"
     },
     {
       "path": "docs/DESIGN-MAP.md",
       "mode": "0644",
-      "sha256": "c1727bd6a4e15917047f976d07897704afccb13ec9c41122bf893197186479fd"
+      "sha256": "f65e97554cb1d9f3a9eb0b5a32bd7f6d3a99299e734d895d061765e765e0f2df"
     },
     {
       "path": "docs/ENVIRONMENT.md",
       "mode": "0644",
-      "sha256": "257b6ab7eb721c365c826581ec42fbd23c92a7b2f2235c289bbd5b0d374b0cc5"
+      "sha256": "a568ebfc1d5a301dae59b66b6831588687759db4399709e59a41576f05455518"
     },
     {
       "path": "docs/ERROR-CODES.md",
       "mode": "0644",
-      "sha256": "f52fc5cd4fc91c0511070d44f066ee2cb3546d206de72541909b781f26292884"
+      "sha256": "6f67456db7c04c94dec1dd5e272724a33104ece4cee9031e0db3d7ea57bedd89"
     },
     {
       "path": "docs/INPUT-INVENTORY.md",
       "mode": "0644",
-      "sha256": "cc4aa1fa1032c64ed7e13b6ffa656c6b0762858e670b3a6dd083dc4e65f445ad"
+      "sha256": "451a4249b24bfb17e6f1d2a948e1825cdf6a5e8faeb93d1efb921b592062af63"
     },
     {
       "path": "docs/RECOVERY-RUNBOOK.md",
       "mode": "0644",
-      "sha256": "b6c7cd0b7f0791024692d89c0efe50829bf1a6452243615f81590d55af8b2e42"
+      "sha256": "9625357fb4a27c38ba515e6bd34d3d6ede3170dc5cf53c1a8325bb5c945e80e0"
     },
     {
       "path": "evidence/public/acceptance-matrix.json",
       "mode": "0644",
-      "sha256": "091ae4e654dc5a0cf93962c42bfcd0441c846bdce1fcea62fb08d2d99b8b0c43"
+      "sha256": "cc68e19f4b53a87183ce6b2fac06e9383328ebb7a1875272f6b009303e94eb99"
     },
     {
       "path": "evidence/public/duplicate-suppression.json",
       "mode": "0644",
-      "sha256": "0a63f753a662e1afd2488d04ad5aa38f36f6f88a6c301a993d20ed1f9d88a5eb"
+      "sha256": "d19e8ccd098d022b65e6f61f1dcb4d6470dec08220e1430d111baec740209efc"
     },
     {
       "path": "evidence/public/e2e-normal-order.json",
       "mode": "0644",
-      "sha256": "3475c2e4b7b64927a0ef3760dc02a5fa85b2feb8327a1362f56bb34c055dbcac"
+      "sha256": "b13823fd4219f40e6b3b3fdfffbdba6372ffb742f72767889bfca2ba2757e434"
     },
     {
       "path": "evidence/public/e2e-variable-coupon-order.json",
       "mode": "0644",
-      "sha256": "a8164296ad5b691afb6c01bcee90cc023f8ec527684fe3638d71c254fae70645"
+      "sha256": "4c22aaabd234d92b41e6d3fc0cf0c3400132f523d4de19aead4da90cefd2f2b8"
     },
     {
       "path": "evidence/public/evidence-manifest.sha256",
       "mode": "0644",
-      "sha256": "efc6c39ec48577892b845da5eedb58dd4b3b154ff275bacf8f5ac7d66e1c5b10"
+      "sha256": "8df9d3af77b2808f3d56b10940978c10c56eb9335739799357b9a164bfc32cfe"
     },
     {
       "path": "evidence/public/hmac-rejection.json",
       "mode": "0644",
-      "sha256": "20a5bd8e07aab0f03b523450442c966fa4ba0236f6fcfee908108e562e8fdd65"
+      "sha256": "e1e13b0a85f9c4ee15d58563d3f75ce2ec7becf21dcf9f7093f1f14590a5dc0c"
     },
     {
       "path": "evidence/public/hpos-compatibility.json",
       "mode": "0644",
-      "sha256": "ddaf0b5fb22d50f3eea0724fc20df383067747c65393997073370023997dbece"
+      "sha256": "8050f21062389a032f3273163d1766cfedd07f1ea8791b6ac3cf24f8d20700d9"
     },
     {
       "path": "evidence/public/operator-outcome-resolution.json",
       "mode": "0644",
-      "sha256": "1397f85cc976c3cd624cc25d9da1650ae4df24f44a40664307d00411f112e16a"
+      "sha256": "09b534ba7ee394d4d491bdd1aeda423efdfb889fd06a19e61924ac47b3ee44cc"
     },
     {
       "path": "evidence/public/outage-retry.json",
       "mode": "0644",
-      "sha256": "b89c8646eeefecb53eeed6f990a139886437951a3bc18f7556ec487c7e6791b3"
+      "sha256": "907aa63b22591773829a12d6912176e42314e5f8929974d196977a30d1e7ce1e"
     },
     {
       "path": "evidence/public/partial-failure-recovery.json",
       "mode": "0644",
-      "sha256": "61a8ef33e8652d07711c30acc03de6e4fb063f1fa6fbb2ca7b38f64ac9b91c8d"
+      "sha256": "2981f5cea0629b76972ba0878174527017451335328e50de90ff45fbd008e93d"
     },
     {
       "path": "evidence/public/product-quality.json",
       "mode": "0644",
-      "sha256": "6ecb0e1a84228fd5e0f04d7a15ec8d75a422266843a303e224e511b088778ea6"
+      "sha256": "abb0274792dfaadb88d6403a8bf9f0a34715b5615d5ed8bfedc067cd5b6f2b81"
     },
     {
       "path": "evidence/public/raw-byte-resource-bounds.json",
       "mode": "0644",
-      "sha256": "2569cbb4bb024035fc4099bb4a29f5b630f27348ae7224593eefbdfabc075085"
+      "sha256": "19225b2b486b9fcfe04068d8df8d87743b9ad6b5a1953965783a45ef249a4015"
     },
     {
       "path": "evidence/public/reconciliation-repair.json",
       "mode": "0644",
-      "sha256": "50a02b42c7d920108b137d1d2e0972662d1e1e74e7e1f5945918c19d3bf6b02a"
+      "sha256": "518f13a9de6b526e3566396e3d84e1af2dff265a86f675a212f215b755c38aa7"
     },
     {
       "path": "evidence/public/restore-drill.json",
       "mode": "0644",
-      "sha256": "d0fd754eeb878b327a787e57771d152cdbdb5cb68bb94fd60bca638b800e967e"
+      "sha256": "df6138ee44cd8222a161cd97f29cc47e9e41c9136f3ac94fec778c8b8b547a4b"
     },
     {
       "path": "evidence/public/retry-exhaustion.json",
       "mode": "0644",
-      "sha256": "b09cb10abd26556e18bbba8543cb443053741cbfd937fc598a0f661d4053ed1f"
+      "sha256": "89535273eec0d54e427490feda0491b7ff71e327c568d5c3a69c3e2e90e54813"
     },
     {
       "path": "evidence/public/stale-lease-recovery.json",
       "mode": "0644",
-      "sha256": "6b3a5fbe13a07a98acadc305a253207fb0e3f24aebaaefa9d2af24d6ad75421d"
+      "sha256": "c9cbfed23c3f74241285422f6895e641264004a0bd2ff6dddc80c94565c4090f"
     },
     {
       "path": "evidence/public/state-non-regression.json",
       "mode": "0644",
-      "sha256": "5c77de737b6147e0798ed2b2d3580bb341b0dbfb51733b9500e006ada6ff01fc"
+      "sha256": "44c21d5f221185080cac69943e1644e0758311e62428164d6b1e0bc1b1999b1b"
+    },
+    {
+      "path": "fixtures/README.md",
+      "mode": "0644",
+      "sha256": "e5a7072a89f8b6e218d9d8e262fe28bf4eafd555ab235cf57502ccdc201a6946"
+    },
+    {
+      "path": "fixtures/acceptance-fixtures.json",
+      "mode": "0644",
+      "sha256": "014fe12e3339f26984170b65cb2793a5a39a5cd3f0e0d50804959301a03a94a7"
+    },
+    {
+      "path": "fixtures/run",
+      "mode": "0755",
+      "sha256": "fab320b1d1e8071a79400bc02626a8fb59ea955d508247cfdd05afccc681f619"
     },
     {
       "path": "infra/compose.yaml",
       "mode": "0644",
-      "sha256": "2609bca987b877c5d64f55f431b28cab559a51eb9d0938c83338752063e1810e"
+      "sha256": "a32687311e277b88e0610eafc4d1996452963068d7024d8074cb32f26234227c"
+    },
+    {
+      "path": "infra/n8n-task-runners.json",
+      "mode": "0644",
+      "sha256": "a29e4c1970342c27e3e61e1fcb6db650b3270408f37b6077f479934170c94832"
     },
     {
       "path": "infra/nginx.conf",
       "mode": "0644",
-      "sha256": "b0c7f9f7c02cbd3ac387868945f879c5fe2dc8673ec7230f2d9bf2d881368faf"
+      "sha256": "f98d3a6bb2056004228ff13f79bac42674fec3cf245c37f5c534c2a4aa6c09fe"
+    },
+    {
+      "path": "infra/task-runner-deps/package-lock.json",
+      "mode": "0644",
+      "sha256": "158620aedf2c152be8e6c15166bde5cb48f62da7422f15539995de4dd45884b0"
+    },
+    {
+      "path": "infra/task-runner-deps/package.json",
+      "mode": "0644",
+      "sha256": "b2f4bdfbc31ec6f2dfc62c2f75b2959a1c0aadc205f4544f1b820d961324f3a3"
+    },
+    {
+      "path": "infra/task-runner.Dockerfile",
+      "mode": "0644",
+      "sha256": "04ae81d3bb7f1b98280ae61b5d1ca1f020aa6248eec4a5ad6ac1de4aed1afc4e"
     },
     {
       "path": "plugin/oddroom-orderops/assets/css/storefront.css",
       "mode": "0644",
-      "sha256": "9549c0098b709e581464dbc94c07aed5a8df4715b00c7cea57696c6b8ec1c8db"
+      "sha256": "e04aa37c1a81ff7aade933f7c3d550cb847f3442a003ff9f22099b938df46769"
     },
     {
       "path": "plugin/oddroom-orderops/assets/fonts/DoHyeon-Regular.woff2",
@@ -246,27 +281,37 @@
     {
       "path": "plugin/oddroom-orderops/includes/class-oddroom-canonical-payload.php",
       "mode": "0644",
-      "sha256": "d557dbcb6de66f569c202f83a24ca87e02403dabc94f8b7d33c8ef9d90d6723a"
+      "sha256": "fa6dd8983f78500cda98a4556872c593fb09b1ff78c0100855f3746ee41fdb0c"
     },
     {
       "path": "plugin/oddroom-orderops/includes/class-oddroom-cli.php",
       "mode": "0644",
-      "sha256": "987f1a11612f9f7a5ce0f0e41228ec028527001a87ac077e0d0ce37536b56bd4"
+      "sha256": "318f87956f2efa105f4825da1dc4da3a699d36ed51c50d4546ca4e43a3db0fcf"
+    },
+    {
+      "path": "plugin/oddroom-orderops/includes/class-oddroom-dependencies.php",
+      "mode": "0644",
+      "sha256": "2281af48815d47cc53baab4094d970a8564fa85902ef21499464a6de639ca8dd"
     },
     {
       "path": "plugin/oddroom-orderops/includes/class-oddroom-events.php",
       "mode": "0644",
-      "sha256": "34cb0ad706fbe0f849cb1f740a6caf95ee8469bf585b6a2c67fdffc3dd4ea827"
+      "sha256": "6a36abb1fe642909b9779b2b9131b1fada62c16f0c1f581a57f085b091683d25"
     },
     {
       "path": "plugin/oddroom-orderops/includes/class-oddroom-faults.php",
       "mode": "0644",
-      "sha256": "32386821e9cdd09ae58a7e1a451641d76dbc173758ed973a1135b37eed142bbe"
+      "sha256": "c875c84c1755c2b92837dc63b6c461991223485eb0a0e85d97299c2b62112f97"
     },
     {
       "path": "plugin/oddroom-orderops/includes/class-oddroom-installer.php",
       "mode": "0644",
-      "sha256": "23d4d6bbd3c6695853f23e2e14ea28434286eef827c1cd411ad07e8d86970ff2"
+      "sha256": "9ad3c43466981e1586133b7484df2bffacb2c1edbb14809b228e49ac36e4d04a"
+    },
+    {
+      "path": "plugin/oddroom-orderops/includes/class-oddroom-private-admin.php",
+      "mode": "0644",
+      "sha256": "dbbd3d95d6b69e014071be5e27ae66d02cf2ae5c5a23a8a8d44222a7b46ed883"
     },
     {
       "path": "plugin/oddroom-orderops/includes/class-oddroom-recovery.php",
@@ -276,12 +321,12 @@
     {
       "path": "plugin/oddroom-orderops/includes/class-oddroom-reconciliation.php",
       "mode": "0644",
-      "sha256": "31b5a3021e1d4d4afd3a005a92236d501a11dca4abbdea27374370572ea65bc6"
+      "sha256": "7d26bce066a68406b2951d1be0b9493ddd50f8c6ec752384c039131e09db5135"
     },
     {
       "path": "plugin/oddroom-orderops/includes/class-oddroom-repository.php",
       "mode": "0644",
-      "sha256": "104dbc270b67657b24a534259f39ec02dd2866c19c229e790e724e13cbb36682"
+      "sha256": "9a312b4ecd9ee865f5cfeb5dffdb6931144c121f7e8f79362c5a438edbad1042"
     },
     {
       "path": "plugin/oddroom-orderops/includes/class-oddroom-retry-policy.php",
@@ -291,7 +336,7 @@
     {
       "path": "plugin/oddroom-orderops/includes/class-oddroom-scheduler.php",
       "mode": "0644",
-      "sha256": "21e6a79e4734822a6a8b6bfa8fdb302d891b34f2f0827ee570d697bc2c07c40e"
+      "sha256": "5c2b193a4b74bab3bfdcd5690fc8d3c43b2705fdaa626933df5d1889fe49e5b9"
     },
     {
       "path": "plugin/oddroom-orderops/includes/class-oddroom-signature.php",
@@ -301,62 +346,137 @@
     {
       "path": "plugin/oddroom-orderops/includes/class-oddroom-state-machine.php",
       "mode": "0644",
-      "sha256": "5a95fe32c11386fecd6a71d715389debbf955dc751d8d9ca4d4af2d9d30e0c72"
+      "sha256": "7ff00f23e3ba7bd629c410111db21a9d92956e7eeeb8e3174a505b7bcb9b44fa"
     },
     {
       "path": "plugin/oddroom-orderops/includes/class-oddroom-storefront.php",
       "mode": "0644",
-      "sha256": "82e69d5dda207fc2c461c6f4f79dfa1b9617be1a377dade3d5190f23a00b7235"
+      "sha256": "2f05e3ea4c0d1ad4f89b6d04575285d3efbba94520ec88e71a5aeca3b47263b5"
     },
     {
       "path": "plugin/oddroom-orderops/includes/class-oddroom-worker.php",
       "mode": "0644",
-      "sha256": "8ab9343d081873abe6b85035946cbb07742866b775fd74d5feb64505b2921235"
+      "sha256": "fb747e993e48b8364626d402346fbc04b510e2ac314ef92ad72fd15b98fb66d0"
     },
     {
       "path": "plugin/oddroom-orderops/oddroom-orderops.php",
       "mode": "0644",
-      "sha256": "fa94003a570b8564d18e554d10240dfb21b4f2409d9f588b29a46ebb8004e087"
+      "sha256": "3e3218165f93d668bbe0d740a15ce9c3db99efd2199e318754ea22e420b4f834"
     },
     {
       "path": "plugin/oddroom-orderops/tests/run.php",
       "mode": "0644",
-      "sha256": "a3635d1570bc36b95696d0c116af34fec79f6af52166e17878e152efa4cfc395"
+      "sha256": "37e1eb3d65347c99e18008c82920247652026279db284147955d67cd5469f7ed"
+    },
+    {
+      "path": "plugin/oddroom-orderops/tests/scheduler-branches.php",
+      "mode": "0644",
+      "sha256": "07679752fe43947aef073b50bfb9741624df317c2c1b96a929680742054a0452"
     },
     {
       "path": "plugin/oddroom-orderops/uninstall.php",
       "mode": "0644",
-      "sha256": "5eddcc10d5223a5fe5660205d7ec5193238891f5a19ee00239213b1e869892c7"
+      "sha256": "f25bcc4993a24c9144e3d3691aeef88714430d026b70d9929a4def349fa145f4"
     },
     {
       "path": "release/public-allowlist.json",
       "mode": "0644",
-      "sha256": "26040a38d145d30803a6b6b011be8d579f26b254f78989713cd8c88cdc971cf5"
+      "sha256": "8af20ac0d9947cfc0aec6cd63df22e487615fe634428a6eaed44e72abb4dbcef"
     },
     {
       "path": "scripts/build-public-release",
       "mode": "0755",
-      "sha256": "4f1e83b2a1fb19e378718dc7d481dfb23f048bb1db59fb7f329b9db8601cf99c"
+      "sha256": "e7b904eefb36e655e1e125656362c9804e020009a5f5a8750a314c4448e6b82c"
+    },
+    {
+      "path": "scripts/build-public-stills.mjs",
+      "mode": "0644",
+      "sha256": "12c4d7fcdcf8d7ecb05b5650a1a1ce604893b9edce49f1eb18a7f45c7a9709c7"
     },
     {
       "path": "scripts/build-workflow",
       "mode": "0755",
-      "sha256": "5716077fbd02337c710ccb31f73ae403d26f9764f223d9e8a677ad05a56694aa"
+      "sha256": "df1b711c186614fcb67d541b86cafb260aec55a77e733030ef7f3f161bfb71e5"
     },
     {
       "path": "scripts/ci",
       "mode": "0755",
-      "sha256": "98255ecf679eeac7be91eddb96c2fddef52404f311c8c80ec49d30dd44af38af"
+      "sha256": "589c79fedfb0eb087f4e711183d3a5ce700cecaeabdce97e40281950f5f8c50b"
+    },
+    {
+      "path": "scripts/collect-evidence",
+      "mode": "0755",
+      "sha256": "bc6aeb92a3c26ac9f61a00f4e6e0374a061207cdab331fbb825aefd9e58b7379"
+    },
+    {
+      "path": "scripts/derive-gate06-linked-evidence",
+      "mode": "0755",
+      "sha256": "f0ad79004312b757648a61ee68fb5c54846becac950a655abd756c31e6b0b12f"
+    },
+    {
+      "path": "scripts/acceptance_semantics.py",
+      "mode": "0644",
+      "sha256": "9d194688123ef3d659d9cd9cddcbb4314de246d7443ddce8c83c72b580c9d39b"
+    },
+    {
+      "path": "scripts/evidence_contract.py",
+      "mode": "0644",
+      "sha256": "8775c036ccf54640750482a4f1bfaa7c90b8ea698358d6721cf0bc78c603d5a7"
     },
     {
       "path": "scripts/generate-public-evidence",
       "mode": "0755",
-      "sha256": "79e626c47a9d60bcc12ec333c311eb945ffb997dd671ce186574979da7504049"
+      "sha256": "3b0acb03398ab18e38428adda75db3f870fe52510093067c4fcd59061830cd46"
+    },
+    {
+      "path": "scripts/pf07_probe_runtime.py",
+      "mode": "0644",
+      "sha256": "ba35b77042de1e333e8e0c5cfc35ea200ed083ed6b1c5c6fc12c870b67bf7f9e"
+    },
+    {
+      "path": "scripts/probe-clean-restore",
+      "mode": "0755",
+      "sha256": "e7be48fc0ff19eb647cf385f01f7b3340e1509e2c0faefef9647e306941a2a9a"
+    },
+    {
+      "path": "scripts/probe-core-acceptance",
+      "mode": "0755",
+      "sha256": "08ef9cffaf54a3f435018d8411a943a9c4c8c39db179494ef27966b7f23fa336"
+    },
+    {
+      "path": "scripts/probe-gate06",
+      "mode": "0755",
+      "sha256": "3bda2c9e9f16f9c06274511b57e89e431732b3ccc605e5bffbbb8724a3bc4140"
+    },
+    {
+      "path": "scripts/probe-gate06-lease",
+      "mode": "0755",
+      "sha256": "2170f654230a88191ec99a8724eaf9dea543a5404a5b28f9d66ef4f7ed1f6891"
+    },
+    {
+      "path": "scripts/probe-gate06-operator",
+      "mode": "0755",
+      "sha256": "e60649b730dfb8154adb41d0faad1707a99fad020e65fdc4ac2c0cb069617e76"
+    },
+    {
+      "path": "scripts/probe-gate09-compatibility",
+      "mode": "0755",
+      "sha256": "3463f7d828a58d36b94eb6a1928ff0fdf3720f2a9eb0b2fd1ee3835d0ca8bd62"
+    },
+    {
+      "path": "scripts/probe-gate09-product-quality",
+      "mode": "0755",
+      "sha256": "e4b33ec28eb4cf81b08dda3a088d957d58ad3ab9c24e5606a83144a0f941bd8c"
     },
     {
       "path": "scripts/queue-runner",
       "mode": "0755",
-      "sha256": "99a4ccf77b8787775d057f9243075e26ea687d921ee8cdb074e84e7866f0ab44"
+      "sha256": "12cc70450662ef83553abc33069b4e62e02e30cb07ed487c41979cf5ab7dd4db"
+    },
+    {
+      "path": "scripts/record-public-media.mjs",
+      "mode": "0755",
+      "sha256": "cbb1bfa65978c6ef2868a2cc6f4654aabc166dda20c7314967605b09c6c02a97"
     },
     {
       "path": "scripts/runtime-materialize",
@@ -371,22 +491,22 @@
     {
       "path": "scripts/runtime-wp-install",
       "mode": "0755",
-      "sha256": "cfb48d672b2cf009d2efbbddf999a2f9d32df110ba26ff810e4edba44ceabb4c"
+      "sha256": "62ae640b54c918ec046acd267cfdadd3d0f37860cfeb2767554918bce641ea27"
     },
     {
       "path": "scripts/validate-all",
       "mode": "0755",
-      "sha256": "832d35d197ab28944b554e8496b5d4232bd08c70d0d1187e78ba30ba94d72d12"
+      "sha256": "75d29f80756c3e53d0d29ef0b12d5725633d215f2cf4fbbf5bd670416cd18f00"
     },
     {
       "path": "scripts/validate-public",
       "mode": "0755",
-      "sha256": "3ed72c2fc53146db8a07705368ea2791fc0ed40dd6340a9b4d8947fd300efa42"
+      "sha256": "56bef5975131ef6c6b38e40ed8254031b53fadedd96791863d76d4ee075e318d"
     },
     {
       "path": "scripts/validate-ui",
       "mode": "0755",
-      "sha256": "2d27cb80043e601c63fac6c803558689a6ddcf00da3cf0c60e85f2f1835927ae"
+      "sha256": "fa98b7296b5011d2a32478117f9b9460c6b7d9d2c0a192586dd242ee1e038da3"
     },
     {
       "path": "tests/fixtures/public-gate-fixtures.json",
@@ -396,27 +516,52 @@
     {
       "path": "tests/public_case_quality.mjs",
       "mode": "0644",
-      "sha256": "66f36f2c1ce0f338db375a4744acf2f49d090a63cf8a9d01956b290986d405e1"
+      "sha256": "fe07a527e4cb55ac89a85b3822e43414321263b08e0f9d8a4196fd9227b8f06d"
+    },
+    {
+      "path": "tests/test_acceptance_semantics.py",
+      "mode": "0644",
+      "sha256": "cc059d3a402ff4fb6b00872a65b74189ec1df95ab5d6c1c95117f15d9f122065"
+    },
+    {
+      "path": "tests/test_collect_evidence.py",
+      "mode": "0644",
+      "sha256": "487eb8d2fda9343e52a4c5aeae5630ecdcec2ef3da86cefaeb1a46ac7f3606f0"
+    },
+    {
+      "path": "tests/test_evidence_contract.py",
+      "mode": "0644",
+      "sha256": "2b389225c454c4335a7e618d4e34d563efec37712a911b04a00fcd39a02a587b"
     },
     {
       "path": "tests/test_public_builder.py",
       "mode": "0644",
-      "sha256": "054e3259dd2b5b4d95eb48b524a2213a5ffc56cd15642dbd6bdda0976d64ec8a"
+      "sha256": "f88d2affdb9ee880b787f30cb15777eea8832a87c1cf798ca26899ff3e98e511"
     },
     {
       "path": "tests/test_vsl_contract.py",
       "mode": "0755",
-      "sha256": "d751a63beb0e7335d7f34cfcd406b154cc0b6fc704b505b1675adbb687a1fa76"
+      "sha256": "c07f74d044acea4afaa7ba18b20508189cef86fd7d7f263278234afb50e6a4a1"
     },
     {
       "path": "tests/ui_quality.mjs",
       "mode": "0644",
-      "sha256": "cdca77e4e3c1b2afcc6c4c5a8d11fdcc18e3341ee436235f5e6116718f4106b0"
+      "sha256": "e15eeeba841ad02724da1ff525d561db6a66f1be9e2326009b53732135e7cf4f"
+    },
+    {
+      "path": "tests/workflow_resume_semantics.mjs",
+      "mode": "0644",
+      "sha256": "7e090ae2d0530d36c850a800bb12a3fc9f4fda728827d32867b9b43d9ae272b3"
     },
     {
       "path": "workflow/oddroom-orderops-vsl.json",
       "mode": "0644",
-      "sha256": "68ea611d4705c07cad186cede1163d2c953e68428ec64123c1547f19cf9fb9d5"
+      "sha256": "6cbad074860cc4bee42b8d8136efdf825df34dbc2b78dde3c33508decdf45790"
+    },
+    {
+      "path": "workflow/payload-schema-v1.json",
+      "mode": "0644",
+      "sha256": "54059213cb1bef664b298febeeb9c4e87e95eb5ca6de5d5fae77495a45bbade8"
     }
   ]
 }

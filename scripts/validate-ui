@@ -6,4 +6,10 @@ cd "$project_root"
 
 : "${PF07_BASE_URL:?PF07_BASE_URL is required}"
 
+if [[ -n "${PF07_ADMIN_BASE_URL:-}${PF07_ADMIN_USER:-}${PF07_ADMIN_PASSWORD_FILE:-}" ]]; then
+    : "${PF07_ADMIN_BASE_URL:?PF07_ADMIN_BASE_URL is required when administrator validation is requested}"
+    : "${PF07_ADMIN_USER:?PF07_ADMIN_USER is required when administrator validation is requested}"
+    : "${PF07_ADMIN_PASSWORD_FILE:?PF07_ADMIN_PASSWORD_FILE is required when administrator validation is requested}"
+fi
+
 npm run validate:ui

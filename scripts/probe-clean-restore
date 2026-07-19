@@ -1,0 +1,929 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+from contextlib import contextmanager
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import secrets
+import shutil
+import sqlite3
+import subprocess
+import sys
+import tempfile
+import time
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
+
+
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "scripts"))
+
+from acceptance_semantics import derive_fixture_observations
+from pf07_probe_runtime import ProbeRuntime, ProbeRuntimeError, parse_env_file, parse_json_output, run
+
+
+WORKFLOW_ID = "PF07OrderOpsVSL1"
+HUBSPOT_CREDENTIAL_ID = "PF07HubSpotRuntime1"
+SLACK_CREDENTIAL_ID = "PF07SlackRuntime1"
+WORDPRESS_IMAGE = "wordpress@sha256:d40b86dbdfcfad808a2029acf6543c670c4a61c29f70b9d24605e7d0b31ab83d"
+REQUIRED_BACKUP_KINDS = {
+    "n8n_reference_volume",
+    "plugin_source_and_configuration",
+    "protected_locator_inventory",
+    "runtime_configuration",
+    "selected_n8n_workflow",
+    "wordpress_application_volume",
+    "wordpress_database",
+    "wordpress_uploads",
+}
+
+
+def require(condition: bool, message: str) -> None:
+    if not condition:
+        raise ProbeRuntimeError(message)
+
+
+def sha(value: str) -> str:
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def file_sha(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as source:
+        for chunk in iter(lambda: source.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def required_path(name: str, *, directory: bool = False) -> Path:
+    raw = os.environ.get(name, "")
+    require(bool(raw), f"{name} is required")
+    path = Path(raw).expanduser().resolve()
+    require(path.is_dir() if directory else path.is_file(), f"{name} is unavailable")
+    return path
+
+
+def project_name(name: str) -> str:
+    value = os.environ.get(name, "")
+    require(re.fullmatch(r"[a-z0-9][a-z0-9_-]{2,62}", value) is not None, f"{name} is invalid")
+    return value
+
+
+def compose(root: Path, project: str, *arguments: str, tools: bool = False, timeout: int = 600) -> subprocess.CompletedProcess[str]:
+    command = [
+        "docker", "compose", "--env-file", str(root / "runtime/runtime.env"),
+        "-f", str(root / "infra/compose.yaml"), "-p", project,
+    ]
+    if tools:
+        command += ["--profile", "tools"]
+    command += list(arguments)
+    return run(command, label="clean-restore Compose action", timeout=timeout)
+
+
+def wp_json(root: Path, project: str, code: str) -> object:
+    result = compose(root, project, "run", "--rm", "-T", "wpcli", "eval", code, tools=True)
+    return parse_json_output(result, "clean-restore WordPress observation")
+
+
+def wordpress_quiescence(root: Path, project: str) -> dict:
+    value = wp_json(root, project, r'''
+global $wpdb;
+$pending=count(as_get_scheduled_actions(['hook'=>OddRoom_Scheduler::HOOK,'group'=>OddRoom_Scheduler::GROUP,'status'=>ActionScheduler_Store::STATUS_PENDING,'per_page'=>-1],'ids'));
+$running=count(as_get_scheduled_actions(['hook'=>OddRoom_Scheduler::HOOK,'group'=>OddRoom_Scheduler::GROUP,'status'=>ActionScheduler_Store::STATUS_RUNNING,'per_page'=>-1],'ids'));
+$processing=(int)$wpdb->get_var("SELECT COUNT(*) FROM ".OddRoom_Installer::outboxTable()." WHERE status='processing'");
+$leases=(int)$wpdb->get_var("SELECT COUNT(*) FROM ".OddRoom_Installer::leaseTable());
+echo wp_json_encode(['pending_pf07_actions'=>$pending,'running_pf07_actions'=>$running,'processing_pf07_rows'=>$processing,'active_pf07_leases'=>$leases]);
+''')
+    require(isinstance(value, dict) and set(value) == {"pending_pf07_actions", "running_pf07_actions", "processing_pf07_rows", "active_pf07_leases"}, "WordPress quiescence shape differs")
+    require(all(isinstance(item, int) and not isinstance(item, bool) and item == 0 for item in value.values()), "original WordPress runtime is not quiescent")
+    return value
+
+
+def pre_restore_run_hashes(root: Path, project: str, original_env: dict[str, str]) -> list[str]:
+    value = wp_json(root, project, r'''
+global $wpdb;
+$table=OddRoom_Installer::outboxTable();
+$values=$wpdb->get_col("SELECT DISTINCT JSON_UNQUOTE(JSON_EXTRACT(payload_json,'$.run_id')) FROM {$table} WHERE JSON_UNQUOTE(JSON_EXTRACT(payload_json,'$.run_id')) IS NOT NULL");
+echo wp_json_encode(array_values(array_filter(array_map('strval',$values))));
+''')
+    require(isinstance(value, list) and all(isinstance(item, str) and item for item in value), "pre-restore RUN_ID inventory differs")
+    value.append(original_env["ODDROOM_RUN_ID"])
+    return sorted({sha(item) for item in value})
+
+
+def container_running(container: str) -> bool:
+    result = subprocess.run(
+        ["docker", "inspect", "--format", "{{.State.Running}}", container],
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    return result.returncode == 0 and result.stdout.strip() == "true"
+
+
+@contextmanager
+def n8n_snapshot(container: str, scratch_root: Path):
+    directory = Path(tempfile.mkdtemp(prefix="pf07-gate10-n8n-", dir=scratch_root))
+    paused = False
+    try:
+        if container_running(container):
+            run(["docker", "pause", container], label="clean-restore n8n snapshot pause")
+            paused = True
+        for name in ("database.sqlite", "database.sqlite-wal", "database.sqlite-shm"):
+            result = subprocess.run(
+                ["docker", "cp", f"{container}:/home/node/.n8n/{name}", str(directory / name)],
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+            )
+            if name == "database.sqlite" and result.returncode != 0:
+                raise ProbeRuntimeError("clean-restore n8n database snapshot failed")
+        if paused:
+            run(["docker", "unpause", container], label="clean-restore n8n snapshot unpause")
+            paused = False
+        yield directory / "database.sqlite"
+    finally:
+        if paused:
+            subprocess.run(["docker", "unpause", container], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+        shutil.rmtree(directory, ignore_errors=True)
+
+
+def n8n_state(container: str, scratch_root: Path) -> dict:
+    with n8n_snapshot(container, scratch_root) as database:
+        connection = sqlite3.connect(f"file:{database}?mode=ro", uri=True)
+        try:
+            return {
+                "running_executions": int(connection.execute("SELECT COUNT(*) FROM execution_entity WHERE status='running'").fetchone()[0]),
+                "waiting_executions": int(connection.execute("SELECT COUNT(*) FROM execution_entity WHERE status IN ('waiting','new')").fetchone()[0]),
+                "max_execution_id": int(connection.execute("SELECT COALESCE(MAX(id),0) FROM execution_entity").fetchone()[0]),
+            }
+        finally:
+            connection.close()
+
+
+def n8n_reprovision_state(container: str, scratch_root: Path) -> dict:
+    with n8n_snapshot(container, scratch_root) as database:
+        connection = sqlite3.connect(f"file:{database}?mode=ro", uri=True)
+        try:
+            placeholders = ",".join("?" for _ in (HUBSPOT_CREDENTIAL_ID, SLACK_CREDENTIAL_ID))
+            credential_count = int(connection.execute(
+                f"SELECT COUNT(*) FROM credentials_entity WHERE id IN ({placeholders})",
+                (HUBSPOT_CREDENTIAL_ID, SLACK_CREDENTIAL_ID),
+            ).fetchone()[0])
+            workflow = connection.execute("SELECT active FROM workflow_entity WHERE id=?", (WORKFLOW_ID,)).fetchone()
+            return {"credential_count": credential_count, "workflow_active": workflow is not None and bool(workflow[0])}
+        finally:
+            connection.close()
+
+
+def verify_backup(backup: Path) -> dict:
+    manifest = backup / "MANIFEST.sha256"
+    mapping = backup / "ARTIFACTS.json"
+    require(manifest.is_file() and mapping.is_file(), "formal clean-restore backup metadata is missing")
+    result = subprocess.run(
+        ["sha256sum", "-c", manifest.name],
+        cwd=backup,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    failed = sum(1 for line in (result.stdout + "\n" + result.stderr).splitlines() if "FAILED" in line)
+    require(result.returncode == 0 and failed == 0, "formal clean-restore backup manifest failed")
+    value = json.loads(mapping.read_text(encoding="utf-8"))
+    artifacts = value.get("artifacts") if isinstance(value, dict) else None
+    require(isinstance(artifacts, list), "formal backup artifact map differs")
+    by_kind = {}
+    for item in artifacts:
+        require(isinstance(item, dict) and set(item) == {"kind", "file"}, "formal backup artifact entry differs")
+        path = backup / item["file"]
+        require(path.is_file() and path.stat().st_size > 0, "formal backup contains an empty artifact")
+        by_kind[item["kind"]] = path
+    require(set(by_kind) == REQUIRED_BACKUP_KINDS and len(by_kind) == len(REQUIRED_BACKUP_KINDS), "formal backup coverage differs")
+    return {
+        "manifest_exit_code": result.returncode,
+        "failed_entry_count": failed,
+        "manifest_sha256": file_sha(manifest),
+        "artifact_kinds": sorted(by_kind),
+        "artifact_count": len(by_kind),
+        "nonempty_artifact_count": sum(int(path.stat().st_size > 0) for path in by_kind.values()),
+        "paths": by_kind,
+    }
+
+
+def project_resource_count(project: str) -> int:
+    inventories = []
+    for command in (
+        ["docker", "ps", "-aq", "--filter", f"label=com.docker.compose.project={project}"],
+        ["docker", "volume", "ls", "-q", "--filter", f"label=com.docker.compose.project={project}"],
+        ["docker", "network", "ls", "-q", "--filter", f"label=com.docker.compose.project={project}"],
+    ):
+        result = run(command, label="clean Compose project inventory")
+        inventories.extend(line for line in result.stdout.splitlines() if line.strip())
+    return len(set(inventories))
+
+
+def original_stop_state(project: str) -> dict:
+    result = run(["docker", "ps", "-aq", "--filter", f"label=com.docker.compose.project={project}"], label="original container inventory")
+    containers = [line for line in result.stdout.splitlines() if line.strip()]
+    require(bool(containers), "original Compose project has no preserved containers")
+    running = [container for container in containers if container_running(container)]
+    return {
+        "queue_runner_running": container_running(f"{project}-wordpress-1"),
+        "webhook_running": container_running(f"{project}-n8n-1") or container_running(f"{project}-edge-1"),
+        "all_compose_services_stopped": not running,
+    }
+
+
+def wait_for_database(container: str) -> None:
+    deadline = time.monotonic() + 180
+    while time.monotonic() < deadline:
+        result = subprocess.run(
+            ["docker", "inspect", "--format", "{{if .State.Health}}{{.State.Health.Status}}{{end}}", container],
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+        if result.returncode == 0 and result.stdout.strip() == "healthy":
+            return
+        time.sleep(1)
+    raise ProbeRuntimeError("fresh database did not become healthy")
+
+
+def restore_database(container: str, dump: Path) -> None:
+    with dump.open("rb") as source:
+        result = subprocess.run(
+            ["docker", "exec", "-i", container, "sh", "-c", 'exec mariadb -uroot -p"$MARIADB_ROOT_PASSWORD"'],
+            stdin=source,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+    if result.returncode != 0:
+        raise ProbeRuntimeError("fresh WordPress database import failed")
+
+
+def restore_wordpress_volume(volume: str, backup: Path, archive: Path) -> None:
+    run(
+        [
+            "docker", "run", "--rm", "--entrypoint", "tar",
+            "-v", f"{volume}:/target", "-v", f"{backup}:/backup:ro",
+            WORDPRESS_IMAGE, "-xzf", f"/backup/{archive.name}", "-C", "/target",
+        ],
+        label="fresh WordPress application volume restore",
+        timeout=600,
+    )
+
+
+def wait_http(url: str, timeout: int = 180) -> None:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            with urlopen(url, timeout=3) as response:
+                if 200 <= int(response.status) < 500:
+                    return
+        except (HTTPError, URLError, TimeoutError, OSError):
+            pass
+        time.sleep(1)
+    raise ProbeRuntimeError("restored local HTTP service did not become ready")
+
+
+def json_request(url: str, *, method: str = "GET", headers: dict[str, str] | None = None, value: dict | None = None, timeout: int = 60) -> tuple[int, object]:
+    body = None if value is None else json.dumps(value, separators=(",", ":")).encode("utf-8")
+    request = Request(url, data=body, method=method, headers=headers or {})
+    try:
+        with urlopen(request, timeout=timeout) as response:
+            raw = response.read()
+            try:
+                decoded = json.loads(raw) if raw else {}
+            except json.JSONDecodeError:
+                decoded = {}
+            return int(response.status), decoded
+    except HTTPError as error:
+        raw = error.read()
+        try:
+            decoded = json.loads(raw) if raw else {}
+        except json.JSONDecodeError:
+            decoded = {}
+        return int(error.code), decoded
+    except (URLError, TimeoutError) as error:
+        raise ProbeRuntimeError(f"protected integration request failed: {type(error).__name__}") from error
+
+
+def setup_n8n_owner(root: Path, port: int) -> int:
+    wait_http(f"http://127.0.0.1:{port}/healthz")
+    secret_path = root / "runtime/secrets/n8n_owner_password"
+    secret_path.parent.mkdir(parents=True, exist_ok=True)
+    if not secret_path.exists():
+        secret_path.write_text("A7" + secrets.token_urlsafe(30) + "\n", encoding="utf-8")
+        secret_path.chmod(0o600)
+    password = secret_path.read_text(encoding="utf-8").strip()
+    status, _body = json_request(
+        f"http://127.0.0.1:{port}/rest/owner/setup",
+        method="POST",
+        headers={"Content-Type": "application/json"},
+        value={"email": "pf07-owner@example.com", "firstName": "PF07", "lastName": "Owner", "password": password},
+    )
+    require(status in {200, 201}, "fresh n8n owner setup failed")
+    return 0
+
+
+def credential_smokes(env: dict[str, str], root: Path) -> dict:
+    hubspot_token = (root / "runtime/secrets/hubspot_runtime_token").read_text(encoding="utf-8").strip()
+    slack_token = (root / "runtime/secrets/slack_bot_token").read_text(encoding="utf-8").strip()
+    require(bool(hubspot_token) and bool(slack_token), "restored protected credential files are unavailable")
+
+    hubspot_status, hubspot_value = json_request(
+        f"https://api.hubapi.com/crm/v3/pipelines/deals/{env['HUBSPOT_PIPELINE_ID']}",
+        headers={"Authorization": f"Bearer {hubspot_token}"},
+    )
+    pipeline_matches = int(isinstance(hubspot_value, dict) and str(hubspot_value.get("id")) == env["HUBSPOT_PIPELINE_ID"])
+
+    slack_status, slack_value = json_request(
+        "https://slack.com/api/auth.test",
+        method="POST",
+        headers={"Authorization": f"Bearer {slack_token}", "Content-Type": "application/json"},
+        value={},
+    )
+    slack_ok = isinstance(slack_value, dict) and slack_value.get("ok") is True
+    require(hubspot_status == 200 and pipeline_matches == 1, "restored HubSpot credential smoke failed")
+    require(slack_status == 200 and slack_ok, "restored Slack credential smoke failed")
+    return {
+        "hubspot": {"status": "PASS", "http_status": hubspot_status, "pipeline_match_count": pipeline_matches},
+        "slack": {"status": "PASS", "http_status": slack_status, "auth_ok": slack_ok},
+    }
+
+
+def hubspot_deals(env: dict[str, str], root: Path, order_key: str) -> list[dict]:
+    token = (root / "runtime/secrets/hubspot_runtime_token").read_text(encoding="utf-8").strip()
+    status, value = json_request(
+        "https://api.hubapi.com/crm/objects/2026-03/deals/batch/read",
+        method="POST",
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        value={
+            "idProperty": "oddroom_wc_order_key",
+            "properties": ["oddroom_wc_order_key"],
+            "inputs": [{"id": order_key}],
+        },
+    )
+    if status == 404:
+        return []
+    if status == 207:
+        require(
+            isinstance(value, dict)
+            and isinstance(value.get("results"), list)
+            and isinstance(value.get("errors"), list)
+            and bool(value["errors"])
+            and all(isinstance(item, dict) and item.get("category") == "OBJECT_NOT_FOUND" for item in value["errors"]),
+            "HubSpot absent-object readback was not an exact not-found result",
+        )
+    else:
+        require(status == 200 and isinstance(value, dict) and isinstance(value.get("results"), list), "HubSpot exact Deal readback failed")
+    return [
+        item for item in value["results"]
+        if isinstance(item, dict)
+        and isinstance(item.get("properties"), dict)
+        and item["properties"].get("oddroom_wc_order_key") == order_key
+    ]
+
+
+def set_public_origin(root: Path, readiness: Path) -> str:
+    value = json.loads(readiness.read_text(encoding="utf-8"))
+    locators = value.get("credential_locators") if isinstance(value, dict) else None
+    require(isinstance(locators, dict), "canonical readiness locator registry differs")
+    domain_path = Path(locators.get("NGROK_DEV_DOMAIN", ""))
+    domain = domain_path.read_text(encoding="utf-8").strip() if domain_path.is_file() else ""
+    require(re.fullmatch(r"[A-Za-z0-9](?:[A-Za-z0-9.-]{1,251}[A-Za-z0-9])?", domain) is not None, "assigned HTTPS domain is invalid")
+    env_path = root / "runtime/runtime.env"
+    lines = [line for line in env_path.read_text(encoding="utf-8").splitlines() if not line.startswith("ODDROOM_PUBLIC_BASE_URL=")]
+    lines.append(f"ODDROOM_PUBLIC_BASE_URL=https://{domain}")
+    temporary = env_path.with_suffix(".env.next")
+    temporary.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    temporary.chmod(0o600)
+    temporary.replace(env_path)
+    return domain
+
+
+def start_https_tunnel(root: Path, readiness: Path, domain: str) -> tuple[subprocess.Popen[bytes], Path]:
+    value = json.loads(readiness.read_text(encoding="utf-8"))
+    locators = value["credential_locators"]
+    token_path = Path(locators["NGROK_AUTHTOKEN"])
+    token = token_path.read_text(encoding="utf-8").strip() if token_path.is_file() else ""
+    require(bool(token) and "\n" not in token, "assigned HTTPS tunnel credential is unavailable")
+    ngrok = shutil.which(os.environ.get("PF07_NGROK_BIN", "ngrok"))
+    require(ngrok is not None, "ngrok executable is unavailable")
+    config = root / "runtime/ngrok-gate10.yml"
+    log = root / "runtime/ngrok-gate10.log"
+    config.write_text(
+        "version: \"3\"\n"
+        "agent:\n"
+        f"  authtoken: {json.dumps(token)}\n"
+        "tunnels:\n"
+        "  pf07:\n"
+        "    proto: http\n"
+        "    addr: 18080\n"
+        f"    domain: {json.dumps(domain)}\n",
+        encoding="utf-8",
+    )
+    config.chmod(0o600)
+    stream = log.open("wb")
+    process = subprocess.Popen(
+        [ngrok, "start", "pf07", "--config", str(config), "--log", "stdout", "--log-format", "json"],
+        stdout=stream,
+        stderr=subprocess.STDOUT,
+        start_new_session=True,
+    )
+    (root / "runtime/ngrok-gate10.pid").write_text(str(process.pid) + "\n", encoding="utf-8")
+    (root / "runtime/ngrok-gate10.pid").chmod(0o600)
+    return process, log
+
+
+def https_observation(process: subprocess.Popen[bytes], domain: str) -> dict:
+    deadline = time.monotonic() + 180
+    while time.monotonic() < deadline:
+        if process.poll() is not None:
+            raise ProbeRuntimeError("assigned HTTPS tunnel stopped before observation")
+        try:
+            with urlopen(f"https://{domain}/", timeout=8) as response:
+                body = response.read()
+                if int(response.status) == 200:
+                    return {
+                        "mode": "ON_DEMAND_HTTPS_TUNNEL",
+                        "scheme": "https",
+                        "tls_verified": True,
+                        "observed_status": 200,
+                        "response_body_sha256": hashlib.sha256(body).hexdigest(),
+                    }
+        except (HTTPError, URLError, TimeoutError):
+            pass
+        time.sleep(2)
+    raise ProbeRuntimeError("restored HTTPS storefront observation timed out")
+
+
+def compose_evidence(project: str, original_project: str, preexisting: int) -> dict:
+    logical = {"database": "mariadb_data", "wordpress": "wordpress_data", "n8n": "n8n_data"}
+    volumes = {}
+    for alias, name in logical.items():
+        restored_name = f"{project}_{name}"
+        original_name = f"{original_project}_{name}"
+        inspected = parse_json_output(
+            run(["docker", "volume", "inspect", restored_name], label="restored volume inspection"),
+            "restored volume inspection",
+        )
+        labels = inspected[0].get("Labels") if isinstance(inspected, list) and len(inspected) == 1 and isinstance(inspected[0], dict) else None
+        volumes[alias] = {
+            "name_sha256": sha(restored_name),
+            "original_name_sha256": sha(original_name),
+            "created_for_project": isinstance(labels, dict) and labels.get("com.docker.compose.project") == project,
+        }
+    service_names = {"database": "db", "wordpress": "wordpress", "n8n": "n8n", "task_runners": "task-runners", "edge": "edge"}
+    services = {alias: "running" if container_running(f"{project}-{service}-1") else "stopped" for alias, service in service_names.items()}
+    return {
+        "clean_project": preexisting == 0,
+        "project_sha256": sha(project),
+        "original_project_sha256": sha(original_project),
+        "preexisting_resource_count": preexisting,
+        "volumes": volumes,
+        "services": services,
+    }
+
+
+def event_observation(runtime: ProbeRuntime, row: dict, state: dict, details: list[dict]) -> dict:
+    target = runtime.event_key_sha256(row["event_key"])
+    matches = [item for item in details if item.get("event_key_sha256") == target]
+    require(len(matches) == 1, "restored event execution cardinality differs")
+    execution = matches[0]
+    envelope = execution.get("envelope") if isinstance(execution.get("envelope"), dict) else {}
+    require(execution.get("verified_authorized") is True and envelope.get("result") == "completed", "restored event was not authenticated and completed")
+    return {
+        "row_status": state.get("status"),
+        "action_id_present": state.get("action_id") is not None,
+        "n8n_execution_delta": 1,
+        "execution_status": execution.get("status"),
+        "event_key_sha256": target,
+        "payload_sha256": row["stored_payload_hash"],
+        "hubspot_outbound_call_count": int(execution.get("hubspot_outbound_call_count", 0)),
+        "slack_outbound_call_count": int(execution.get("slack_outbound_call_count", 0)),
+        "returned_slack_timestamp_present": envelope.get("slack_timestamp_present") is True,
+    }
+
+
+def observed_value(value: dict, path: str) -> object:
+    current: object = value
+    for part in path.split("."):
+        require(isinstance(current, dict) and part in current, f"missing derived observation: {path}")
+        current = current[part]
+    return current
+
+
+def validate_and_write(runtime: ProbeRuntime, trace: dict) -> None:
+    path = runtime.output_dir / "gate10_restore_trace.json"
+    path.write_text(json.dumps(trace, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    path.chmod(0o600)
+    observations = derive_fixture_observations("clean-restore", {"gate10_restore_trace": path})
+    require(isinstance(observations, dict), "GATE-10 semantic derivation is unavailable")
+    manifest = json.loads((ROOT / "fixtures/acceptance-fixtures.json").read_text(encoding="utf-8"))
+    fixture = next((item for item in manifest["fixtures"] if item["id"] == "clean-restore"), None)
+    require(isinstance(fixture, dict), "GATE-10 fixture contract is missing")
+    for assertion in fixture["assertions"]:
+        actual = observed_value(observations, assertion["path"])
+        expected = assertion["expected"]
+        passed = actual == expected if assertion["operator"] == "eq" else (
+            assertion["operator"] == "gte"
+            and isinstance(actual, (int, float)) and not isinstance(actual, bool)
+            and actual >= expected
+        )
+        require(passed, f"GATE-10 derived observation failed: {assertion['path']}")
+    print(json.dumps({"observations": observations, "artifacts": {"gate10_restore_trace": path.name}}, separators=(",", ":")))
+
+
+def current_run_rows(
+    root: Path,
+    project: str,
+    *,
+    shop_instance_id: str,
+    remote_order_key_sha256: str,
+) -> dict[str, dict]:
+    value = wp_json(root, project, r'''
+global $wpdb;
+$run=OddRoom_Repository::requiredConfig('ODDROOM_ORDEROPS_RUN_ID');
+$table=OddRoom_Installer::outboxTable();
+$rows=$wpdb->get_results($wpdb->prepare("SELECT id,order_id,event_type FROM {$table} WHERE JSON_UNQUOTE(JSON_EXTRACT(payload_json,'$.run_id'))=%s AND event_type IN ('ORDER_CREATED','PAYMENT_CONFIRMED') ORDER BY id ASC",$run),ARRAY_A);
+echo wp_json_encode($rows);
+''')
+    require(isinstance(value, list) and len(value) >= 2, "completed restore run row inventory differs")
+    require(
+        re.fullmatch(r"[0-9a-f]{64}", remote_order_key_sha256) is not None,
+        "completed restore remote order identity differs",
+    )
+    grouped: dict[int, dict[str, list[int]]] = {}
+    for item in value:
+        require(isinstance(item, dict) and set(item) == {"id", "order_id", "event_type"}, "completed restore row shape differs")
+        event_type = item["event_type"]
+        row_id = int(item["id"])
+        order_id = int(item["order_id"])
+        require(event_type in {"ORDER_CREATED", "PAYMENT_CONFIRMED"} and row_id > 0 and order_id > 0, "completed restore row identity differs")
+        grouped.setdefault(order_id, {}).setdefault(event_type, []).append(row_id)
+
+    matching_order_ids = [
+        order_id
+        for order_id in grouped
+        if sha(f"{shop_instance_id}:{order_id}") == remote_order_key_sha256
+    ]
+    require(len(matching_order_ids) == 1, "completed restore order hash selection differs")
+    order_id = matching_order_ids[0]
+    selected = grouped[order_id]
+    require(
+        set(selected) == {"ORDER_CREATED", "PAYMENT_CONFIRMED"}
+        and all(len(row_ids) == 1 for row_ids in selected.values()),
+        "completed restore order/event cardinality differs",
+    )
+    return {
+        event_type: {"outbox_id": row_ids[0], "order_id": order_id}
+        for event_type, row_ids in selected.items()
+    }
+
+
+def live_https_observation(domain: str) -> dict:
+    try:
+        with urlopen(f"https://{domain}/", timeout=15) as response:
+            body = response.read()
+            require(int(response.status) == 200, "restored live HTTPS status differs")
+            return {
+                "mode": "ON_DEMAND_HTTPS_TUNNEL",
+                "scheme": "https",
+                "tls_verified": True,
+                "observed_status": 200,
+                "response_body_sha256": hashlib.sha256(body).hexdigest(),
+            }
+    except (HTTPError, URLError, TimeoutError, OSError) as error:
+        raise ProbeRuntimeError(f"restored live HTTPS revalidation failed: {type(error).__name__}") from error
+
+
+def revalidate_completed_restore(
+    *,
+    completed_trace: Path,
+    final_root: Path,
+    final_project: str,
+    original_root: Path,
+    original_project: str,
+    backup_dir: Path,
+    readiness: Path,
+    scratch_root: Path,
+) -> None:
+    historical = json.loads(completed_trace.read_text(encoding="utf-8"))
+    require(isinstance(historical, dict), "completed clean-restore trace root differs")
+    historical_observations = derive_fixture_observations("clean-restore", {"gate10_restore_trace": completed_trace})
+    require(isinstance(historical_observations, dict), "completed clean-restore trace is not semantically valid")
+
+    backup = verify_backup(backup_dir)
+    backup_quiescence = json.loads((backup_dir / "quiescence.json").read_text(encoding="utf-8"))
+    require(
+        historical["quiescence"]["wordpress_before_stop"] == backup_quiescence.get("wordpress")
+        and historical["quiescence"]["n8n_before_stop"] == {
+            key: backup_quiescence.get("n8n", {}).get(key) for key in ("running_executions", "waiting_executions")
+        },
+        "completed restore quiescence differs from the verified snapshot",
+    )
+    stopped = original_stop_state(original_project)
+    require(stopped["all_compose_services_stopped"] is True, "original runtime is active during completed-restore revalidation")
+    require(project_resource_count(final_project) > 0, "completed restored Compose project is unavailable")
+
+    domain = set_public_origin(final_root, readiness)
+    final_env = parse_env_file(final_root / "runtime/runtime.env")
+    original_env = parse_env_file(original_root / "runtime/runtime.env")
+    require(
+        sha(final_env["ODDROOM_RUN_ID"]) == historical["run_identity"]["restore_run_sha256"]
+        and sha(final_env["ODDROOM_SHOP_INSTANCE_ID"]) == historical["run_identity"]["shop_instance_sha256"]
+        and final_env["ODDROOM_SHOP_INSTANCE_ID"] == original_env["ODDROOM_SHOP_INSTANCE_ID"],
+        "completed restored runtime identity differs",
+    )
+
+    os.environ["PF07_RUNTIME_ROOT"] = str(final_root)
+    os.environ["PF07_COMPOSE_PROJECT"] = final_project
+    os.environ["ODDROOM_RUN_ID"] = final_env["ODDROOM_RUN_ID"]
+    runtime = ProbeRuntime()
+    runtime.assert_run_identity()
+    rows = current_run_rows(
+        final_root,
+        final_project,
+        shop_instance_id=final_env["ODDROOM_SHOP_INSTANCE_ID"],
+        remote_order_key_sha256=historical["run_identity"]["remote_order_key_sha256"],
+    )
+    order_id = rows["ORDER_CREATED"]["order_id"]
+    created_row = runtime.order_rows([order_id], "ORDER_CREATED")["rows"][0]
+    payment_row = runtime.order_rows([order_id], "PAYMENT_CONFIRMED")["rows"][0]
+    created_state = runtime.row_lock_state(rows["ORDER_CREATED"]["outbox_id"])
+    payment_state = runtime.row_lock_state(rows["PAYMENT_CONFIRMED"]["outbox_id"])
+    with runtime.n8n_snapshot() as database:
+        details = runtime.execution_details(database, minimum_id=0)
+    order_key = f"{final_env['ODDROOM_SHOP_INSTANCE_ID']}:{order_id}"
+    deals_before_duplicate = hubspot_deals(final_env, final_root, order_key)
+    require(len(deals_before_duplicate) == 1 and isinstance(deals_before_duplicate[0].get("id"), str), "completed restored Deal readback differs")
+    require(
+        sha(order_key) == historical["run_identity"]["remote_order_key_sha256"]
+        and sha(deals_before_duplicate[0]["id"]) == historical["remote_observations"]["deal_id_sha256"],
+        "completed restored remote identity differs",
+    )
+
+    execution_before_duplicate = runtime.execution_state()
+    payment_before_duplicate = runtime.row_lock_state(rows["PAYMENT_CONFIRMED"]["outbox_id"])
+    runtime.wpcli(["eval", f"do_action('woocommerce_payment_complete',{order_id});"])
+    payment_after_duplicate = runtime.row_lock_state(rows["PAYMENT_CONFIRMED"]["outbox_id"])
+    execution_after_duplicate = runtime.execution_state()
+    deals_after_duplicate = hubspot_deals(final_env, final_root, order_key)
+    original_n8n = n8n_state(f"{original_project}-n8n-1", scratch_root)
+    require(
+        original_n8n["max_execution_id"] == historical["remote_observations"]["original_calls_before"]
+        == historical["remote_observations"]["original_calls_after"],
+        "original n8n execution counter changed after the completed drill",
+    )
+    reprovision_state = n8n_reprovision_state(f"{final_project}-n8n-1", scratch_root)
+    smokes = credential_smokes(final_env, final_root)
+
+    trace = historical
+    trace["https"] = live_https_observation(domain)
+    trace["backup"] = {key: backup[key] for key in ("manifest_exit_code", "failed_entry_count", "manifest_sha256", "artifact_kinds", "artifact_count", "nonempty_artifact_count")}
+    trace["compose"] = compose_evidence(final_project, original_project, historical["compose"]["preexisting_resource_count"])
+    trace["credential_smokes"] = smokes
+    trace["reprovision"]["imported_credential_count"] = reprovision_state["credential_count"]
+    trace["reprovision"]["workflow_active"] = reprovision_state["workflow_active"]
+    trace["order_flow"] = {
+        "created": event_observation(runtime, created_row, created_state, details),
+        "payment": event_observation(runtime, payment_row, payment_state, details),
+    }
+    trace["remote_observations"] = {
+        "deal_before": 0,
+        "deal_after": len(deals_after_duplicate),
+        "deal_id_sha256": sha(deals_before_duplicate[0]["id"]),
+        "order_key_sha256": sha(order_key),
+        "original_calls_before": original_n8n["max_execution_id"],
+        "original_calls_after": original_n8n["max_execution_id"],
+    }
+    trace["duplicate_replay"] = {
+        "same_outbox_row": True,
+        "event_key_sha256_before": runtime.event_key_sha256(payment_row["event_key"]),
+        "event_key_sha256_after": runtime.event_key_sha256(payment_row["event_key"]),
+        "payload_sha256_before": payment_row["stored_payload_hash"],
+        "payload_sha256_after": payment_row["stored_payload_hash"],
+        "attempt_count_before": payment_before_duplicate["attempt_count"],
+        "attempt_count_after": payment_after_duplicate["attempt_count"],
+        "action_id_present_before": payment_before_duplicate["action_id"] is not None,
+        "action_id_present_after": payment_after_duplicate["action_id"] is not None,
+        "n8n_execution_before": execution_before_duplicate["n8n_execution"],
+        "n8n_execution_after": execution_after_duplicate["n8n_execution"],
+        "slack_calls_before": execution_before_duplicate["slack_calls"],
+        "slack_calls_after": execution_after_duplicate["slack_calls"],
+        "deal_count_before": len(deals_before_duplicate),
+        "deal_count_after": len(deals_after_duplicate),
+    }
+    trace["runtime"] = {
+        "active_after_restore": "RESTORED",
+        "restored_queue_enabled": container_running(f"{final_project}-wordpress-1"),
+        "restored_webhook_active": reprovision_state["workflow_active"] and container_running(f"{final_project}-n8n-1") and container_running(f"{final_project}-edge-1"),
+        "original_outbound_enabled": False,
+        "original_all_services_stopped": stopped["all_compose_services_stopped"],
+    }
+    validate_and_write(runtime, trace)
+
+
+def main() -> None:
+    final_root = required_path("PF07_RUNTIME_ROOT", directory=True)
+    original_root = required_path("PF07_ORIGINAL_RUNTIME_ROOT", directory=True)
+    backup_dir = required_path("PF07_BACKUP_DIR", directory=True)
+    readiness = required_path("PF07_READINESS_FILE")
+    scratch_root = Path(os.environ.get("PF07_SCRATCH_ROOT", str(Path.home() / "tmp"))).expanduser().resolve()
+    scratch_root.mkdir(parents=True, exist_ok=True)
+    final_project = project_name("PF07_COMPOSE_PROJECT")
+    original_project = project_name("PF07_ORIGINAL_COMPOSE_PROJECT")
+    require(final_project != original_project, "restored and original Compose projects are identical")
+
+    completed_trace_raw = os.environ.get("PF07_GATE10_COMPLETED_TRACE", "")
+    if completed_trace_raw:
+        completed_trace = Path(completed_trace_raw).expanduser().resolve()
+        require(completed_trace.is_file(), "PF07_GATE10_COMPLETED_TRACE is unavailable")
+        revalidate_completed_restore(
+            completed_trace=completed_trace,
+            final_root=final_root,
+            final_project=final_project,
+            original_root=original_root,
+            original_project=original_project,
+            backup_dir=backup_dir,
+            readiness=readiness,
+            scratch_root=scratch_root,
+        )
+        return
+
+    original_env = parse_env_file(original_root / "runtime/runtime.env")
+    backup = verify_backup(backup_dir)
+    quiescent_wordpress = wordpress_quiescence(original_root, original_project)
+    original_n8n_before = n8n_state(f"{original_project}-n8n-1", scratch_root)
+    require(original_n8n_before["running_executions"] == 0 and original_n8n_before["waiting_executions"] == 0, "original n8n runtime is not quiescent")
+    pre_run_hashes = pre_restore_run_hashes(original_root, original_project, original_env)
+    preexisting = project_resource_count(final_project)
+    require(preexisting == 0, "selected restored Compose project already has resources")
+
+    domain = set_public_origin(final_root, readiness)
+    final_env = parse_env_file(final_root / "runtime/runtime.env")
+    require(final_env["ODDROOM_SHOP_INSTANCE_ID"] == original_env["ODDROOM_SHOP_INSTANCE_ID"], "restored shop identity differs")
+    require(sha(final_env["ODDROOM_RUN_ID"]) not in pre_run_hashes, "RESTORE_RUN_ID was used before the restore")
+
+    compose(original_root, original_project, "stop", timeout=300)
+    stopped = original_stop_state(original_project)
+    require(stopped == {"queue_runner_running": False, "webhook_running": False, "all_compose_services_stopped": True}, "original runtime did not stop completely")
+
+    compose(final_root, final_project, "create", "db", "wordpress", "n8n", "task-runners", "edge", timeout=600)
+    restore_wordpress_volume(f"{final_project}_wordpress_data", backup_dir, backup["paths"]["wordpress_application_volume"])
+    compose(final_root, final_project, "up", "-d", "db", timeout=300)
+    wait_for_database(f"{final_project}-db-1")
+    restore_database(f"{final_project}-db-1", backup["paths"]["wordpress_database"])
+
+    compose(final_root, final_project, "up", "-d", "n8n", "task-runners", timeout=600)
+    n8n_port_text = final_env.get("PF07_N8N_PORT", "15678")
+    require(n8n_port_text.isdigit() and 1 <= int(n8n_port_text) <= 65535, "restored n8n port is invalid")
+    owner_setup_exit = setup_n8n_owner(final_root, int(n8n_port_text))
+    run([str(final_root / "scripts/runtime-import-credentials"), final_project], label="restored n8n credential import", timeout=300)
+    compose(final_root, final_project, "exec", "-T", "n8n", "n8n", "import:workflow", "--input=/workspace/workflow/oddroom-orderops-vsl.json", timeout=300)
+    compose(final_root, final_project, "exec", "-T", "n8n", "n8n", "publish:workflow", f"--id={WORKFLOW_ID}", timeout=300)
+    compose(final_root, final_project, "restart", "n8n", "task-runners", timeout=300)
+    wait_http(f"http://127.0.0.1:{n8n_port_text}/healthz")
+    reprovision_state = n8n_reprovision_state(f"{final_project}-n8n-1", scratch_root)
+    workflow = json.loads((final_root / "workflow/oddroom-orderops-vsl.json").read_text(encoding="utf-8"))
+    credential_bindings = {
+        entry.get("id")
+        for node in workflow.get("nodes", [])
+        if isinstance(node, dict)
+        for entry in (node.get("credentials") or {}).values()
+        if isinstance(entry, dict)
+    }
+    require(credential_bindings == {HUBSPOT_CREDENTIAL_ID, SLACK_CREDENTIAL_ID}, "restored workflow credential binding set differs")
+    smokes = credential_smokes(final_env, final_root)
+
+    compose(final_root, final_project, "up", "-d", "wordpress", "edge", timeout=600)
+    run([str(final_root / "scripts/runtime-wp-install"), final_project], label="restored WordPress installation", timeout=1200)
+
+    os.environ["PF07_RUNTIME_ROOT"] = str(final_root)
+    os.environ["PF07_COMPOSE_PROJECT"] = final_project
+    os.environ["ODDROOM_RUN_ID"] = final_env["ODDROOM_RUN_ID"]
+    runtime = ProbeRuntime()
+    runtime.assert_run_identity()
+    suffix = secrets.token_hex(5)
+    created = runtime.create_order("simple", f"g10-{suffix}", "32500.00")
+    created_row = runtime.order_rows([created["order_id"]], "ORDER_CREATED")["rows"][0]
+    order_key = f"{final_env['ODDROOM_SHOP_INSTANCE_ID']}:{created['order_id']}"
+    deal_before = hubspot_deals(final_env, final_root, order_key)
+    require(len(deal_before) == 0, "restored test order key already exists in HubSpot")
+    created_baseline = runtime.latest_execution_id()
+    runtime.run_action(created["action_id"])
+    created_details = runtime.wait_for_event_executions(created_baseline, created_row["event_key"], expected=1)
+    created_state = runtime.row_lock_state(created["outbox_id"])
+
+    payment = runtime.wpcli_json(["oddroom-orderops", "emit-event", str(created["order_id"]), "PAYMENT_CONFIRMED"])
+    require(isinstance(payment, dict) and isinstance(payment.get("outbox_id"), int) and isinstance(payment.get("action_id"), int), "restored payment event was not created")
+    payment_row = runtime.order_rows([created["order_id"]], "PAYMENT_CONFIRMED")["rows"][0]
+    payment_baseline = runtime.latest_execution_id()
+    runtime.run_action(payment["action_id"])
+    payment_details = runtime.wait_for_event_executions(payment_baseline, payment_row["event_key"], expected=1)
+    payment_state = runtime.row_lock_state(payment["outbox_id"])
+    deal_after_payment = hubspot_deals(final_env, final_root, order_key)
+    require(len(deal_after_payment) == 1 and isinstance(deal_after_payment[0].get("id"), str), "restored order did not converge on exactly one HubSpot Deal")
+
+    execution_before_duplicate = runtime.execution_state()
+    payment_before_duplicate = runtime.row_lock_state(payment["outbox_id"])
+    payment_row_before_duplicate = runtime.order_rows([created["order_id"]], "PAYMENT_CONFIRMED")["rows"][0]
+    runtime.wpcli(["eval", f"do_action('woocommerce_payment_complete',{created['order_id']});"])
+    payment_after_duplicate = runtime.row_lock_state(payment["outbox_id"])
+    payment_row_after_duplicate = runtime.order_rows([created["order_id"]], "PAYMENT_CONFIRMED")["rows"][0]
+    execution_after_duplicate = runtime.execution_state()
+    deal_after_duplicate = hubspot_deals(final_env, final_root, order_key)
+
+    original_n8n_after = n8n_state(f"{original_project}-n8n-1", scratch_root)
+    stopped_after = original_stop_state(original_project)
+    require(stopped_after["all_compose_services_stopped"] is True, "original runtime restarted during the drill")
+
+    tunnel, _tunnel_log = start_https_tunnel(final_root, readiness, domain)
+    https = https_observation(tunnel, domain)
+    compose_state = compose_evidence(final_project, original_project, preexisting)
+    require(all(state == "running" for state in compose_state["services"].values()), "restored staging service set differs")
+
+    trace = {
+        "schema_version": 1,
+        "fixture_id": "clean-restore",
+        "https": https,
+        "backup": {key: backup[key] for key in ("manifest_exit_code", "failed_entry_count", "manifest_sha256", "artifact_kinds", "artifact_count", "nonempty_artifact_count")},
+        "quiescence": {
+            "wordpress_before_stop": quiescent_wordpress,
+            "n8n_before_stop": {key: original_n8n_before[key] for key in ("running_executions", "waiting_executions")},
+            "original_after_stop": stopped,
+        },
+        "compose": compose_state,
+        "run_identity": {
+            "shop_instance_sha256": sha(final_env["ODDROOM_SHOP_INSTANCE_ID"]),
+            "original_shop_instance_sha256": sha(original_env["ODDROOM_SHOP_INSTANCE_ID"]),
+            "restore_run_sha256": sha(final_env["ODDROOM_RUN_ID"]),
+            "pre_restore_run_sha256": pre_run_hashes,
+            "remote_order_key_sha256": sha(order_key),
+        },
+        "reprovision": {
+            "mode": "REPROVISIONED_RESTORE",
+            "outbound_enabled_during_restore": False,
+            "owner_setup_exit_code": owner_setup_exit,
+            "workflow_import_exit_code": 0,
+            "workflow_publish_exit_code": 0,
+            "imported_credential_count": reprovision_state["credential_count"],
+            "credential_binding_count": len(credential_bindings),
+            "workflow_active": reprovision_state["workflow_active"],
+        },
+        "credential_smokes": smokes,
+        "order_flow": {
+            "created": event_observation(runtime, created_row, created_state, created_details),
+            "payment": event_observation(runtime, payment_row, payment_state, payment_details),
+        },
+        "remote_observations": {
+            "deal_before": len(deal_before),
+            "deal_after": len(deal_after_duplicate),
+            "deal_id_sha256": sha(deal_after_payment[0]["id"]),
+            "order_key_sha256": sha(order_key),
+            "original_calls_before": original_n8n_before["max_execution_id"],
+            "original_calls_after": original_n8n_after["max_execution_id"],
+        },
+        "duplicate_replay": {
+            "same_outbox_row": payment_row_before_duplicate["outbox_id"] == payment_row_after_duplicate["outbox_id"] == payment["outbox_id"],
+            "event_key_sha256_before": runtime.event_key_sha256(payment_row_before_duplicate["event_key"]),
+            "event_key_sha256_after": runtime.event_key_sha256(payment_row_after_duplicate["event_key"]),
+            "payload_sha256_before": payment_row_before_duplicate["stored_payload_hash"],
+            "payload_sha256_after": payment_row_after_duplicate["stored_payload_hash"],
+            "attempt_count_before": payment_before_duplicate["attempt_count"],
+            "attempt_count_after": payment_after_duplicate["attempt_count"],
+            "action_id_present_before": payment_before_duplicate["action_id"] is not None,
+            "action_id_present_after": payment_after_duplicate["action_id"] is not None,
+            "n8n_execution_before": execution_before_duplicate["n8n_execution"],
+            "n8n_execution_after": execution_after_duplicate["n8n_execution"],
+            "slack_calls_before": execution_before_duplicate["slack_calls"],
+            "slack_calls_after": execution_after_duplicate["slack_calls"],
+            "deal_count_before": len(deal_after_payment),
+            "deal_count_after": len(deal_after_duplicate),
+        },
+        "runtime": {
+            "active_after_restore": "RESTORED",
+            "restored_queue_enabled": container_running(f"{final_project}-wordpress-1"),
+            "restored_webhook_active": reprovision_state["workflow_active"] and container_running(f"{final_project}-n8n-1") and container_running(f"{final_project}-edge-1"),
+            "original_outbound_enabled": not stopped_after["all_compose_services_stopped"],
+            "original_all_services_stopped": stopped_after["all_compose_services_stopped"],
+        },
+    }
+    validate_and_write(runtime, trace)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (ProbeRuntimeError, OSError, KeyError, ValueError, json.JSONDecodeError) as error:
+        print(f"FAIL: {str(error)[:300]}", file=sys.stderr)
+        raise SystemExit(1)

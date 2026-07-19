@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
 import shutil
@@ -10,6 +11,11 @@ import stat
 import subprocess
 import sys
 from urllib.request import Request, urlopen
+
+sys.dont_write_bytecode = True
+os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
+
+from evidence_contract import EvidenceContractError, validate_public_record_shape
 
 
 def fail(message: str) -> None:
@@ -23,11 +29,25 @@ mode = sys.argv[1]
 root = Path(__file__).resolve().parent.parent
 allowlist = json.loads((root / "release/public-allowlist.json").read_text(encoding="utf-8"))["paths"]
 manifest_path = root / "release/public-build-manifest.json"
+expected_candidate_files: list[str] | None = None
+
+
+def candidate_files() -> list[str]:
+    return sorted(
+        path.relative_to(root).as_posix()
+        for path in root.rglob("*")
+        if path.relative_to(root).parts[0] != ".git" and (path.is_file() or path.is_symlink())
+    )
+
+
 if manifest_path.exists():
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     manifest_paths = [entry["path"] for entry in manifest.get("files", [])]
     if manifest_paths != allowlist:
         fail("generated manifest order or inventory differs from allowlist")
+    expected_candidate_files = sorted([*allowlist, "release/public-build-manifest.json"])
+    if candidate_files() != expected_candidate_files:
+        fail("public candidate contains files outside the generated exact inventory")
     for entry in manifest.get("files", []):
         path = root / entry["path"]
         mode_value = "0755" if path.stat().st_mode & stat.S_IXUSR else "0644"
@@ -46,13 +66,29 @@ secret_patterns = [
     re.compile(r"(?m)^\s*[A-Z0-9_]*(?:API_KEY|TOKEN|PASSWORD|SECRET)[A-Z0-9_]*\s*:\s*(?![$<{])[^\s#]{8,}\s*$"),
     re.compile(r"(?i)(?:api[_-]?key|token|password|secret)\s*=\s*['\"](?![$<])(?![^'\"]*(?:synthetic|example|test))[^'\"]{8,}['\"]"),
     re.compile("/" + "home/" + r"[^/<\s]+/"),
-    re.compile(r"(?i)hooks\.slack\.com/services|ngrok-free\.(?:app|dev)|v1:pf" + r"07-(?!00000000-0000-4000-8000-000000000000)"),
+    re.compile(
+        r"(?i)hooks\.slack\.com/services|ngrok-free\.(?:app|dev)|v1:pf" +
+        r"07-(?!00000000-0000-4000-8000-000000000000)[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}:[0-9]{1,19}:(?:ORDER_CREATED|PAYMENT_CONFIRMED|ORDER_CANCELLED|ORDER_REFUNDED)"
+    ),
+]
+binary_secret_patterns = [
+    re.compile(b"-----BEGIN (?:OPENSSH|RSA|EC|DSA) PRIVATE KEY-----"),
+    re.compile(b"(?i)authorization\\s*:\\s*bearer\\s+[a-z0-9._-]{12,}"),
+    re.compile(
+        b"(?i)hooks\\.slack\\.com/services|ngrok-free\\.(?:app|dev)|v1:pf" +
+        b"07-(?!00000000-0000-4000-8000-000000000000)[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}:[0-9]{1,19}:(?:ORDER_CREATED|PAYMENT_CONFIRMED|ORDER_CANCELLED|ORDER_REFUNDED)"
+    ),
+    re.compile(b"/" + b"home/[^/<\\s]+/"),
 ]
 public_container_paths = ("/home/node/.n8n",)
 for relative in allowlist:
     path = root / relative
     if not path.is_file() or path.is_symlink():
         fail(f"allowlisted regular file is missing: {relative}")
+    binary_scan = path.read_bytes().replace(b"/home/node/.n8n", b"<PUBLIC_CONTAINER_PATH>")
+    for pattern in binary_secret_patterns:
+        if pattern.search(binary_scan):
+            fail(f"public-bound binary secret, protected identifier, or owner-path pattern in {relative}")
     if path.suffix.lower() not in text_suffixes and path.name not in ("ci", "build-public-release", "validate-public", "validate-all", "generate-public-evidence"):
         continue
     try:
@@ -81,42 +117,80 @@ expected_manifest = {
 if manifest_entries != expected_manifest:
     fail("public evidence manifest inventory or hash mismatch")
 
-public_records = []
+fixture_document = json.loads((root / "fixtures/acceptance-fixtures.json").read_text(encoding="utf-8"))
+fixture_items = fixture_document.get("fixtures")
+if fixture_document.get("schema_version") != 1 or not isinstance(fixture_items, list) or len(fixture_items) != 15:
+    fail("public fixture inventory is invalid")
+expected_records: dict[str, str] = {}
+for fixture in fixture_items:
+    if not isinstance(fixture, dict) or not isinstance(fixture.get("record"), str) or not isinstance(fixture.get("acceptance_id"), str):
+        fail("public fixture record identity is invalid")
+    if fixture["record"] in expected_records:
+        fail("public fixture record identity is duplicated")
+    expected_records[fixture["record"]] = fixture["acceptance_id"]
+if set(manifest_entries) != {f"evidence/public/{name}" for name in expected_records} | {"evidence/public/acceptance-matrix.json"}:
+    fail("public evidence inventory differs from the exact fifteen records plus buyer-proof matrix")
+
+transform_sha = hashlib.sha256((root / "scripts/generate-public-evidence").read_bytes()).hexdigest()
+public_records: dict[str, dict] = {}
+source_tree_hashes: set[str] = set()
 for relative, digest in manifest_entries.items():
     record = json.loads((root / relative).read_text(encoding="utf-8"))
     if relative.endswith("acceptance-matrix.json"):
         continue
-    required = {
-        "schema_version", "acceptance_id", "run_id", "started_at", "finished_at",
-        "source_tree_sha256", "command_or_probe", "exit_code", "observations",
-        "artifact_hashes", "redaction_state", "redaction_transform",
-        "source_acceptance_id", "source_record_sha256", "source_artifact_hashes",
-    }
-    if required - record.keys() or record.get("redaction_state") != "PUBLIC_REDACTED" or record.get("run_id") != "PF07-ACCEPTANCE-RUN" or record.get("exit_code") != 0:
-        fail(f"public evidence common schema failed: {relative}")
-    transform = record.get("redaction_transform")
-    if not isinstance(transform, dict) or set(transform) != {"id", "version", "script_sha256"} or not re.fullmatch(r"[0-9a-f]{64}", transform.get("script_sha256", "")):
-        fail(f"public redaction transform failed: {relative}")
-    if record.get("source_acceptance_id") != record.get("acceptance_id") or not re.fullmatch(r"[0-9a-f]{64}", record.get("source_record_sha256", "")):
-        fail(f"public source commitment failed: {relative}")
-    if not isinstance(record.get("source_artifact_hashes"), dict) or not record["source_artifact_hashes"]:
-        fail(f"public artifact commitments are missing: {relative}")
-    public_records.append(record)
+    name = Path(relative).name
+    try:
+        validate_public_record_shape(record, transform_sha)
+    except EvidenceContractError as error:
+        fail(f"public evidence common schema or transform failed: {relative}: {error}")
+    if record.get("acceptance_id") != expected_records.get(name):
+        fail(f"public evidence identity differs from the fixture contract: {relative}")
+    public_records[name] = record
+    source_tree_hashes.add(record["source_tree_sha256"])
+if set(public_records) != set(expected_records) or len(source_tree_hashes) != 1:
+    fail("public evidence records do not form one complete source-bound set")
 
 matrix = json.loads((public_root / "acceptance-matrix.json").read_text(encoding="utf-8"))
 entries = matrix.get("entries")
 expected_gates = [f"GATE-{index:02d}" for index in range(1, 11)]
-if matrix.get("redaction_state") != "PUBLIC_ORIGINAL_SAFE" or matrix.get("matrix_scope") != "PRE_PUBLIC_BUYER_PROOF" or not isinstance(entries, list) or [entry.get("acceptance_id") for entry in entries] != expected_gates:
+if (
+    set(matrix) != {
+        "schema_version", "acceptance_id", "run_id", "started_at", "finished_at",
+        "source_tree_sha256", "command_or_probe", "exit_code", "observations",
+        "artifact_hashes", "redaction_state", "matrix_scope", "entries",
+    }
+    or matrix.get("schema_version") != "1"
+    or matrix.get("acceptance_id") != "ACCEPTANCE-MATRIX"
+    or matrix.get("run_id") != "PF07-ACCEPTANCE-RUN"
+    or matrix.get("source_tree_sha256") != next(iter(source_tree_hashes))
+    or matrix.get("command_or_probe") != "pre-public buyer-proof index over generated public records"
+    or matrix.get("exit_code") != 0
+    or matrix.get("observations") != {"result": "PASS", "gate_count": 10, "final_pass_claimed": False}
+    or matrix.get("artifact_hashes") != {}
+    or matrix.get("redaction_state") != "PUBLIC_ORIGINAL_SAFE"
+    or matrix.get("matrix_scope") != "PRE_PUBLIC_BUYER_PROOF"
+    or not isinstance(entries, list)
+    or [entry.get("acceptance_id") for entry in entries] != expected_gates
+):
     fail("public buyer-proof matrix scope or exact ten-gate inventory failed")
 if any(entry.get("result") != "PASS" or manifest_entries.get(entry.get("record_path")) != entry.get("record_sha256") for entry in entries):
     fail("public buyer-proof matrix record link failed")
 if any(str(entry.get("acceptance_id", "")).startswith(("REL-", "ACC-")) for entry in entries) or matrix.get("observations", {}).get("final_pass_claimed") is not False:
     fail("pre-public matrix contains a release/final claim")
 
-fixture = json.loads((root / "tests/fixtures/public-gate-fixtures.json").read_text(encoding="utf-8"))
-fixture_ids = [item.get("acceptance_id") for item in fixture.get("fixtures", [])]
-if fixture.get("classification") != "PUBLIC_ORIGINAL_SAFE_SYNTHETIC" or fixture_ids != expected_gates:
-    fail("public synthetic gate fixtures are incomplete")
+fixture_result = subprocess.run(
+    [str(root / "fixtures/run"), "--public"],
+    cwd=root,
+    text=True,
+    stdout=subprocess.PIPE,
+    stderr=subprocess.STDOUT,
+    check=False,
+)
+if fixture_result.returncode != 0:
+    fail(f"public executable fixture bundle failed: {fixture_result.stdout.strip()}")
+fixture_summary = json.loads(fixture_result.stdout)
+if fixture_summary.get("status") != "PASS" or fixture_summary.get("fixture_count") != 15:
+    fail("public fixture bundle did not establish all fifteen scenarios")
 
 case = (root / "case-study/README.md").read_text(encoding="utf-8")
 claims = (root / "docs/CLAIMS-BOUNDARY.md").read_text(encoding="utf-8")
@@ -183,4 +257,6 @@ if mode == "--post-public":
     subprocess.run(["node", "tests/public_case_quality.mjs"], cwd=root, check=True)
 
 suffix = ", public repository" if mode == "--repository-public" else ", public repository and deployed case" if mode == "--post-public" else ""
+if expected_candidate_files is not None and candidate_files() != expected_candidate_files:
+    fail("public validation mutated the generated exact inventory")
 print(f"PASS: {mode[2:]} public tree, evidence, fixtures, claims, links, unit checks{suffix}")

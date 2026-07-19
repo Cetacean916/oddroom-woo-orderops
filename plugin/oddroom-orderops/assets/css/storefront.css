@@ -19,14 +19,15 @@
 }
 
 :root {
-  --odd-paper: #fff8eb;
-  --odd-ink: #080604;
-  --odd-lime: #dbfb4f;
-  --odd-blue: #315dff;
-  --odd-hot: #ff4f81;
-  --odd-white: #fffef9;
-  --odd-shadow: 7px 7px 0 var(--odd-ink);
-  --odd-border: 3px solid var(--odd-ink);
+  --odd-paper: #f7f4ed;
+  --odd-ink: #171716;
+  --odd-lime: #ddff52;
+  --odd-blue: #2d55e7;
+  --odd-hot: #f36f91;
+  --odd-white: #fffefa;
+  --odd-muted: #625f58;
+  --odd-shadow: 6px 6px 0 var(--odd-ink);
+  --odd-border: 2px solid var(--odd-ink);
 }
 
 html {
@@ -37,6 +38,8 @@ body:not(.wp-admin) {
   background: var(--odd-paper);
   color: var(--odd-ink);
   font-family: "OddRoom Sans", system-ui, sans-serif;
+  line-height: 1.55;
+  text-rendering: optimizeLegibility;
 }
 
 body:not(.wp-admin) *,
@@ -84,7 +87,7 @@ body:not(.wp-admin) :focus-visible {
 .oddroom-wordmark:visited {
   color: var(--odd-ink);
   font-family: "OddRoom Display", sans-serif;
-  font-size: clamp(27px, 3vw, 40px);
+  font-size: clamp(27px, 3vw, 38px);
   line-height: 1;
   text-decoration: none;
 }
@@ -105,8 +108,8 @@ body:not(.wp-admin) :focus-visible {
 .oddroom-frontbar nav a,
 .oddroom-frontbar nav a:visited {
   color: var(--odd-ink);
-  font-size: 14px;
-  font-weight: 800;
+  font-size: 13px;
+  font-weight: 700;
   text-decoration-thickness: 2px;
   text-underline-offset: 5px;
 }
@@ -114,11 +117,11 @@ body:not(.wp-admin) :focus-visible {
 .oddroom-frontbar > p {
   margin: 0;
   padding: 7px 10px;
-  border: 2px solid var(--odd-ink);
+  border: 1px solid var(--odd-ink);
   background: var(--odd-lime);
   font-size: 11px;
-  font-weight: 900;
-  letter-spacing: .08em;
+  font-weight: 700;
+  letter-spacing: -.01em;
 }
 
 body:not(.wp-admin) .wp-site-blocks,
@@ -156,14 +159,15 @@ body.home .wp-block-post-title {
   grid-template-columns: minmax(0, 1.04fr) minmax(360px, .96fr);
   gap: clamp(28px, 5vw, 76px);
   align-items: center;
-  min-height: 680px;
+  min-height: 640px;
 }
 
 .oddroom-kicker {
   margin: 0 0 14px;
   font-size: 13px;
-  font-weight: 900;
-  letter-spacing: .12em;
+  color: var(--odd-blue);
+  font-weight: 800;
+  letter-spacing: .035em;
 }
 
 .oddroom-hero h1,
@@ -172,31 +176,32 @@ body.home .wp-block-post-title {
 .woocommerce-products-header__title,
 .product_title,
 .entry-title {
-  font-family: "OddRoom Display", "OddRoom Sans", sans-serif;
-  font-weight: 400;
-  letter-spacing: -.025em;
+  font-family: "OddRoom Sans", system-ui, sans-serif;
+  font-weight: 900;
+  letter-spacing: -.055em;
 }
 
 .oddroom-hero h1 {
-  max-width: 11ch;
+  max-width: 12ch;
   margin: 0;
-  font-size: clamp(54px, 7.4vw, 106px);
-  line-height: .93;
+  font-size: clamp(50px, 6.5vw, 88px);
+  line-height: 1.02;
   word-break: keep-all;
   text-wrap: balance;
 }
 
 .oddroom-hero h1 span {
   color: var(--odd-blue);
-  text-decoration: underline var(--odd-hot) 10px;
-  text-underline-offset: 8px;
+  text-decoration: underline var(--odd-hot) 5px;
+  text-underline-offset: 7px;
 }
 
 .oddroom-lead {
   max-width: 61ch;
   margin: 30px 0;
   font-size: clamp(16px, 1.45vw, 20px);
-  line-height: 1.7;
+  color: #34322f;
+  line-height: 1.75;
   word-break: keep-all;
 }
 
@@ -220,10 +225,10 @@ body:not(.wp-admin) .wc-block-components-button {
   border-radius: 0 !important;
   color: var(--odd-ink) !important;
   background: var(--odd-white) !important;
-  box-shadow: 4px 4px 0 var(--odd-ink);
+  box-shadow: 3px 3px 0 var(--odd-ink);
   font-family: "OddRoom Sans", sans-serif !important;
   font-size: 15px !important;
-  font-weight: 900 !important;
+  font-weight: 800 !important;
   line-height: 1.2 !important;
   text-decoration: none !important;
   cursor: pointer;
@@ -248,6 +253,7 @@ body:not(.wp-admin) .wc-block-components-button:hover {
 .oddroom-disclaimer {
   margin: 18px 0 0;
   font-size: 12px;
+  color: var(--odd-muted);
   font-weight: 700;
 }
 
@@ -257,7 +263,7 @@ body:not(.wp-admin) .wc-block-components-button:hover {
   border: var(--odd-border);
   background: var(--odd-hot);
   box-shadow: var(--odd-shadow);
-  transform: rotate(1.2deg);
+  transform: rotate(.7deg);
 }
 
 .oddroom-hero-visual img {
@@ -277,7 +283,7 @@ body:not(.wp-admin) .wc-block-components-button:hover {
   padding: 16px;
   border: var(--odd-border);
   background: var(--odd-lime);
-  box-shadow: 4px 4px 0 var(--odd-ink);
+  box-shadow: 3px 3px 0 var(--odd-ink);
 }
 
 .oddroom-hero-visual figcaption strong,
@@ -307,15 +313,18 @@ body:not(.wp-admin) .wc-block-components-button:hover {
 
 .oddroom-proof-strip strong {
   color: var(--odd-blue);
-  font-family: "OddRoom Display", sans-serif;
-  font-size: clamp(38px, 4vw, 62px);
+  font-family: "OddRoom Sans", sans-serif;
+  font-size: clamp(34px, 3.5vw, 54px);
+  font-weight: 900;
+  letter-spacing: -.04em;
   line-height: 1;
 }
 
 .oddroom-proof-strip span {
   margin-top: 8px;
   font-size: 13px;
-  font-weight: 800;
+  color: #3f3c37;
+  font-weight: 700;
 }
 
 .oddroom-section {
@@ -339,8 +348,8 @@ body:not(.wp-admin) .wc-block-components-button:hover {
 .oddroom-cta h2 {
   max-width: 13ch;
   margin: 0;
-  font-size: clamp(43px, 6vw, 80px);
-  line-height: 1;
+  font-size: clamp(40px, 5vw, 68px);
+  line-height: 1.08;
   word-break: keep-all;
   text-wrap: balance;
 }
@@ -368,7 +377,7 @@ body:not(.wp-admin) .woocommerce ul.products li.product {
   margin: 0 !important;
   border: var(--odd-border);
   background: var(--odd-white);
-  box-shadow: var(--odd-shadow);
+  box-shadow: 5px 5px 0 var(--odd-ink);
 }
 
 .oddroom-product-grid article > a,
@@ -403,9 +412,11 @@ body:not(.wp-admin) .woocommerce ul.products li.product .button {
 .oddroom-product-grid h3,
 body:not(.wp-admin) .woocommerce ul.products li.product .woocommerce-loop-product__title {
   padding: 0 !important;
-  font-family: "OddRoom Display", sans-serif;
-  font-size: 31px !important;
-  line-height: 1.05;
+  font-family: "OddRoom Sans", sans-serif;
+  font-size: 27px !important;
+  font-weight: 900;
+  letter-spacing: -.04em;
+  line-height: 1.2;
 }
 
 .oddroom-product-tag {
@@ -414,8 +425,8 @@ body:not(.wp-admin) .woocommerce ul.products li.product .woocommerce-loop-produc
   padding: 5px 8px;
   background: var(--odd-hot);
   font-size: 10px;
-  font-weight: 900;
-  letter-spacing: .08em;
+  font-weight: 800;
+  letter-spacing: .02em;
 }
 
 .oddroom-product-grid .price,
@@ -460,14 +471,17 @@ body:not(.wp-admin) .woocommerce ul.products li.product .price {
 
 .oddroom-flow li > span {
   color: var(--odd-blue);
-  font-family: "OddRoom Display", sans-serif;
-  font-size: 54px;
+  font-family: "OddRoom Sans", sans-serif;
+  font-size: 48px;
+  font-weight: 900;
 }
 
 .oddroom-flow h3 {
   margin: 0;
-  font-family: "OddRoom Display", sans-serif;
-  font-size: 42px;
+  font-family: "OddRoom Sans", sans-serif;
+  font-size: 36px;
+  font-weight: 900;
+  letter-spacing: -.04em;
 }
 
 .oddroom-flow p {
@@ -495,11 +509,11 @@ body:not(.wp-admin) .woocommerce ul.products li.product .price {
 
 .oddroom-commerce-intro {
   width: min(1320px, calc(100% - 32px));
-  margin: 34px auto;
-  padding: clamp(22px, 4vw, 40px);
+  margin: 32px auto 42px;
+  padding: clamp(22px, 3vw, 34px);
   border: var(--odd-border);
-  background: var(--odd-lime);
-  box-shadow: var(--odd-shadow);
+  background: var(--odd-white);
+  box-shadow: 5px 5px 0 var(--odd-blue);
 }
 
 .oddroom-commerce-intro p {
@@ -507,9 +521,10 @@ body:not(.wp-admin) .woocommerce ul.products li.product .price {
 }
 
 .oddroom-commerce-intro strong {
-  font-family: "OddRoom Display", sans-serif;
-  font-size: clamp(36px, 5vw, 62px);
-  font-weight: 400;
+  font-family: "OddRoom Sans", sans-serif;
+  font-size: clamp(32px, 4vw, 50px);
+  font-weight: 900;
+  letter-spacing: -.045em;
 }
 
 body:not(.wp-admin) .woocommerce,
@@ -541,8 +556,18 @@ body:not(.wp-admin) .woocommerce div.product div.images img {
 }
 
 body:not(.wp-admin) .product_title {
-  font-size: clamp(46px, 6vw, 76px);
-  line-height: 1;
+  font-size: clamp(40px, 5vw, 64px);
+  line-height: 1.08;
+}
+
+body:not(.wp-admin) .woocommerce-breadcrumb {
+  color: var(--odd-muted);
+  font-size: 12px;
+}
+
+body:not(.wp-admin) .product_meta {
+  color: var(--odd-muted);
+  font-size: 12px;
 }
 
 body:not(.wp-admin) .woocommerce div.product p.price,
@@ -594,7 +619,7 @@ body:not(.wp-admin) .woocommerce-info {
   justify-content: space-between;
   gap: 20px;
   font-size: 12px;
-  letter-spacing: .06em;
+  letter-spacing: .01em;
 }
 
 @media (max-width: 960px) {
@@ -644,7 +669,8 @@ body:not(.wp-admin) .woocommerce-info {
   }
 
   .oddroom-hero h1 {
-    font-size: clamp(50px, 15vw, 68px);
+    font-size: clamp(43px, 12.5vw, 58px);
+    line-height: 1.08;
   }
 
   .oddroom-hero-visual {
@@ -657,6 +683,12 @@ body:not(.wp-admin) .woocommerce-info {
 
   .oddroom-proof-strip {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .oddroom-frontbar nav ul {
+    display: grid;
+    grid-template-columns: repeat(3, max-content);
+    gap: 8px 18px;
   }
 
   .oddroom-section > header {

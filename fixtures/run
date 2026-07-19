@@ -1,0 +1,334 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import shlex
+import sys
+
+
+ROOT = Path(__file__).resolve().parent.parent
+MANIFEST = ROOT / "fixtures/acceptance-fixtures.json"
+sys.path.insert(0, str(ROOT / "scripts"))
+
+from acceptance_semantics import AcceptanceSemanticError, derive_fixture_observations
+
+
+def fail(message: str) -> None:
+    raise SystemExit(f"FAIL: {message}")
+
+
+def load_json(path: Path) -> dict:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        fail(f"cannot read {path.name}: {error}")
+    if not isinstance(value, dict):
+        fail(f"JSON root is not an object: {path.name}")
+    return value
+
+
+def sha256_file(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def observed_value(observations: dict, dotted_path: str) -> object:
+    value: object = observations
+    for part in dotted_path.split("."):
+        if not isinstance(value, dict) or part not in value:
+            fail(f"observation path is missing: {dotted_path}")
+        value = value[part]
+    return value
+
+
+def assertion_passes(actual: object, operator: str, expected: object) -> bool:
+    if operator == "eq":
+        return actual == expected
+    if operator == "gte":
+        return isinstance(actual, (int, float)) and not isinstance(actual, bool) and isinstance(expected, (int, float)) and actual >= expected
+    fail(f"unsupported fixture operator: {operator}")
+
+
+def require(condition: bool, message: str) -> None:
+    if not condition:
+        fail(message)
+
+
+def load_jsonl(path: Path) -> list[dict]:
+    values: list[dict] = []
+    try:
+        for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+            value = json.loads(line)
+            if not isinstance(value, dict):
+                fail(f"JSONL entry is not an object: {path.name}:{line_number}")
+            values.append(value)
+    except (OSError, json.JSONDecodeError) as error:
+        fail(f"cannot read semantic JSONL artifact {path.name}: {error}")
+    return values
+
+
+def validate_exhaustion_artifact(path: Path) -> None:
+    entries = load_jsonl(path)
+    require(len(entries) == 9, "GATE-06 attempt trace must contain two recovery, six automatic, and one manual observation")
+    recovery = [entry for entry in entries if entry.get("scenario") == "recovery"]
+    automatic = [entry for entry in entries if entry.get("scenario") == "exhaustion"]
+    manual = [entry for entry in entries if entry.get("scenario") == "manual_retry"]
+    require([entry.get("step") for entry in recovery] == ["outage_attempt", "restored_attempt"], "GATE-06 recovery order is invalid")
+    require([entry.get("attempt") for entry in automatic] == list(range(1, 7)), "GATE-06 automatic attempt order is invalid")
+    require(len(manual) == 1 and manual[0].get("step") == "definite_failure", "GATE-06 manual attempt is missing")
+    require(all(isinstance(entry.get("state"), dict) for entry in entries), "GATE-06 state observation is missing")
+
+    recovery_first, recovery_final = recovery
+    recovery_first_state = recovery_first["state"]
+    recovery_final_state = recovery_final["state"]
+    require(recovery_first.get("action_id") != recovery_first_state.get("action_id"), "GATE-06 recovery reused its running action")
+    require(recovery_first_state.get("action_id") == recovery_final.get("action_id"), "GATE-06 recovery follow-up identity chain is broken")
+    require(
+        recovery_first_state.get("status") == "retry_wait"
+        and recovery_first_state.get("attempt_count") == 1
+        and recovery_first_state.get("automatic_attempt_count") == 1
+        and recovery_first_state.get("scheduled_delay_seconds") == 2,
+        "GATE-06 recovery outage state is invalid",
+    )
+    require(
+        recovery_final_state.get("status") == "completed"
+        and recovery_final_state.get("phase") == "completed"
+        and recovery_final_state.get("attempt_count") == 2
+        and recovery_final_state.get("automatic_attempt_count") == 2
+        and recovery_final_state.get("deal_checkpoint_sha256") is not None,
+        "GATE-06 restored attempt did not establish completion",
+    )
+    require(recovery_first_state.get("payload_hash") == recovery_final_state.get("payload_hash"), "GATE-06 recovery payload changed")
+    require(recovery_final_state.get("action_id") is None and recovery_final_state.get("candidate_action_ids") == [], "GATE-06 recovery left an action")
+
+    action_ids = [entry.get("action_id") for entry in automatic]
+    require(all(isinstance(value, int) and value > 0 for value in action_ids), "GATE-06 automatic action identity is invalid")
+    require(len(set(action_ids)) == 6, "GATE-06 automatic actions are not distinct")
+    payload_hashes = {entry["state"].get("payload_hash") for entry in automatic + manual}
+    require(len(payload_hashes) == 1 and None not in payload_hashes, "GATE-06 immutable payload commitment changed")
+    for index, entry in enumerate(automatic):
+        attempt = index + 1
+        state = entry["state"]
+        require(state.get("attempt_count") == attempt and state.get("automatic_attempt_count") == attempt, "GATE-06 automatic counters are invalid")
+        require(state.get("lock_present") is False and state.get("order_lease_count") == 0, "GATE-06 automatic attempt left a lock or lease")
+        if attempt < 6:
+            require(state.get("status") == "retry_wait", "GATE-06 automatic attempt stopped retrying early")
+            require(state.get("scheduled_delay_seconds") == [2, 5, 10, 20, 30][index], "GATE-06 retry delay order is invalid")
+            require(state.get("action_id") == action_ids[index + 1] and state.get("action_id") != entry.get("action_id"), "GATE-06 follow-up action chain is invalid")
+        else:
+            require(state.get("status") == "failed" and state.get("error_code") == "ATTEMPTS_EXHAUSTED", "GATE-06 sixth attempt did not exhaust")
+            require(state.get("action_id") is None and state.get("candidate_action_ids") == [], "GATE-06 seventh automatic action exists")
+
+    manual_entry = manual[0]
+    manual_state = manual_entry["state"]
+    require(manual_entry.get("action_id") not in action_ids, "GATE-06 manual action reused an automatic action")
+    require(
+        manual_state.get("status") == "failed"
+        and manual_state.get("attempt_count") == 7
+        and manual_state.get("automatic_attempt_count") == 6
+        and manual_state.get("manual_retry_count") == 1
+        and manual_state.get("manual_attempt_pending") == 0,
+        "GATE-06 manual failure counters are invalid",
+    )
+    require(manual_state.get("action_id") is None and manual_state.get("candidate_action_ids") == [], "GATE-06 manual failure scheduled a follow-up")
+    require(manual_state.get("lock_present") is False and manual_state.get("order_lease_count") == 0, "GATE-06 manual failure left a lock or lease")
+
+
+def validate_proxy_artifact(path: Path) -> None:
+    value = load_json(path)
+    digest = "sha256:9378ed52a28bc50edc1350f936f518f31fa95f0d15917d6eb40b8e376d1a214e"
+    require(value.get("tool") == "Toxiproxy" and value.get("version") == "2.12.0", "GATE-06 maintained outage tool identity is invalid")
+    require(value.get("image_id") == digest, "GATE-06 Toxiproxy image identity changed")
+    require(f"ghcr.io/shopify/toxiproxy@{digest}" in value.get("repo_digests", []), "GATE-06 Toxiproxy digest commitment is missing")
+    require(value.get("network_scope") == "RESTORED_RUNTIME_PRIVATE_NETWORK", "GATE-06 Toxiproxy network scope is invalid")
+    require(value.get("api_exposure") == "LOOPBACK_EPHEMERAL_ONLY", "GATE-06 Toxiproxy API was not loopback-only")
+    proxy = value.get("proxy")
+    require(isinstance(proxy, dict) and proxy.get("upstream") == "n8n:5678" and proxy.get("listen") in {"0.0.0.0:8666", "[::]:8666"}, "GATE-06 Toxiproxy route is invalid")
+    transitions = value.get("transitions")
+    require(isinstance(transitions, list) and [item.get("reason") for item in transitions] == [
+        "created", "check_a_outage", "check_a_restore", "check_b_exhaustion", "slack_checkpoint_path",
+    ], "GATE-06 outage transition order is invalid")
+    require([item.get("enabled") for item in transitions] == [True, False, True, False, True], "GATE-06 outage enablement sequence is invalid")
+
+
+def validate_slack_artifact(path: Path) -> None:
+    value = load_json(path)
+    first = value.get("first_state")
+    final = value.get("final_state")
+    executions = value.get("n8n_executions")
+    require(isinstance(first, dict) and isinstance(final, dict), "GATE-07 row states are missing")
+    require(value.get("fault") == "BEFORE_SLACK_POST" and value.get("fault_disabled_before_resume") is True, "GATE-07 deterministic fault lifecycle is invalid")
+    require(value.get("distinct_followup_action") is True and value.get("first_action_id") != value.get("followup_action_id"), "GATE-07 follow-up action is not distinct")
+    require(first.get("action_id") == value.get("followup_action_id"), "GATE-07 row was not linked to the recorded follow-up")
+    require(
+        first.get("status") == "retry_wait"
+        and first.get("phase") == "slack_pending"
+        and first.get("attempt_count") == 1
+        and first.get("automatic_attempt_count") == 1
+        and first.get("http_status") == 503
+        and first.get("error_code") == "SLACK_RETRYABLE_BEFORE_POST",
+        "GATE-07 first attempt state is invalid",
+    )
+    require(first.get("contact_checkpoint_sha256") is not None and first.get("deal_checkpoint_sha256") is not None, "GATE-07 CRM checkpoints are missing")
+    require(first.get("slack_timestamp_sha256") is None, "GATE-07 stored a Slack timestamp before posting")
+    require(
+        final.get("status") == "completed"
+        and final.get("phase") == "completed"
+        and final.get("attempt_count") == 2
+        and final.get("automatic_attempt_count") == 2
+        and final.get("action_id") is None
+        and final.get("candidate_action_ids") == []
+        and final.get("slack_timestamp_sha256") is not None,
+        "GATE-07 final row state is invalid",
+    )
+    require(first.get("payload_hash") == final.get("payload_hash") == value.get("payload_hash"), "GATE-07 payload changed across retry")
+    require(first.get("contact_checkpoint_sha256") == final.get("contact_checkpoint_sha256"), "GATE-07 Contact checkpoint changed")
+    require(first.get("deal_checkpoint_sha256") == final.get("deal_checkpoint_sha256"), "GATE-07 Deal checkpoint changed")
+    require(isinstance(executions, list) and len(executions) == 2, "GATE-07 must contain exactly two n8n executions")
+    require([item.get("slack_outbound_call_count") for item in executions] == [0, 1], "GATE-07 Slack call order is invalid")
+    require(value.get("total_slack_outbound_call_count") == 1, "GATE-07 total Slack call count is invalid")
+    first_envelope = executions[0].get("envelope")
+    final_envelope = executions[1].get("envelope")
+    require(
+        isinstance(first_envelope, dict)
+        and first_envelope.get("result") == "retryable_error"
+        and first_envelope.get("processing_phase") == "slack_pending"
+        and first_envelope.get("slack_status") == "failed_before_post"
+        and first_envelope.get("retryable") is True
+        and first_envelope.get("error_code") == "SLACK_RETRYABLE_BEFORE_POST"
+        and first_envelope.get("slack_timestamp_present") is False,
+        "GATE-07 first n8n envelope is invalid",
+    )
+    require(
+        isinstance(final_envelope, dict)
+        and final_envelope.get("result") == "completed"
+        and final_envelope.get("processing_phase") == "completed"
+        and final_envelope.get("slack_status") == "posted"
+        and final_envelope.get("retryable") is False
+        and final_envelope.get("slack_timestamp_present") is True,
+        "GATE-07 resumed n8n envelope is invalid",
+    )
+
+
+parser = argparse.ArgumentParser(description="Verify PF07 acceptance fixtures without trusting declared PASS fields.")
+mode = parser.add_mutually_exclusive_group(required=True)
+mode.add_argument("--public", action="store_true")
+mode.add_argument("--protected", action="store_true")
+parser.add_argument("--fixture")
+args = parser.parse_args()
+
+manifest = load_json(MANIFEST)
+fixtures = manifest.get("fixtures")
+if manifest.get("schema_version") != 1 or manifest.get("classification") != "PUBLIC_ORIGINAL_SAFE_SYNTHETIC" or not isinstance(fixtures, list) or not fixtures:
+    fail("fixture manifest metadata is invalid")
+
+ids = [fixture.get("id") for fixture in fixtures if isinstance(fixture, dict)]
+if len(ids) != len(fixtures) or len(set(ids)) != len(ids) or any(not re.fullmatch(r"[a-z0-9-]+", str(value)) for value in ids):
+    fail("fixture IDs are invalid or duplicated")
+if args.fixture:
+    fixtures = [fixture for fixture in fixtures if fixture["id"] == args.fixture]
+    if not fixtures:
+        fail(f"unknown fixture: {args.fixture}")
+
+record_root = ROOT / ("evidence/raw" if args.protected else "evidence/public")
+inventory: dict[str, dict] = {}
+if args.protected:
+    inventory_doc = load_json(record_root / "protected-artifact-inventory.json")
+    inventory_value = inventory_doc.get("artifacts")
+    if inventory_doc.get("schema_version") != 1 or not isinstance(inventory_value, dict):
+        fail("protected artifact inventory is invalid")
+    inventory = inventory_value
+
+results = []
+for fixture in fixtures:
+    fixture_id = fixture["id"]
+    record_name = fixture.get("record")
+    probe_command = fixture.get("probe_command")
+    assertions = fixture.get("assertions")
+    required_artifacts = fixture.get("required_artifacts")
+    if not isinstance(record_name, str) or not re.fullmatch(r"[a-z0-9-]+\.json", record_name):
+        fail(f"record name is invalid: {fixture_id}")
+    if (
+        not isinstance(probe_command, str)
+        or not probe_command.startswith("scripts/")
+        or not isinstance(assertions, list)
+        or not assertions
+        or not isinstance(required_artifacts, list)
+        or not required_artifacts
+    ):
+        fail(f"assertions or artifacts are missing: {fixture_id}")
+
+    record = load_json(record_root / record_name)
+    if record.get("acceptance_id") != fixture.get("acceptance_id") or record.get("exit_code") != 0:
+        fail(f"record identity or executable exit code failed: {fixture_id}")
+    if args.protected:
+        if record.get("command_or_probe") != probe_command:
+            fail(f"protected record is not bound to its exact executable probe: {fixture_id}")
+        try:
+            executable = shlex.split(probe_command)[0]
+        except ValueError as error:
+            fail(f"protected probe command is invalid: {fixture_id}: {error}")
+        executable_path = ROOT / executable
+        if not executable_path.is_file() or not os.access(executable_path, os.X_OK):
+            fail(f"protected probe executable is missing: {fixture_id}")
+    observations = record.get("observations")
+    if not isinstance(observations, dict):
+        fail(f"observations are missing: {fixture_id}")
+
+    for assertion in assertions:
+        if not isinstance(assertion, dict) or set(assertion) != {"path", "operator", "expected"}:
+            fail(f"assertion shape is invalid: {fixture_id}")
+        actual = observed_value(observations, assertion["path"])
+        if not assertion_passes(actual, assertion["operator"], assertion["expected"]):
+            fail(f"assertion failed: {fixture_id}:{assertion['path']}")
+
+    commitments = record.get("artifact_hashes" if args.protected else "source_artifact_hashes")
+    if not isinstance(commitments, dict):
+        fail(f"artifact commitments are missing: {fixture_id}")
+    if any(alias not in commitments for alias in required_artifacts):
+        fail(f"required artifact commitment is missing: {fixture_id}")
+
+    if args.protected:
+        artifact_paths: dict[str, Path] = {}
+        for alias in required_artifacts:
+            item = inventory.get(alias)
+            if not isinstance(item, dict) or item.get("sha256") != commitments[alias]:
+                fail(f"protected artifact inventory binding failed: {fixture_id}:{alias}")
+            relative = item.get("path")
+            if not isinstance(relative, str) or not relative.startswith("artifacts/") or ".." in Path(relative).parts:
+                fail(f"protected artifact path is invalid: {fixture_id}:{alias}")
+            artifact = record_root / relative
+            if not artifact.is_file() or sha256_file(artifact) != commitments[alias]:
+                fail(f"protected artifact bytes failed: {fixture_id}:{alias}")
+            artifact_paths[alias] = artifact
+
+        if fixture_id in {"outage-retry", "retry-exhaustion"}:
+            validate_exhaustion_artifact(artifact_paths["exhaustion_attempt_trace"])
+        if fixture_id == "outage-retry":
+            validate_proxy_artifact(artifact_paths["outage_proxy_trace"])
+            validate_slack_artifact(artifact_paths["slack_checkpoint_trace"])
+        if fixture_id == "partial-failure-recovery":
+            validate_slack_artifact(artifact_paths["slack_checkpoint_trace"])
+        try:
+            derived = derive_fixture_observations(fixture_id, artifact_paths)
+        except AcceptanceSemanticError as error:
+            fail(f"protected artifact semantics failed: {fixture_id}: {error}")
+        if derived is not None:
+            for assertion in assertions:
+                actual = observed_value(observations, assertion["path"])
+                derived_actual = observed_value(derived, assertion["path"])
+                if actual != derived_actual:
+                    fail(f"recorded observation differs from artifact-derived truth: {fixture_id}:{assertion['path']}")
+
+    results.append({"fixture_id": fixture_id, "acceptance_id": fixture["acceptance_id"], "status": "PASS"})
+
+print(json.dumps({
+    "status": "PASS",
+    "mode": "protected" if args.protected else "public",
+    "fixture_count": len(results),
+    "results": results,
+}, separators=(",", ":")))

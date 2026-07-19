@@ -92,7 +92,7 @@ final class OddRoom_Events
         }
 
         try {
-            $cancelledAt = new DateTimeImmutable($stored, new DateTimeZone('UTC'));
+            $cancelledAt = OddRoom_Canonical_Payload::parseUtcTimestamp($stored);
         } catch (Throwable $error) {
             update_option('oddroom_orderops_health_error', 'CANCELLATION_FACT_INVALID', false);
             return null;
@@ -112,11 +112,15 @@ final class OddRoom_Events
         if (!$order instanceof WC_Order || !$refund instanceof WC_Order_Refund) {
             return null;
         }
-        $precision = max(0, (int) wc_get_price_decimals());
-        $scale = 10 ** $precision;
-        $totalMinor = (int) round((float) $order->get_total() * $scale);
-        $refundedMinor = (int) round((float) $order->get_total_refunded() * $scale);
-        if ($totalMinor <= 0 || $refundedMinor < $totalMinor) {
+        try {
+            $totalMinor = OddRoom_Canonical_Payload::toMinorUnits((string) $order->get_total());
+            $refundedMinor = OddRoom_Canonical_Payload::toMinorUnits((string) $order->get_total_refunded());
+        } catch (Throwable $error) {
+            update_option('oddroom_orderops_health_error', 'PAYLOAD_INVALID', false);
+            return null;
+        }
+        if ($totalMinor === '0'
+            || OddRoom_Canonical_Payload::compareMinorUnits($refundedMinor, $totalMinor) < 0) {
             return null;
         }
         $created = $refund->get_date_created();

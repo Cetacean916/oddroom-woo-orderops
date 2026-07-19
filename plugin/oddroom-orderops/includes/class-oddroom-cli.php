@@ -14,6 +14,7 @@ final class OddRoom_CLI
             WP_CLI::add_command('oddroom-orderops rows', [self::class, 'rows']);
             WP_CLI::add_command('oddroom-orderops recover', [self::class, 'recover']);
             WP_CLI::add_command('oddroom-orderops setup-storefront', [self::class, 'setupStorefront']);
+            WP_CLI::add_command('oddroom-orderops reset-checkout-limit', [self::class, 'resetCheckoutLimit']);
             WP_CLI::add_command('oddroom-orderops reconcile', [self::class, 'reconcile']);
         }
     }
@@ -173,6 +174,29 @@ final class OddRoom_CLI
     {
         $result = OddRoom_Storefront::installDemoStore();
         WP_CLI::line(wp_json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+    }
+
+    public static function resetCheckoutLimit(array $args, array $assocArgs): void
+    {
+        if (!OddRoom_Repository::testMode()
+            || get_option('oddroom_orderops_checkout_control_mode') !== 'ON_DEMAND_ONLY') {
+            WP_CLI::error('Synthetic checkout reset is unavailable outside ON_DEMAND_ONLY test mode.');
+        }
+
+        global $wpdb;
+        $deleted = $wpdb->query($wpdb->prepare(
+            "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
+            $wpdb->esc_like(OddRoom_Storefront::checkoutRateOptionPrefix()) . '%'
+        ));
+        if ($deleted === false) {
+            WP_CLI::error('Synthetic checkout rate-limit reset failed.');
+        }
+
+        WP_CLI::line(wp_json_encode([
+            'status' => 'PASS',
+            'scope' => 'SYNTHETIC_CHECKOUT_RATE_LIMIT_ONLY',
+            'deleted_option_count' => $deleted,
+        ], JSON_UNESCAPED_SLASHES));
     }
 
     public static function reconcile(array $args, array $assocArgs): void

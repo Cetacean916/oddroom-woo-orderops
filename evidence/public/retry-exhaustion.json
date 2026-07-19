@@ -2,31 +2,43 @@
   "schema_version": "1",
   "acceptance_id": "GATE-06-EXHAUSTION",
   "run_id": "PF07-ACCEPTANCE-RUN",
-  "started_at": "2026-07-18T22:21:27.111178Z",
-  "finished_at": "2026-07-18T22:21:27.111178Z",
-  "source_tree_sha256": "87300de2b289766dd0c7cb458912f4f636cda76bfe9879d25e0c9c239a32d603",
+  "started_at": "2026-07-19T15:57:34Z",
+  "finished_at": "2026-07-19T15:59:51Z",
+  "source_tree_sha256": "4c80be861524363d89a47c49b9c017bea9a7a64ff5f603a9212219c39f136a83",
   "command_or_probe": "recorded redaction of protected acceptance observation",
   "exit_code": 0,
   "observations": {
     "result": "PASS",
     "terminal_automatic_attempts": 6,
+    "retry_delays_seconds": [
+      2,
+      5,
+      10,
+      20,
+      30
+    ],
+    "automatic_action_ids_distinct": true,
     "terminal_error": "ATTEMPTS_EXHAUSTED",
     "follow_up_actions": 0,
     "manual_attempt_count_greater_than_automatic": true,
+    "manual_total_attempt_count": 7,
+    "manual_automatic_attempt_count": 6,
+    "manual_retry_count": 1,
+    "manual_terminal_error": "HUBSPOT_RETRYABLE",
     "manual_terminal_follow_up_actions": 0,
-    "source_tree_binding": "DOCUMENTATION_ONLY_REBIND_EXECUTABLE_BYTES_UNCHANGED"
+    "immutable_payload_preserved": true,
+    "residual_lock_or_lease_count": 0
   },
   "artifact_hashes": {},
   "redaction_state": "PUBLIC_REDACTED",
   "redaction_transform": {
     "id": "pf07-public-evidence-redaction",
     "version": "1",
-    "script_sha256": "79e626c47a9d60bcc12ec333c311eb945ffb997dd671ce186574979da7504049"
+    "script_sha256": "3b0acb03398ab18e38428adda75db3f870fe52510093067c4fcd59061830cd46"
   },
   "source_acceptance_id": "GATE-06-EXHAUSTION",
-  "source_record_sha256": "6eb1a688a222fe572f0f2719c2226dced3b49f04346155ad96b3470adcdffcab",
+  "source_record_sha256": "58b1264b0551f71ecd71ea28e289111e71dcbb08477979038d26683c3bc21faf",
   "source_artifact_hashes": {
-    "exhaustion_attempt_trace": "a896684c1fc06ca3a5fb620c939a53d3702f1e60404de1c64492a1fe74dd7b5a",
-    "source_tree_rebind": "70dd63bf2d103cee5d1f39cef1027ab93445d98301784290977843cd1275b943"
+    "exhaustion_attempt_trace": "4e213fe65610b7e0e77e3ba5764aa7a4623a25b8a6db201cf2a0213210b5deee"
   }
 }

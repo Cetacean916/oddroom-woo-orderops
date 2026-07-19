@@ -1,0 +1,342 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import json
+from pathlib import Path
+import subprocess
+import time
+import uuid
+
+from acceptance_semantics import AcceptanceSemanticError, derive_fixture_observations
+from pf07_probe_runtime import ProbeRuntime, ProbeRuntimeError
+
+
+ROOT = Path(__file__).resolve().parent.parent
+BLACKHOLE_WEBHOOK = "http://127.0.0.1:9/webhook/oddroom-orderops-v1"
+
+
+def require(condition: bool, message: str) -> None:
+    if not condition:
+        raise ProbeRuntimeError(message)
+
+
+def observed_value(observations: dict, dotted_path: str) -> object:
+    value: object = observations
+    for part in dotted_path.split("."):
+        require(isinstance(value, dict) and part in value, f"probe omitted required observation: {dotted_path}")
+        value = value[part]
+    return value
+
+
+def disable_faults(runtime: ProbeRuntime) -> None:
+    value = runtime.wpcli_json([
+        "eval",
+        "$run=OddRoom_Repository::requiredConfig('ODDROOM_ORDEROPS_RUN_ID');echo wp_json_encode(['disabled'=>(int)OddRoom_Faults::endRun($run)]);",
+    ])
+    require(isinstance(value, dict) and isinstance(value.get("disabled"), int), "fault cleanup did not return a count")
+
+
+def enable_fault(runtime: ProbeRuntime, order_id: int, event_type: str, fault: str) -> None:
+    require(fault in {"PAUSE_AFTER_CLAIM", "PAUSE_AFTER_DISPATCH"}, "unsupported lease-probe fault")
+    code = f"""
+$ids=get_users(['role'=>'administrator','number'=>1,'fields'=>'ids']);
+if(!$ids){{throw new RuntimeException('ADMIN_NOT_FOUND');}}
+$result=OddRoom_Faults::enable({order_id},'{event_type}',OddRoom_Faults::{fault},5,(int)$ids[0]);
+echo wp_json_encode(['enabled'=>isset($result['id'])],JSON_UNESCAPED_SLASHES);
+"""
+    value = runtime.wpcli_json(["eval", code])
+    require(isinstance(value, dict) and value.get("enabled") is True, "crash-probe fault was not enabled")
+
+
+def mark_interrupted_action_failed(runtime: ProbeRuntime, action_id: int) -> None:
+    code = f"""
+$store=ActionScheduler::store();
+$before=(string)$store->get_status({action_id});
+if($before==='in-progress'){{$store->mark_failure({action_id});}}
+$after=(string)$store->get_status({action_id});
+echo wp_json_encode(['before'=>$before,'after'=>$after],JSON_UNESCAPED_SLASHES);
+"""
+    value = runtime.wpcli_json(["eval", code])
+    require(
+        isinstance(value, dict)
+        and value.get("before") in {"in-progress", "failed"}
+        and value.get("after") == "failed",
+        "Action Scheduler did not record the interrupted action as failed",
+    )
+
+
+def crash_worker(
+    runtime: ProbeRuntime,
+    *,
+    order_id: int,
+    event_type: str,
+    row_id: int,
+    action_id: int,
+    fault: str,
+    webhook_override: str | None = None,
+) -> dict:
+    disable_faults(runtime)
+    enable_fault(runtime, order_id, event_type, fault)
+    container_name = f"pf07-g06-lease-{uuid.uuid4().hex[:12]}"
+    environment = {
+        "ODDROOM_TEST_LEASE_SECONDS": "2",
+        "ODDROOM_TEST_PAUSE_SECONDS": "120",
+    }
+    if webhook_override is not None:
+        environment["ODDROOM_WEBHOOK_URL"] = webhook_override
+    process = runtime.start_named_wpcli(
+        ["action-scheduler", "action", "run", str(action_id)],
+        container_name,
+        service_environment=environment,
+    )
+    interrupted = False
+    try:
+        during = runtime.wait_for_claim(row_id) if fault == "PAUSE_AFTER_CLAIM" else runtime.wait_for_dispatch(row_id)
+        runtime.interrupt_named_wpcli(process, container_name)
+        interrupted = True
+    finally:
+        if not interrupted:
+            subprocess.run(["docker", "kill", container_name], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+            subprocess.run(["docker", "rm", "-f", container_name], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+            if process.poll() is None:
+                process.kill()
+                process.communicate()
+        disable_faults(runtime)
+    mark_interrupted_action_failed(runtime, action_id)
+    time.sleep(3)
+    return during
+
+
+def recover(runtime: ProbeRuntime) -> list[dict]:
+    value = runtime.wpcli_json(["oddroom-orderops", "recover", "--limit=50"])
+    require(isinstance(value, list) and all(isinstance(item, dict) for item in value), "recovery sweep output is invalid")
+    return value
+
+
+def compact_state(state: dict) -> dict:
+    candidates = state.get("candidate_action_ids")
+    require(isinstance(candidates, list), "row candidate inventory is missing")
+    return {
+        "status": state["status"],
+        "attempt_count": state["attempt_count"],
+        "automatic_attempt_count": state["automatic_attempt_count"],
+        "action_count": len(candidates),
+        "row_lock_count": state["row_lock_count"],
+        "order_lease_count": state["order_lease_count"],
+        "payload_hash": state["payload_hash"],
+    }
+
+
+def wait_due(runtime: ProbeRuntime, row_id: int, timeout: int = 45) -> dict:
+    deadline = time.monotonic() + timeout
+    while True:
+        state = runtime.row_lock_state(row_id)
+        if state.get("next_attempt_due") == 1:
+            return state
+        if time.monotonic() >= deadline:
+            raise ProbeRuntimeError("retry action did not become due")
+        time.sleep(0.5)
+
+
+def run_with_environment(runtime: ProbeRuntime, action_id: int, environment: dict[str, str]) -> None:
+    process = runtime.start_wpcli(
+        ["action-scheduler", "action", "run", str(action_id)],
+        service_environment=environment,
+    )
+    runtime.finish_wpcli(process, "GATE-06 controlled action")
+
+
+def create_payment_fixture(runtime: ProbeRuntime, alias: str) -> tuple[dict, dict]:
+    created = runtime.create_order("simple", alias, "29000.00")
+    runtime.run_action(created["action_id"])
+    payment = runtime.wpcli_json([
+        "oddroom-orderops", "emit-event", str(created["order_id"]), "PAYMENT_CONFIRMED",
+    ])
+    require(
+        isinstance(payment, dict)
+        and isinstance(payment.get("outbox_id"), int)
+        and isinstance(payment.get("action_id"), int),
+        "Slack-producing crash fixture was not created",
+    )
+    return created, payment
+
+
+def in_flight_case(runtime: ProbeRuntime, proof: str, suffix: str) -> dict:
+    created, payment = create_payment_fixture(runtime, f"g06-flight-{proof.lower()}-{suffix}")
+    baseline = runtime.execution_state()
+    crash_worker(
+        runtime,
+        order_id=created["order_id"],
+        event_type="PAYMENT_CONFIRMED",
+        row_id=payment["outbox_id"],
+        action_id=payment["action_id"],
+        fault="PAUSE_AFTER_DISPATCH",
+    )
+    before = runtime.row_lock_state(payment["outbox_id"])
+    require(before["adapter_dispatch_state"] == "in_flight", "Slack crash fixture was not fenced in flight")
+    first_sweep = recover(runtime)
+    after = runtime.row_lock_state(payment["outbox_id"])
+    second_sweep = recover(runtime)
+    final = runtime.row_lock_state(payment["outbox_id"])
+    external = runtime.execution_state()
+    external_delta = sum(external[key] - baseline[key] for key in baseline)
+    require(
+        len(first_sweep) == 1
+        and first_sweep[0].get("row_id") == payment["outbox_id"]
+        and second_sweep == []
+        and final == after,
+        "in-flight recovery did not converge after one sweep",
+    )
+    require(external_delta == 0, "pre-request in-flight crash produced an external call")
+    checkpoints = ("contact_checkpoint_sha256", "deal_checkpoint_sha256", "slack_timestamp_sha256")
+    return {
+        "proof": proof,
+        "status": after["status"],
+        "action_count": len(after["candidate_action_ids"]),
+        "row_lock_count": after["row_lock_count"],
+        "order_lease_count": after["order_lease_count"],
+        "counters_preserved": (
+            before["attempt_count"] == after["attempt_count"]
+            and before["automatic_attempt_count"] == after["automatic_attempt_count"]
+        ),
+        "checkpoints_preserved": all(before[key] == after[key] for key in checkpoints),
+    }
+
+
+def write_trace(runtime: ProbeRuntime, trace: dict) -> None:
+    alias = "gate06_lease_trace"
+    path = runtime.output_dir / f"{alias}.json"
+    path.write_text(json.dumps(trace, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    path.chmod(0o600)
+    observations = derive_fixture_observations("stale-lease-recovery", {alias: path})
+    require(isinstance(observations, dict), "lease semantic derivation is unavailable")
+    manifest = json.loads((ROOT / "fixtures/acceptance-fixtures.json").read_text(encoding="utf-8"))
+    fixture = next(item for item in manifest["fixtures"] if item["id"] == "stale-lease-recovery")
+    for assertion in fixture["assertions"]:
+        actual = observed_value(observations, assertion["path"])
+        expected = assertion["expected"]
+        passed = actual == expected if assertion["operator"] == "eq" else (
+            assertion["operator"] == "gte"
+            and isinstance(actual, (int, float))
+            and not isinstance(actual, bool)
+            and actual >= expected
+        )
+        require(passed, f"artifact-derived lease observation failed: {assertion['path']}")
+    print(json.dumps({"observations": observations, "artifacts": {alias: path.name}}, separators=(",", ":")))
+
+
+try:
+    runtime = ProbeRuntime()
+    runtime.assert_run_identity()
+    suffix = uuid.uuid4().hex[:10]
+
+    not_started = runtime.create_order("simple", f"g06-not-started-{suffix}", "25000.00")
+    external_before = runtime.execution_state()
+    crash_worker(
+        runtime,
+        order_id=not_started["order_id"],
+        event_type="ORDER_CREATED",
+        row_id=not_started["outbox_id"],
+        action_id=not_started["action_id"],
+        fault="PAUSE_AFTER_CLAIM",
+    )
+    not_started_before = runtime.row_lock_state(not_started["outbox_id"])
+    require(not_started_before["adapter_dispatch_state"] == "not_started", "pre-dispatch crash advanced dispatch state")
+    first = recover(runtime)
+    not_started_first = runtime.row_lock_state(not_started["outbox_id"])
+    second = recover(runtime)
+    not_started_second = runtime.row_lock_state(not_started["outbox_id"])
+    external_after = runtime.execution_state()
+    external_delta = sum(external_after[key] - external_before[key] for key in external_before)
+    require(
+        len(first) == 1
+        and first[0].get("row_id") == not_started["outbox_id"]
+        and second == []
+        and compact_state(not_started_first) == compact_state(not_started_second),
+        "not-started recovery did not converge after one sweep",
+    )
+
+    exhausted = runtime.create_order("simple", f"g06-sixth-{suffix}", "26000.00")
+    row_id = exhausted["outbox_id"]
+    action_id = exhausted["action_id"]
+    for attempt in range(1, 6):
+        if attempt > 1:
+            wait_due(runtime, row_id)
+            action_id = runtime.row_lock_state(row_id)["action_id"]
+        run_with_environment(runtime, action_id, {"ODDROOM_WEBHOOK_URL": BLACKHOLE_WEBHOOK})
+        state = runtime.row_lock_state(row_id)
+        require(
+            state["status"] == "retry_wait"
+            and state["attempt_count"] == attempt
+            and state["automatic_attempt_count"] == attempt,
+            "automatic crash fixture did not reach its next retry",
+        )
+    wait_due(runtime, row_id)
+    sixth_action = runtime.row_lock_state(row_id)["action_id"]
+    crash_worker(
+        runtime,
+        order_id=exhausted["order_id"],
+        event_type="ORDER_CREATED",
+        row_id=row_id,
+        action_id=sixth_action,
+        fault="PAUSE_AFTER_CLAIM",
+        webhook_override=BLACKHOLE_WEBHOOK,
+    )
+    sixth_recovery = recover(runtime)
+    automatic_sixth_state = runtime.row_lock_state(row_id)
+    require(len(sixth_recovery) == 1, "sixth automatic crash was not recovered")
+
+    admin_retry = runtime.wpcli_json([
+        "eval",
+        f"$ids=get_users(['role'=>'administrator','number'=>1,'fields'=>'ids']);$result=OddRoom_Repository::manualRetry({row_id},(int)$ids[0]);echo wp_json_encode($result,JSON_UNESCAPED_SLASHES);",
+    ])
+    require(isinstance(admin_retry, dict) and isinstance(admin_retry.get("action_id"), int), "manual crash fixture was not scheduled")
+    crash_worker(
+        runtime,
+        order_id=exhausted["order_id"],
+        event_type="ORDER_CREATED",
+        row_id=row_id,
+        action_id=admin_retry["action_id"],
+        fault="PAUSE_AFTER_CLAIM",
+        webhook_override=BLACKHOLE_WEBHOOK,
+    )
+    manual_recovery = recover(runtime)
+    manual_state = runtime.row_lock_state(row_id)
+    require(len(manual_recovery) == 1, "manual-attempt crash was not recovered")
+
+    in_flight_cases = [
+        in_flight_case(runtime, "CONFIRMED_NOT_POSTED", suffix),
+        in_flight_case(runtime, "UNPROVEN", suffix),
+    ]
+
+    wait_due(runtime, not_started["outbox_id"])
+    recovered_action = runtime.row_lock_state(not_started["outbox_id"])["action_id"]
+    runtime.run_action(recovered_action)
+
+    write_trace(runtime, {
+        "schema_version": 1,
+        "fixture_id": "stale-lease-recovery",
+        "not_started": {
+            "before": compact_state(not_started_before),
+            "after_first": compact_state(not_started_first),
+            "after_second": compact_state(not_started_second),
+            "external_call_count": external_delta,
+        },
+        "automatic_sixth": {
+            "status": automatic_sixth_state["status"],
+            "error_code": automatic_sixth_state["error_code"],
+            "attempt_count": automatic_sixth_state["attempt_count"],
+            "automatic_attempt_count": automatic_sixth_state["automatic_attempt_count"],
+            "action_count": len(automatic_sixth_state["candidate_action_ids"]),
+        },
+        "manual_attempt": {
+            "status": manual_state["status"],
+            "attempt_count": manual_state["attempt_count"],
+            "automatic_attempt_count": manual_state["automatic_attempt_count"],
+            "action_count": len(manual_state["candidate_action_ids"]),
+        },
+        "in_flight_cases": in_flight_cases,
+    })
+except (ProbeRuntimeError, AcceptanceSemanticError, KeyError, ValueError) as error:
+    print(f"probe-gate06-lease failed: {error}", file=__import__("sys").stderr)
+    raise SystemExit(1)

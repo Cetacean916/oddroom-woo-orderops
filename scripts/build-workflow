@@ -80,6 +80,8 @@ def request(
 
 VERIFY = r"""
 const crypto = require('crypto');
+const BigNumber = require('bignumber.js');
+const JSONbig = require('json-bigint')({ protoAction: 'error', constructorAction: 'error' });
 const item = $input.first();
 const sourceHeaders = item.json.headers ?? {};
 const headers = {};
@@ -98,7 +100,7 @@ const eventTypes = {
   ORDER_CANCELLED: { rank: 30, source: '_oddroom_orderops_cancelled_at_utc' },
   ORDER_REFUNDED: { rank: 40, source: 'full_refund_completion' },
 };
-if (!/^v1:[A-Za-z0-9-]{1,64}:[1-9][0-9]{0,19}:(ORDER_CREATED|PAYMENT_CONFIRMED|ORDER_CANCELLED|ORDER_REFUNDED)$/.test(eventKey)) return reject('SIGNATURE_INVALID', 401);
+if (!/^v1:pf07-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}:(?:0|[1-9][0-9]{0,18}):(ORDER_CREATED|PAYMENT_CONFIRMED|ORDER_CANCELLED|ORDER_REFUNDED)$/.test(eventKey)) return reject('SIGNATURE_INVALID', 401);
 if (!/^[1-9][0-9]{0,10}$/.test(timestampText) || !['created','deal_resolved','contact_upserted','deal_upserted','associated','slack_pending'].includes(phase)) return reject('SIGNATURE_INVALID', 401);
 if (!/^v1=[0-9a-f]{64}$/.test(supplied)) return reject('SIGNATURE_INVALID', 401);
 const secret = String($env.ODDROOM_WEBHOOK_HMAC_KEY ?? '');
@@ -111,19 +113,49 @@ if (providedBytes.length !== expectedBytes.length || !crypto.timingSafeEqual(pro
 const timestamp = Number(timestampText);
 if (!Number.isSafeInteger(timestamp) || Math.abs(Math.floor(Date.now() / 1000) - timestamp) > 300) return reject('TIMESTAMP_EXPIRED', 401);
 let payload;
-try { payload = JSON.parse(raw.toString('utf8')); } catch { return reject('PAYLOAD_INVALID', 400); }
+const rawText = raw.toString('utf8');
+if (!Buffer.from(rawText, 'utf8').equals(raw)) return reject('PAYLOAD_INVALID', 400);
+try { payload = JSONbig.parse(rawText); } catch { return reject('PAYLOAD_INVALID', 400); }
 const order = payload?.order;
 const eventRule = eventTypes[payload?.event_type];
-const money = /^(?:0|[1-9][0-9]{0,17})\.[0-9]{2}$/;
-const bounded = (value, max) => typeof value === 'string' && value.length >= 1 && value.length <= max;
-const validItem = (value) => value && Number.isSafeInteger(value.item_id) && value.item_id >= 0 && Number.isSafeInteger(value.product_id) && value.product_id >= 0 && Number.isSafeInteger(value.variation_id) && value.variation_id >= 0 && bounded(value.sku, 255) && bounded(value.name, 255) && Number.isSafeInteger(value.quantity) && value.quantity >= 1 && value.quantity <= 1000000 && money.test(value.line_total ?? '');
-const validCoupon = (value) => bounded(value, 255);
-const valid = payload?.schema_version === '1' && payload?.event_key === eventKey && bounded(payload?.shop_instance_id, 64) && typeof payload?.run_id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(payload.run_id) && eventRule && payload?.state_rank === eventRule.rank && typeof payload?.occurred_at_utc === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(payload.occurred_at_utc) && payload?.occurred_at_source === eventRule.source && order && Number.isSafeInteger(order.id) && order.id > 0 && bounded(order.number, 255) && /^[A-Z]{3}$/.test(order.currency ?? '') && money.test(order.total ?? '') && order.customer && bounded(order.customer.email, 254) && order.customer.email === order.customer.email.toLowerCase() && /^[^@\s]+@example\.com$/.test(order.customer.email) && bounded(order.customer.first_name, 255) && bounded(order.customer.last_name, 255) && Array.isArray(order.items) && order.items.length >= 1 && order.items.length <= 100 && order.items.every(validItem) && Array.isArray(order.coupon_codes) && order.coupon_codes.length <= 50 && order.coupon_codes.every(validCoupon);
+const selectedCurrency = 'KRW';
+const selectedCurrencyPrecision = 2;
+const money = new RegExp(`^(?:0|[1-9][0-9]{0,17})\\.[0-9]{${selectedCurrencyPrecision}}$`);
+const bounded = (value, min, max) => {
+  if (typeof value !== 'string') return false;
+  const length = Array.from(value).length;
+  return length >= min && length <= max;
+};
+const plainObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value) && !BigNumber.isBigNumber(value);
+const exactKeys = (value, keys) => {
+  if (!plainObject(value)) return false;
+  const actual = Object.keys(value);
+  return actual.length === keys.length && actual.every((key, index) => key === keys[index]);
+};
+const utcSecond = (value) => {
+  if (typeof value !== 'string' || !/^[1-9][0-9]{3}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$/.test(value)) return false;
+  const instant = Date.parse(value);
+  return Number.isFinite(instant) && new Date(instant).toISOString() === `${value.slice(0, -1)}.000Z`;
+};
+const signed64Max = new BigNumber('9223372036854775807');
+const signed64 = (value, allowZero) => {
+  if (typeof value === 'number') return Number.isSafeInteger(value) && (allowZero ? value >= 0 : value > 0);
+  return BigNumber.isBigNumber(value) && value.isInteger() && (allowZero ? value.gte(0) : value.gt(0)) && value.lte(signed64Max);
+};
+const validItem = (value) => exactKeys(value, ['item_id','product_id','variation_id','sku','name','quantity','line_total']) && signed64(value.item_id, true) && signed64(value.product_id, true) && signed64(value.variation_id, true) && bounded(value.sku, 0, 255) && bounded(value.name, 1, 255) && Number.isSafeInteger(value.quantity) && value.quantity >= 1 && value.quantity <= 1000000 && money.test(value.line_total ?? '');
+const validCoupon = (value) => bounded(value, 1, 255);
+const valid = exactKeys(payload, ['schema_version','event_key','shop_instance_id','run_id','event_type','occurred_at_utc','occurred_at_source','state_rank','order']) && payload.schema_version === '1' && payload.event_key === eventKey && bounded(payload.shop_instance_id, 1, 64) && /^pf07-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(payload.shop_instance_id) && typeof payload.run_id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(payload.run_id) && eventRule && payload.state_rank === eventRule.rank && utcSecond(payload.occurred_at_utc) && payload.occurred_at_source === eventRule.source && exactKeys(order, ['id','number','currency','total','customer','items','coupon_codes']) && signed64(order.id, true) && bounded(order.number, 1, 255) && order.currency === selectedCurrency && money.test(order.total ?? '') && exactKeys(order.customer, ['email','first_name','last_name']) && bounded(order.customer.email, 1, 254) && order.customer.email === order.customer.email.toLowerCase() && /^[^@\s]+@example\.com$/.test(order.customer.email) && bounded(order.customer.first_name, 1, 255) && bounded(order.customer.last_name, 1, 255) && Array.isArray(order.items) && order.items.length >= 1 && order.items.length <= 100 && order.items.every(validItem) && Array.isArray(order.coupon_codes) && order.coupon_codes.length <= 50 && order.coupon_codes.every(validCoupon);
 if (!valid) return reject(payload?.schema_version === '1' ? 'PAYLOAD_INVALID' : 'SCHEMA_UNSUPPORTED', 400);
 const expectedKey = `v1:${payload.shop_instance_id}:${order.id}:${payload.event_type}`;
 if (eventKey !== expectedKey) return reject('PAYLOAD_INVALID', 400);
 const orderKey = `${payload.shop_instance_id}:${order.id}`;
-return [{ json: { authorized: true, event_key: eventKey, resume_phase: phase, payload, order_key: orderKey, deal_read_body: { idProperty: 'oddroom_wc_order_key', properties: ['oddroom_wc_order_key','oddroom_order_state','oddroom_order_state_rank','oddroom_last_event_at','oddroom_last_event_key','dealname','pipeline','dealstage'], inputs: [{ id: orderKey }] } } }];
+const normalize = (value) => {
+  if (BigNumber.isBigNumber(value)) return value.toFixed(0);
+  if (Array.isArray(value)) return value.map(normalize);
+  if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([key, child]) => [key, normalize(child)]));
+  return value;
+};
+return [{ json: { authorized: true, event_key: eventKey, resume_phase: phase, payload: normalize(payload), order_key: orderKey, deal_read_body: { idProperty: 'oddroom_wc_order_key', properties: ['oddroom_wc_order_key','oddroom_order_state','oddroom_order_state_rank','oddroom_last_event_at','oddroom_last_event_key','dealname','pipeline','dealstage'], inputs: [{ id: orderKey }] } } }];
 """
 
 
@@ -134,7 +166,7 @@ const statusCode = Number(response.statusCode ?? 200);
 const body = response.body ?? response;
 const initialSlack = context.payload.event_type === 'ORDER_CREATED' ? 'not_required' : 'pending';
 const envelope = (result, phase, contactId, dealId, slackStatus, retryable, errorCode, errorMessage) => ({ schema_version: '1', event_key: context.event_key, result, processing_phase: phase, remote_contact_id: contactId ?? null, remote_deal_id: dealId ?? null, slack_status: slackStatus, slack_message_ts: null, retryable, retry_after_seconds: null, error_code: errorCode ?? null, error_message: errorMessage ?? null });
-const stop = (responseCode, value) => [{ json: { continue_crm: false, response_code: responseCode, envelope: value } }];
+const stop = (responseCode, value) => [{ json: { continue_work: false, response_code: responseCode, envelope: value } }];
 if (statusCode === 401 || statusCode === 403) return stop(422, envelope('terminal_error', context.resume_phase, null, null, initialSlack, false, 'HUBSPOT_AUTH', 'HubSpot authorization was rejected.'));
 if (statusCode < 200 || statusCode >= 300) return stop(503, envelope('retryable_error', context.resume_phase, null, null, initialSlack, true, 'HUBSPOT_RETRYABLE', 'HubSpot Deal resolution was unavailable.'));
 if (body?.status !== 'COMPLETE') return stop(503, envelope('retryable_error', context.resume_phase, null, null, initialSlack, true, 'HUBSPOT_RETRYABLE', 'HubSpot Deal resolution did not complete.'));
@@ -145,14 +177,40 @@ const existingId = existing ? String(existing.id ?? '') : null;
 if (existing && existingId === '') return stop(422, envelope('terminal_error', context.resume_phase, null, null, initialSlack, false, 'HUBSPOT_SCHEMA', 'Deal identity was malformed.'));
 const existingRank = existing ? Number(existing.properties?.oddroom_order_state_rank) : -1;
 const existingKey = existing?.properties?.oddroom_last_event_key ?? null;
-if (existing && (!Number.isInteger(existingRank) || existingRank < 10 || existingRank > 40 || typeof existingKey !== 'string' || existingKey === '')) return stop(422, envelope('terminal_error', context.resume_phase, null, existingId, initialSlack, false, 'HUBSPOT_SCHEMA', 'Deal authoritative state was malformed.'));
-if (existing && existingRank > context.payload.state_rank) return stop(200, envelope('stale_ignored', 'completed', null, existingId, 'not_required', false, null, null));
+const existingOrderKey = existing?.properties?.oddroom_wc_order_key ?? null;
+const existingState = existing?.properties?.oddroom_order_state ?? null;
+const existingAt = existing?.properties?.oddroom_last_event_at ?? null;
+const remoteRules = { ORDER_CREATED: 10, PAYMENT_CONFIRMED: 20, ORDER_CANCELLED: 30, ORDER_REFUNDED: 40 };
+const validRemoteAt = typeof existingAt === 'string' && /^[1-9][0-9]{3}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$/.test(existingAt) && Number.isFinite(Date.parse(existingAt)) && new Date(Date.parse(existingAt)).toISOString() === `${existingAt.slice(0, -1)}.000Z`;
+const expectedExistingKey = typeof existingState === 'string' ? `v1:${context.payload.shop_instance_id}:${context.payload.order.id}:${existingState}` : null;
+if (existing && (!Number.isInteger(existingRank) || remoteRules[existingState] !== existingRank || existingKey !== expectedExistingKey || existingOrderKey !== context.order_key || !validRemoteAt)) return stop(422, envelope('terminal_error', context.resume_phase, null, existingId, initialSlack, false, 'HUBSPOT_SCHEMA', 'Deal authoritative state was malformed.'));
 if (existing && existingRank === context.payload.state_rank && existingKey !== context.event_key) return stop(422, envelope('terminal_error', context.resume_phase, null, existingId, initialSlack, false, 'HUBSPOT_SCHEMA', 'Equal-rank remote state has a different event key.'));
-if (!existing && context.resume_phase !== 'created') return stop(409, envelope('operator_review', context.resume_phase, null, null, initialSlack, false, 'RESUME_PHASE_CONFLICT', 'Remote Deal disappeared after a persisted phase advance.'));
+if (existing && existingRank > context.payload.state_rank) return stop(200, envelope('stale_ignored', 'completed', null, existingId, 'not_required', false, null, null));
+const phaseOrder = ['created','deal_resolved','contact_upserted','deal_upserted','associated','slack_pending'];
+const phaseIndex = phaseOrder.indexOf(context.resume_phase);
+const dealUpsertedIndex = phaseOrder.indexOf('deal_upserted');
+let mode;
+if (existing && existingRank === context.payload.state_rank) {
+  if (context.resume_phase === 'created') {
+    if (context.payload.event_type !== 'ORDER_CREATED') return stop(409, envelope('operator_review', 'created', null, existingId, initialSlack, false, 'RESUME_PHASE_CONFLICT', 'A Slack-producing created replay is ambiguous.'));
+    mode = 'duplicate';
+  } else {
+    mode = 'resume';
+  }
+} else {
+  if (phaseIndex >= dealUpsertedIndex) return stop(409, envelope('operator_review', context.resume_phase, null, existingId, initialSlack, false, 'RESUME_PHASE_CONFLICT', 'Remote Deal state does not establish the persisted resume phase.'));
+  mode = context.resume_phase === 'created' ? 'advance' : 'resume';
+}
 const order = context.payload.order;
 const contactBody = { inputs: [{ id: order.customer.email, idProperty: 'email', properties: { email: order.customer.email, firstname: order.customer.first_name, lastname: order.customer.last_name } }] };
+const contactReadBody = { idProperty: 'email', properties: ['email','firstname','lastname'], inputs: [{ id: order.customer.email }] };
 const dealBody = { inputs: [{ id: context.order_key, idProperty: 'oddroom_wc_order_key', properties: { dealname: `OddRoom order ${order.number}`, pipeline: String($env.HUBSPOT_PIPELINE_ID), dealstage: String($env.HUBSPOT_INITIAL_STAGE_ID), oddroom_wc_order_key: context.order_key, oddroom_order_state: context.payload.event_type, oddroom_order_state_rank: String(context.payload.state_rank), oddroom_last_event_at: context.payload.occurred_at_utc, oddroom_last_event_key: context.event_key } }] };
-return [{ json: { continue_crm: true, response_code: null, envelope: null, existing_deal_id: existingId, contact_upsert_body: contactBody, deal_upsert_body: dealBody, deal_read_body: context.deal_read_body, initial_slack_status: initialSlack, trace: ['created','deal_resolved'] } }];
+const readOnlyMode = mode === 'duplicate';
+const sameEventState = Boolean(existing && existingRank === context.payload.state_rank && existingKey === context.event_key);
+const contactMutationRequired = !readOnlyMode && phaseIndex <= phaseOrder.indexOf('deal_resolved');
+const dealMutationRequired = !readOnlyMode && phaseIndex <= phaseOrder.indexOf('contact_upserted') && !sameEventState;
+const associationMutationRequired = !readOnlyMode && phaseIndex <= phaseOrder.indexOf('deal_upserted');
+return [{ json: { continue_work: true, response_code: null, envelope: null, mode, existing_deal_id: existingId, contact_mutation_required: contactMutationRequired, deal_mutation_required: dealMutationRequired, association_mutation_required: associationMutationRequired, contact_upsert_body: contactBody, contact_read_body: contactReadBody, deal_upsert_body: dealBody, deal_read_body: context.deal_read_body, initial_slack_status: initialSlack, trace: phaseOrder.slice(0, phaseIndex + 1) } }];
 """
 
 
@@ -162,27 +220,42 @@ const prepared = $('Resolve Monotonic Deal State').first().json;
 const response = $input.first().json;
 const statusCode = Number(response.statusCode ?? 200);
 const body = response.body ?? response;
-const failure = (code, message, terminal = false) => [{ json: { continue_contact: false, response_code: terminal ? 422 : 503, envelope: { schema_version: '1', event_key: context.event_key, result: terminal ? 'terminal_error' : 'retryable_error', processing_phase: 'deal_resolved', remote_contact_id: null, remote_deal_id: prepared.existing_deal_id ?? null, slack_status: prepared.initial_slack_status, slack_message_ts: null, retryable: !terminal, retry_after_seconds: null, error_code: code, error_message: message } } }];
+const failure = (code, message, terminal = false) => [{ json: { continue_contact_read: false, response_code: terminal ? 422 : 503, envelope: { schema_version: '1', event_key: context.event_key, result: terminal ? 'terminal_error' : 'retryable_error', processing_phase: 'deal_resolved', remote_contact_id: null, remote_deal_id: prepared.existing_deal_id ?? null, slack_status: prepared.initial_slack_status, slack_message_ts: null, retryable: !terminal, retry_after_seconds: null, error_code: code, error_message: message } } }];
 if (statusCode === 401 || statusCode === 403) return failure('HUBSPOT_AUTH', 'HubSpot Contact authorization was rejected.', true);
 const results = Array.isArray(body?.results) ? body.results : [];
-if (statusCode < 200 || statusCode >= 300 || body?.status !== 'COMPLETE') return failure('HUBSPOT_RETRYABLE', 'HubSpot Contact upsert did not complete.');
+if (statusCode < 200 || statusCode >= 300) return failure('HUBSPOT_RETRYABLE', 'HubSpot Contact upsert was unavailable.');
+if (body?.status === 'PENDING' || body?.status === 'PROCESSING') return [{ json: { ...prepared, continue_contact_read: true, upsert_contact_id: null } }];
+if (body?.status !== 'COMPLETE') return failure('HUBSPOT_RETRYABLE', 'HubSpot Contact upsert did not complete.');
 if (results.length !== 1 || String(results[0]?.id ?? '') === '') return failure('HUBSPOT_SCHEMA', 'HubSpot Contact upsert returned an invalid identity.', true);
-const contactId = String(results[0].id);
-const email = context.payload.order.customer.email;
-return [{ json: { continue_contact: true, contact_id: contactId, contact_read_url: `https://api.hubapi.com/crm/objects/2026-03/contacts/${encodeURIComponent(contactId)}?properties=email,firstname,lastname`, existing_deal_id: prepared.existing_deal_id ?? null, deal_upsert_body: prepared.deal_upsert_body, deal_read_body: prepared.deal_read_body, initial_slack_status: prepared.initial_slack_status } }];
+return [{ json: { ...prepared, continue_contact_read: true, upsert_contact_id: String(results[0].id) } }];
 """
 
 
 VALIDATE_CONTACT_READ = r"""
 const context = $('Verify HMAC Then Decode').first().json;
-const prepared = $('Validate Contact Upsert').first().json;
+const prepared = $('Resolve Monotonic Deal State').first().json;
 const response = $input.first().json;
 const statusCode = Number(response.statusCode ?? 200);
 const body = response.body ?? response;
-const properties = body?.properties ?? {};
-const exact = String(body?.id ?? '') === prepared.contact_id && properties.email === context.payload.order.customer.email && properties.firstname === context.payload.order.customer.first_name && properties.lastname === context.payload.order.customer.last_name;
-if (statusCode < 200 || statusCode >= 300 || !exact) return [{ json: { continue_deal: false, response_code: 503, envelope: { schema_version: '1', event_key: context.event_key, result: 'retryable_error', processing_phase: 'deal_resolved', remote_contact_id: null, remote_deal_id: prepared.existing_deal_id ?? null, slack_status: prepared.initial_slack_status, slack_message_ts: null, retryable: true, retry_after_seconds: null, error_code: 'HUBSPOT_RETRYABLE', error_message: 'HubSpot Contact read-back was not exact.' } } }];
-return [{ json: { continue_deal: true, contact_id: prepared.contact_id, existing_deal_id: prepared.existing_deal_id ?? null, deal_upsert_body: prepared.deal_upsert_body, deal_read_body: prepared.deal_read_body, initial_slack_status: prepared.initial_slack_status } }];
+let mutationOutput = null;
+try { mutationOutput = $('Validate Contact Upsert').first().json; } catch {}
+const upsertContactId = typeof mutationOutput?.upsert_contact_id === 'string' ? mutationOutput.upsert_contact_id : null;
+const failurePhase = prepared.contact_mutation_required ? 'deal_resolved' : context.resume_phase;
+const failure = (responseCode, result, code, message, phase = failurePhase, contactId = null) => [{ json: { continue_deal_stage: false, response_code: responseCode, envelope: { schema_version: '1', event_key: context.event_key, result, processing_phase: phase, remote_contact_id: contactId, remote_deal_id: prepared.existing_deal_id ?? null, slack_status: prepared.initial_slack_status, slack_message_ts: null, retryable: result === 'retryable_error', retry_after_seconds: null, error_code: code, error_message: message } } }];
+if (statusCode === 401 || statusCode === 403) return failure(422, 'terminal_error', 'HUBSPOT_AUTH', 'HubSpot Contact read authorization was rejected.');
+if (statusCode < 200 || statusCode >= 300 || body?.status !== 'COMPLETE') return failure(503, 'retryable_error', 'HUBSPOT_RETRYABLE', 'HubSpot Contact resolution was unavailable.');
+const results = Array.isArray(body?.results) ? body.results : [];
+const result = results[0] ?? null;
+const contactId = result ? String(result.id ?? '') : '';
+const properties = result?.properties ?? {};
+const identityExact = results.length === 1 && contactId !== '' && properties.email === context.payload.order.customer.email;
+const ownedFieldsExact = properties.firstname === context.payload.order.customer.first_name && properties.lastname === context.payload.order.customer.last_name;
+const upsertIdentityExact = upsertContactId === null || upsertContactId === contactId;
+if (!identityExact || !ownedFieldsExact || !upsertIdentityExact) {
+  if (!prepared.contact_mutation_required) return failure(409, 'operator_review', 'RESUME_PHASE_CONFLICT', 'Remote Contact does not establish the persisted resume phase.');
+  return failure(503, 'retryable_error', 'HUBSPOT_RETRYABLE', 'HubSpot Contact read-back was not exact.');
+}
+return [{ json: { ...prepared, continue_deal_stage: true, contact_id: contactId } }];
 """
 
 
@@ -193,24 +266,49 @@ const response = $input.first().json;
 const statusCode = Number(response.statusCode ?? 200);
 const body = response.body ?? response;
 const results = Array.isArray(body?.results) ? body.results : [];
-const complete = statusCode >= 200 && statusCode < 300 && body?.status === 'COMPLETE' && results.length === 1 && String(results[0]?.id ?? '') !== '';
-if (!complete) return [{ json: { continue_deal_read: false, response_code: statusCode === 401 || statusCode === 403 ? 422 : 503, envelope: { schema_version: '1', event_key: context.event_key, result: statusCode === 401 || statusCode === 403 ? 'terminal_error' : 'retryable_error', processing_phase: 'contact_upserted', remote_contact_id: prepared.contact_id, remote_deal_id: prepared.existing_deal_id ?? null, slack_status: prepared.initial_slack_status, slack_message_ts: null, retryable: !(statusCode === 401 || statusCode === 403), retry_after_seconds: null, error_code: statusCode === 401 || statusCode === 403 ? 'HUBSPOT_AUTH' : 'HUBSPOT_RETRYABLE', error_message: 'HubSpot Deal upsert did not complete.' } } }];
-return [{ json: { continue_deal_read: true, contact_id: prepared.contact_id, deal_id: String(results[0].id), deal_read_body: prepared.deal_read_body, initial_slack_status: prepared.initial_slack_status } }];
+const failure = (responseCode, result, code, message) => [{ json: { continue_deal_read: false, response_code: responseCode, envelope: { schema_version: '1', event_key: context.event_key, result, processing_phase: 'contact_upserted', remote_contact_id: prepared.contact_id, remote_deal_id: prepared.existing_deal_id ?? null, slack_status: prepared.initial_slack_status, slack_message_ts: null, retryable: result === 'retryable_error', retry_after_seconds: null, error_code: code, error_message: message } } }];
+if (statusCode === 401 || statusCode === 403) return failure(422, 'terminal_error', 'HUBSPOT_AUTH', 'HubSpot Deal authorization was rejected.');
+if (statusCode < 200 || statusCode >= 300) return failure(503, 'retryable_error', 'HUBSPOT_RETRYABLE', 'HubSpot Deal upsert was unavailable.');
+if (body?.status === 'PENDING' || body?.status === 'PROCESSING') return [{ json: { ...prepared, continue_deal_read: true, upsert_deal_id: null } }];
+if (body?.status !== 'COMPLETE') return failure(503, 'retryable_error', 'HUBSPOT_RETRYABLE', 'HubSpot Deal upsert did not complete.');
+if (results.length !== 1 || String(results[0]?.id ?? '') === '') return failure(422, 'terminal_error', 'HUBSPOT_SCHEMA', 'HubSpot Deal upsert returned an invalid identity.');
+const dealId = String(results[0].id);
+if (prepared.existing_deal_id && prepared.existing_deal_id !== dealId) return failure(422, 'terminal_error', 'HUBSPOT_SCHEMA', 'HubSpot Deal upsert changed the unique identity.');
+return [{ json: { ...prepared, continue_deal_read: true, upsert_deal_id: dealId } }];
 """
 
 
 VALIDATE_DEAL_READ = r"""
 const context = $('Verify HMAC Then Decode').first().json;
-const prepared = $('Validate Deal Upsert').first().json;
+const prepared = $('Validate Contact Read').first().json;
 const response = $input.first().json;
 const statusCode = Number(response.statusCode ?? 200);
 const body = response.body ?? response;
+let mutationOutput = null;
+try { mutationOutput = $('Validate Deal Upsert').first().json; } catch {}
+const upsertDealId = typeof mutationOutput?.upsert_deal_id === 'string' ? mutationOutput.upsert_deal_id : null;
+const checkpointDealId = prepared.existing_deal_id ?? null;
+const progressPhase = prepared.deal_mutation_required ? 'contact_upserted' : context.resume_phase;
+const failure = (responseCode, resultKind, code, message, phase = progressPhase, dealId = checkpointDealId) => [{ json: { continue_association_stage: false, response_code: responseCode, envelope: { schema_version: '1', event_key: context.event_key, result: resultKind, processing_phase: phase, remote_contact_id: prepared.contact_id, remote_deal_id: dealId, slack_status: prepared.initial_slack_status, slack_message_ts: null, retryable: resultKind === 'retryable_error', retry_after_seconds: null, error_code: code, error_message: message } } }];
+if (statusCode === 401 || statusCode === 403) return failure(422, 'terminal_error', 'HUBSPOT_AUTH', 'HubSpot Deal read authorization was rejected.');
+if (statusCode < 200 || statusCode >= 300 || body?.status !== 'COMPLETE') return failure(503, 'retryable_error', 'HUBSPOT_RETRYABLE', 'HubSpot Deal read-back was unavailable.');
 const results = Array.isArray(body?.results) ? body.results : [];
 const result = results[0] ?? null;
 const properties = result?.properties ?? {};
-const exact = statusCode >= 200 && statusCode < 300 && body?.status === 'COMPLETE' && results.length === 1 && String(result?.id ?? '') === prepared.deal_id && properties.oddroom_wc_order_key === context.order_key && properties.oddroom_order_state === context.payload.event_type && Number(properties.oddroom_order_state_rank) === context.payload.state_rank && properties.oddroom_last_event_at === context.payload.occurred_at_utc && properties.oddroom_last_event_key === context.event_key;
-if (!exact) return [{ json: { continue_association: false, response_code: 503, envelope: { schema_version: '1', event_key: context.event_key, result: 'retryable_error', processing_phase: 'deal_upserted', remote_contact_id: prepared.contact_id, remote_deal_id: prepared.deal_id, slack_status: prepared.initial_slack_status, slack_message_ts: null, retryable: true, retry_after_seconds: null, error_code: 'HUBSPOT_RETRYABLE', error_message: 'HubSpot Deal read-back was not exact.' } } }];
-return [{ json: { continue_association: true, contact_id: prepared.contact_id, deal_id: prepared.deal_id, initial_slack_status: prepared.initial_slack_status, association_put_url: `https://api.hubapi.com/crm/objects/2026-03/contact/${encodeURIComponent(prepared.contact_id)}/associations/default/deal/${encodeURIComponent(prepared.deal_id)}` } }];
+const dealId = result ? String(result.id ?? '') : '';
+if (results.length !== 1 || dealId === '') {
+  if (!prepared.deal_mutation_required) return failure(409, 'operator_review', 'RESUME_PHASE_CONFLICT', 'Remote Deal does not establish the persisted resume phase.', context.resume_phase, checkpointDealId);
+  return failure(503, 'retryable_error', 'HUBSPOT_RETRYABLE', 'HubSpot Deal read-back was not exact.');
+}
+if ((prepared.existing_deal_id && prepared.existing_deal_id !== dealId) || (upsertDealId && upsertDealId !== dealId)) return failure(422, 'terminal_error', 'HUBSPOT_SCHEMA', 'HubSpot Deal identity changed during one execution.', progressPhase, dealId);
+const rank = Number(properties.oddroom_order_state_rank);
+const presentationExact = properties.dealname === `OddRoom order ${context.payload.order.number}` && properties.pipeline === String($env.HUBSPOT_PIPELINE_ID) && properties.dealstage === String($env.HUBSPOT_INITIAL_STAGE_ID);
+const currentExact = properties.oddroom_wc_order_key === context.order_key && properties.oddroom_order_state === context.payload.event_type && rank === context.payload.state_rank && properties.oddroom_last_event_at === context.payload.occurred_at_utc && properties.oddroom_last_event_key === context.event_key && presentationExact;
+if (!currentExact) {
+  if (!prepared.deal_mutation_required) return failure(409, 'operator_review', 'RESUME_PHASE_CONFLICT', 'Remote Deal facts conflict with the persisted resume phase.', context.resume_phase, dealId);
+  return failure(503, 'retryable_error', 'HUBSPOT_RETRYABLE', 'HubSpot Deal read-back was not exact.', progressPhase, dealId);
+}
+return [{ json: { ...prepared, continue_association_stage: true, deal_id: dealId, association_put_url: `https://api.hubapi.com/crm/objects/2026-03/contact/${encodeURIComponent(prepared.contact_id)}/associations/default/deal/${encodeURIComponent(dealId)}`, association_read_url: `https://api.hubapi.com/crm/objects/2026-03/contact/${encodeURIComponent(prepared.contact_id)}/associations/deal` } }];
 """
 
 
@@ -220,24 +318,32 @@ const prepared = $('Validate Deal Readback').first().json;
 const response = $input.first().json;
 const statusCode = Number(response.statusCode ?? 200);
 if (statusCode < 200 || statusCode >= 300) return [{ json: { continue_association_read: false, response_code: statusCode === 401 || statusCode === 403 ? 422 : 503, envelope: { schema_version: '1', event_key: context.event_key, result: statusCode === 401 || statusCode === 403 ? 'terminal_error' : 'retryable_error', processing_phase: 'deal_upserted', remote_contact_id: prepared.contact_id, remote_deal_id: prepared.deal_id, slack_status: prepared.initial_slack_status, slack_message_ts: null, retryable: !(statusCode === 401 || statusCode === 403), retry_after_seconds: null, error_code: statusCode === 401 || statusCode === 403 ? 'HUBSPOT_AUTH' : 'HUBSPOT_RETRYABLE', error_message: 'HubSpot association request was rejected.' } } }];
-return [{ json: { continue_association_read: true, contact_id: prepared.contact_id, deal_id: prepared.deal_id, initial_slack_status: prepared.initial_slack_status, association_read_url: `https://api.hubapi.com/crm/objects/2026-03/contact/${encodeURIComponent(prepared.contact_id)}/associations/deal` } }];
+return [{ json: { ...prepared, continue_association_read: true } }];
 """
 
 
 VALIDATE_FINAL = r"""
 const context = $('Verify HMAC Then Decode').first().json;
-const prepared = $('Validate Association Put').first().json;
+const prepared = $('Validate Deal Readback').first().json;
 const response = $input.first().json;
 const statusCode = Number(response.statusCode ?? 200);
 const body = response.body ?? response;
 const results = Array.isArray(body?.results) ? body.results : [];
-const associated = statusCode >= 200 && statusCode < 300 && results.some((value) => String(value?.toObjectId ?? value?.id ?? '') === prepared.deal_id);
-if (!associated) return [{ json: { continue_slack: false, response_code: 503, envelope: { schema_version: '1', event_key: context.event_key, result: 'retryable_error', processing_phase: 'deal_upserted', remote_contact_id: prepared.contact_id, remote_deal_id: prepared.deal_id, slack_status: prepared.initial_slack_status, slack_message_ts: null, retryable: true, retry_after_seconds: null, error_code: 'HUBSPOT_RETRYABLE', error_message: 'HubSpot association read-back was not exact.' }, trace: ['created','deal_resolved','contact_upserted','deal_upserted'] } }];
-if (context.payload.event_type === 'ORDER_CREATED') return [{ json: { continue_slack: false, response_code: 200, envelope: { schema_version: '1', event_key: context.event_key, result: 'completed', processing_phase: 'completed', remote_contact_id: prepared.contact_id, remote_deal_id: prepared.deal_id, slack_status: 'not_required', slack_message_ts: null, retryable: false, retry_after_seconds: null, error_code: null, error_message: null }, trace: ['created','deal_resolved','contact_upserted','deal_upserted','associated','completed'] } }];
+const associationPending = body?.status === 'PENDING' || body?.status === 'PROCESSING';
+const associated = statusCode >= 200 && statusCode < 300 && !associationPending && results.some((value) => String(value?.toObjectId ?? value?.id ?? '') === prepared.deal_id);
+const failure = (responseCode, result, code, message, phase) => [{ json: { continue_slack: false, response_code: responseCode, envelope: { schema_version: '1', event_key: context.event_key, result, processing_phase: phase, remote_contact_id: prepared.contact_id, remote_deal_id: prepared.deal_id, slack_status: prepared.initial_slack_status, slack_message_ts: null, retryable: result === 'retryable_error', retry_after_seconds: null, error_code: code, error_message: message }, trace: prepared.trace } }];
+if (statusCode === 401 || statusCode === 403) return failure(422, 'terminal_error', 'HUBSPOT_AUTH', 'HubSpot association read authorization was rejected.', 'deal_upserted');
+if (statusCode < 200 || statusCode >= 300) return failure(503, 'retryable_error', 'HUBSPOT_RETRYABLE', 'HubSpot association read-back was unavailable.', prepared.association_mutation_required ? 'deal_upserted' : context.resume_phase);
+if (!associated) {
+  if (!prepared.association_mutation_required) return failure(409, 'operator_review', 'RESUME_PHASE_CONFLICT', 'Remote association does not establish the persisted resume phase.', context.resume_phase);
+  return failure(503, 'retryable_error', 'HUBSPOT_RETRYABLE', 'HubSpot association read-back was not exact.', 'deal_upserted');
+}
+if (prepared.mode === 'duplicate') return [{ json: { continue_slack: false, response_code: 200, envelope: { schema_version: '1', event_key: context.event_key, result: 'duplicate_noop', processing_phase: 'completed', remote_contact_id: prepared.contact_id, remote_deal_id: prepared.deal_id, slack_status: 'not_required', slack_message_ts: null, retryable: false, retry_after_seconds: null, error_code: null, error_message: null }, trace: [...prepared.trace,'completed'] } }];
+if (context.payload.event_type === 'ORDER_CREATED') return [{ json: { continue_slack: false, response_code: 200, envelope: { schema_version: '1', event_key: context.event_key, result: 'completed', processing_phase: 'completed', remote_contact_id: prepared.contact_id, remote_deal_id: prepared.deal_id, slack_status: 'not_required', slack_message_ts: null, retryable: false, retry_after_seconds: null, error_code: null, error_message: null }, trace: [...prepared.trace,'associated','completed'] } }];
 const order = context.payload.order;
 const dealRef = `deal-…${prepared.deal_id.slice(-6)}`;
 const text = [`run_id=${context.payload.run_id}`,`event_key=${context.event_key}`,`event_type=${context.payload.event_type}`,`order=${order.number}`,`currency=${order.currency}`,`total=${order.total}`,`deal_ref=${dealRef}`].join(' | ');
-return [{ json: { continue_slack: true, contact_id: prepared.contact_id, deal_id: prepared.deal_id, slack_body: { channel: String($env.SLACK_CHANNEL_ID), text }, trace: ['created','deal_resolved','contact_upserted','deal_upserted','associated','slack_pending'] } }];
+return [{ json: { continue_slack: true, contact_id: prepared.contact_id, deal_id: prepared.deal_id, slack_body: { channel: String($env.SLACK_CHANNEL_ID), text }, trace: [...prepared.trace,'associated','slack_pending'] } }];
 """
 
 
@@ -258,7 +364,9 @@ const prepared = $('Prepare Fault Lookup').first().json;
 const response = $input.first().json;
 const statusCode = Number(response.statusCode ?? 0);
 const body = response.body ?? response;
-if (statusCode === 200 && body?.authorized === true && body?.active === true) return [{ json: { send_slack: false, response_code: 503, envelope: { schema_version: '1', event_key: context.event_key, result: 'retryable_error', processing_phase: 'slack_pending', remote_contact_id: prepared.contact_id, remote_deal_id: prepared.deal_id, slack_status: 'failed_before_post', slack_message_ts: null, retryable: true, retry_after_seconds: 1, error_code: 'SLACK_RETRYABLE_BEFORE_POST', error_message: 'Deterministic staging fault immediately before Slack post.' }, trace: prepared.trace } }];
+if (statusCode !== 200 || body?.authorized !== true) return [{ json: { send_slack: false, response_code: 503, envelope: { schema_version: '1', event_key: context.event_key, result: 'retryable_error', processing_phase: 'slack_pending', remote_contact_id: prepared.contact_id, remote_deal_id: prepared.deal_id, slack_status: 'failed_before_post', slack_message_ts: null, retryable: true, retry_after_seconds: null, error_code: 'SLACK_RETRYABLE_BEFORE_POST', error_message: 'Staging pre-post authorization could not be established.' }, trace: prepared.trace } }];
+if (body?.active === true) return [{ json: { send_slack: false, response_code: 503, envelope: { schema_version: '1', event_key: context.event_key, result: 'retryable_error', processing_phase: 'slack_pending', remote_contact_id: prepared.contact_id, remote_deal_id: prepared.deal_id, slack_status: 'failed_before_post', slack_message_ts: null, retryable: true, retry_after_seconds: 1, error_code: 'SLACK_RETRYABLE_BEFORE_POST', error_message: 'Deterministic staging fault immediately before Slack post.' }, trace: prepared.trace } }];
+if (body?.active !== false) return [{ json: { send_slack: false, response_code: 503, envelope: { schema_version: '1', event_key: context.event_key, result: 'retryable_error', processing_phase: 'slack_pending', remote_contact_id: prepared.contact_id, remote_deal_id: prepared.deal_id, slack_status: 'failed_before_post', slack_message_ts: null, retryable: true, retry_after_seconds: null, error_code: 'SLACK_RETRYABLE_BEFORE_POST', error_message: 'Staging pre-post state was malformed.' }, trace: prepared.trace } }];
 return [{ json: { send_slack: true, contact_id: prepared.contact_id, deal_id: prepared.deal_id, slack_body: prepared.slack_body, trace: prepared.trace } }];
 """
 
@@ -276,7 +384,9 @@ const ts = typeof body?.ts === 'string' && body.ts !== '' ? body.ts : null;
 if (statusCode >= 200 && statusCode < 300 && body?.ok === true && responseChannel === String($env.SLACK_CHANNEL_ID) && ts) return [{ json: { response_code: 200, envelope: envelope('completed', 'posted', false, null, null, null, ts), trace: [...prepared.trace,'slack_posted','completed'] } }];
 const slackError = typeof body?.error === 'string' ? body.error : '';
 const retryHeader = headers['retry-after'] ?? headers['Retry-After'] ?? null;
-const retryAfter = Number.isInteger(Number(retryHeader)) && Number(retryHeader) >= 0 ? Number(retryHeader) : null;
+const retryText = typeof retryHeader === 'string' || typeof retryHeader === 'number' ? String(retryHeader) : '';
+const retryNumber = /^[0-9]+$/.test(retryText) ? Number(retryText) : NaN;
+const retryAfter = Number.isSafeInteger(retryNumber) ? retryNumber : null;
 if (statusCode === 429 || slackError === 'ratelimited' || slackError === 'internal_error' || slackError === 'fatal_error' || slackError === 'request_timeout') return [{ json: { response_code: 503, envelope: envelope('retryable_error', 'failed_before_post', true, retryAfter, 'SLACK_RETRYABLE_BEFORE_POST', 'Slack explicitly did not accept the message.'), trace: prepared.trace } }];
 if (['invalid_auth','not_authed','missing_scope','account_inactive','token_revoked'].includes(slackError) || statusCode === 401 || statusCode === 403) return [{ json: { response_code: 422, envelope: envelope('terminal_error', 'failed_before_post', false, null, 'SLACK_AUTH', 'Slack authorization was rejected.'), trace: prepared.trace } }];
 if (body?.ok === false && slackError !== '') return [{ json: { response_code: 422, envelope: envelope('terminal_error', 'failed_before_post', false, null, 'SLACK_TERMINAL', 'Slack rejected the message before acceptance.'), trace: prepared.trace } }];
@@ -297,26 +407,29 @@ nodes = [
     },
     request("55555555-5555-4555-8555-555555555555", "HubSpot 2026-03 Deal Read", "POST", "https://api.hubapi.com/crm/objects/2026-03/deals/batch/read", -500, "={{ $json.deal_read_body }}"),
     code("66666666-6666-4666-8666-666666666666", "Resolve Monotonic Deal State", RESOLVE, -280),
-    branch("77777777-7777-4777-8777-777777777777", "CRM Mutation Allowed", "continue_crm", -60),
-    request("88888888-8888-4888-8888-888888888888", "HubSpot 2026-03 Contact Upsert", "POST", "https://api.hubapi.com/crm/objects/2026-03/contacts/batch/upsert", 160, "={{ $json.contact_upsert_body }}"),
-    code("99999999-9999-4999-8999-999999999999", "Validate Contact Upsert", VALIDATE_CONTACT_UPSERT, 380),
-    branch("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1", "Contact Upsert Complete", "continue_contact", 600),
-    request("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2", "HubSpot 2026-03 Contact Read", "GET", "={{ $json.contact_read_url }}", 820),
-    code("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3", "Validate Contact Read", VALIDATE_CONTACT_READ, 1040),
-    branch("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa4", "Contact Read Exact", "continue_deal", 1260),
-    request("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa5", "HubSpot 2026-03 Deal Upsert", "POST", "https://api.hubapi.com/crm/objects/2026-03/deals/batch/upsert", 1480, "={{ $json.deal_upsert_body }}"),
-    code("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa6", "Validate Deal Upsert", VALIDATE_DEAL_UPSERT, 1700),
-    branch("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa7", "Deal Upsert Complete", "continue_deal_read", 1920),
-    request("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa8", "HubSpot 2026-03 Deal Readback", "POST", "https://api.hubapi.com/crm/objects/2026-03/deals/batch/read", 2140, "={{ $json.deal_read_body }}"),
-    code("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa9", "Validate Deal Readback", VALIDATE_DEAL_READ, 2360),
-    branch("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaab0", "Deal Readback Exact", "continue_association", 2580),
-    request("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaab1", "HubSpot 2026-03 Default Association", "PUT", "={{ $json.association_put_url }}", 2800),
-    code("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaab2", "Validate Association Put", VALIDATE_ASSOCIATION_PUT, 3020),
-    branch("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaab3", "Association Put Complete", "continue_association_read", 3240),
-    request("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaab4", "HubSpot 2026-03 Association Read", "GET", "={{ $json.association_read_url }}", 3460),
-    code("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaab5", "Prepare Slack Or Complete", VALIDATE_FINAL, 3680),
-    branch("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaab6", "Slack Required", "continue_slack", 3900),
-    code("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaab7", "Prepare Fault Lookup", PREPARE_FAULT_LOOKUP, 4120),
+    branch("77777777-7777-4777-8777-777777777777", "Authenticated Work Continues", "continue_work", -60),
+    branch("cccccccc-cccc-4ccc-8ccc-ccccccccccc1", "Contact Mutation Required", "contact_mutation_required", 160),
+    request("88888888-8888-4888-8888-888888888888", "HubSpot 2026-03 Contact Upsert", "POST", "https://api.hubapi.com/crm/objects/2026-03/contacts/batch/upsert", 380, "={{ $json.contact_upsert_body }}"),
+    code("99999999-9999-4999-8999-999999999999", "Validate Contact Upsert", VALIDATE_CONTACT_UPSERT, 600),
+    branch("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1", "Contact Mutation Succeeded", "continue_contact_read", 820),
+    request("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2", "HubSpot 2026-03 Contact Read", "POST", "https://api.hubapi.com/crm/objects/2026-03/contacts/batch/read", 1040, "={{ $json.contact_read_body }}"),
+    code("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3", "Validate Contact Read", VALIDATE_CONTACT_READ, 1260),
+    branch("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa4", "Contact Resolution Exact", "continue_deal_stage", 1480),
+    branch("cccccccc-cccc-4ccc-8ccc-ccccccccccc2", "Deal Mutation Required", "deal_mutation_required", 1700),
+    request("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa5", "HubSpot 2026-03 Deal Upsert", "POST", "https://api.hubapi.com/crm/objects/2026-03/deals/batch/upsert", 1920, "={{ $json.deal_upsert_body }}"),
+    code("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa6", "Validate Deal Upsert", VALIDATE_DEAL_UPSERT, 2140),
+    branch("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa7", "Deal Mutation Succeeded", "continue_deal_read", 2360),
+    request("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa8", "HubSpot 2026-03 Deal Readback", "POST", "https://api.hubapi.com/crm/objects/2026-03/deals/batch/read", 2580, "={{ $json.deal_read_body }}"),
+    code("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa9", "Validate Deal Readback", VALIDATE_DEAL_READ, 2800),
+    branch("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaab0", "Deal Resolution Exact", "continue_association_stage", 3020),
+    branch("cccccccc-cccc-4ccc-8ccc-ccccccccccc3", "Association Mutation Required", "association_mutation_required", 3240),
+    request("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaab1", "HubSpot 2026-03 Default Association", "PUT", "={{ $json.association_put_url }}", 3460),
+    code("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaab2", "Validate Association Put", VALIDATE_ASSOCIATION_PUT, 3680),
+    branch("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaab3", "Association Mutation Succeeded", "continue_association_read", 3900),
+    request("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaab4", "HubSpot 2026-03 Association Read", "GET", "={{ $json.association_read_url }}", 4120),
+    code("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaab5", "Prepare Slack Or Complete", VALIDATE_FINAL, 4340),
+    branch("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaab6", "Slack Required", "continue_slack", 4560),
+    code("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaab7", "Prepare Fault Lookup", PREPARE_FAULT_LOOKUP, 4780),
     {
         "parameters": {
             "method": "POST",
@@ -336,16 +449,16 @@ nodes = [
         "name": "Lookup Active Pre-Post Fault",
         "type": "n8n-nodes-base.httpRequest",
         "typeVersion": 4.4,
-        "position": [4340, -80],
+        "position": [5000, -80],
         "onError": "continueRegularOutput",
     },
-    code("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaab9", "Slack Pre-Post Fault Gate", SLACK_FAULT_GATE, 4560),
-    branch("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaac0", "Slack Send Allowed", "send_slack", 4780),
-    request("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaac1", "Slack chat.postMessage", "POST", "https://slack.com/api/chat.postMessage", 5000, "={{ $json.slack_body }}", auth_type="httpHeaderAuth", credential=SLACK_CREDENTIAL, continue_on_error=True),
-    code("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaac2", "Validate Slack Result", VALIDATE_SLACK, 5220),
+    code("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaab9", "Slack Pre-Post Fault Gate", SLACK_FAULT_GATE, 5220),
+    branch("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaac0", "Slack Send Allowed", "send_slack", 5440),
+    request("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaac1", "Slack chat.postMessage", "POST", "https://slack.com/api/chat.postMessage", 5660, "={{ $json.slack_body }}", auth_type="httpHeaderAuth", credential=SLACK_CREDENTIAL, continue_on_error=True),
+    code("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaac2", "Validate Slack Result", VALIDATE_SLACK, 5880),
     {
         "parameters": {"respondWith": "json", "responseBody": "={{ $json.envelope }}", "options": {"responseCode": "={{ $json.response_code }}", "responseHeaders": {"entries": [{"name": "Content-Type", "value": "application/json; charset=utf-8"}]}}},
-        "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", "name": "Return Authenticated Envelope", "type": "n8n-nodes-base.respondToWebhook", "typeVersion": 1.5, "position": [5440, -40],
+        "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", "name": "Return Authenticated Envelope", "type": "n8n-nodes-base.respondToWebhook", "typeVersion": 1.5, "position": [6100, -40],
     },
 ]
 
@@ -359,23 +472,26 @@ connections = {
     "Verify HMAC Then Decode": {"main": [[edge("Authenticated")]]},
     "Authenticated": {"main": [[edge("HubSpot 2026-03 Deal Read")], [edge("Reject Before Side Effects")]]},
     "HubSpot 2026-03 Deal Read": {"main": [[edge("Resolve Monotonic Deal State")]]},
-    "Resolve Monotonic Deal State": {"main": [[edge("CRM Mutation Allowed")]]},
-    "CRM Mutation Allowed": {"main": [[edge("HubSpot 2026-03 Contact Upsert")], [edge("Return Authenticated Envelope")]]},
+    "Resolve Monotonic Deal State": {"main": [[edge("Authenticated Work Continues")]]},
+    "Authenticated Work Continues": {"main": [[edge("Contact Mutation Required")], [edge("Return Authenticated Envelope")]]},
+    "Contact Mutation Required": {"main": [[edge("HubSpot 2026-03 Contact Upsert")], [edge("HubSpot 2026-03 Contact Read")]]},
     "HubSpot 2026-03 Contact Upsert": {"main": [[edge("Validate Contact Upsert")]]},
-    "Validate Contact Upsert": {"main": [[edge("Contact Upsert Complete")]]},
-    "Contact Upsert Complete": {"main": [[edge("HubSpot 2026-03 Contact Read")], [edge("Return Authenticated Envelope")]]},
+    "Validate Contact Upsert": {"main": [[edge("Contact Mutation Succeeded")]]},
+    "Contact Mutation Succeeded": {"main": [[edge("HubSpot 2026-03 Contact Read")], [edge("Return Authenticated Envelope")]]},
     "HubSpot 2026-03 Contact Read": {"main": [[edge("Validate Contact Read")]]},
-    "Validate Contact Read": {"main": [[edge("Contact Read Exact")]]},
-    "Contact Read Exact": {"main": [[edge("HubSpot 2026-03 Deal Upsert")], [edge("Return Authenticated Envelope")]]},
+    "Validate Contact Read": {"main": [[edge("Contact Resolution Exact")]]},
+    "Contact Resolution Exact": {"main": [[edge("Deal Mutation Required")], [edge("Return Authenticated Envelope")]]},
+    "Deal Mutation Required": {"main": [[edge("HubSpot 2026-03 Deal Upsert")], [edge("HubSpot 2026-03 Deal Readback")]]},
     "HubSpot 2026-03 Deal Upsert": {"main": [[edge("Validate Deal Upsert")]]},
-    "Validate Deal Upsert": {"main": [[edge("Deal Upsert Complete")]]},
-    "Deal Upsert Complete": {"main": [[edge("HubSpot 2026-03 Deal Readback")], [edge("Return Authenticated Envelope")]]},
+    "Validate Deal Upsert": {"main": [[edge("Deal Mutation Succeeded")]]},
+    "Deal Mutation Succeeded": {"main": [[edge("HubSpot 2026-03 Deal Readback")], [edge("Return Authenticated Envelope")]]},
     "HubSpot 2026-03 Deal Readback": {"main": [[edge("Validate Deal Readback")]]},
-    "Validate Deal Readback": {"main": [[edge("Deal Readback Exact")]]},
-    "Deal Readback Exact": {"main": [[edge("HubSpot 2026-03 Default Association")], [edge("Return Authenticated Envelope")]]},
+    "Validate Deal Readback": {"main": [[edge("Deal Resolution Exact")]]},
+    "Deal Resolution Exact": {"main": [[edge("Association Mutation Required")], [edge("Return Authenticated Envelope")]]},
+    "Association Mutation Required": {"main": [[edge("HubSpot 2026-03 Default Association")], [edge("HubSpot 2026-03 Association Read")]]},
     "HubSpot 2026-03 Default Association": {"main": [[edge("Validate Association Put")]]},
-    "Validate Association Put": {"main": [[edge("Association Put Complete")]]},
-    "Association Put Complete": {"main": [[edge("HubSpot 2026-03 Association Read")], [edge("Return Authenticated Envelope")]]},
+    "Validate Association Put": {"main": [[edge("Association Mutation Succeeded")]]},
+    "Association Mutation Succeeded": {"main": [[edge("HubSpot 2026-03 Association Read")], [edge("Return Authenticated Envelope")]]},
     "HubSpot 2026-03 Association Read": {"main": [[edge("Prepare Slack Or Complete")]]},
     "Prepare Slack Or Complete": {"main": [[edge("Slack Required")]]},
     "Slack Required": {"main": [[edge("Prepare Fault Lookup")], [edge("Return Authenticated Envelope")]]},
@@ -398,7 +514,7 @@ document = {
     "staticData": None,
     "meta": None,
     "pinData": {},
-    "versionId": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+    "versionId": "73b3efc8-8422-4178-b69e-6b2f9c348821",
     "tags": [],
 }
 rendered = json.dumps(document, ensure_ascii=False, indent=2) + "\n"

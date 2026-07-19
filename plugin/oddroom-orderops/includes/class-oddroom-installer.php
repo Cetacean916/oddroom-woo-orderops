@@ -9,6 +9,7 @@ final class OddRoom_Installer
 
     public static function activate(): void
     {
+        OddRoom_Dependencies::assertActivationReady();
         self::install();
     }
 

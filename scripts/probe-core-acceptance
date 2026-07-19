@@ -1,0 +1,897 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+from datetime import datetime, timezone
+import hashlib
+import hmac
+import json
+from pathlib import Path
+import sys
+import time
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
+import uuid
+
+from acceptance_semantics import AcceptanceSemanticError, derive_fixture_observations
+from pf07_probe_runtime import ProbeRuntime, ProbeRuntimeError
+
+
+SUPPORTED = {
+    "normal-order",
+    "variable-input",
+    "state-non-regression",
+    "concurrent-duplicate-suppression",
+    "hmac-rejection",
+    "raw-byte-resource-bounds",
+    "reconciliation-repair",
+}
+ROOT = Path(__file__).resolve().parent.parent
+
+
+def observed_value(observations: dict, dotted_path: str) -> object:
+    value: object = observations
+    for part in dotted_path.split("."):
+        require(isinstance(value, dict) and part in value, f"probe omitted required observation: {dotted_path}")
+        value = value[part]
+    return value
+
+
+def fail(message: str) -> None:
+    raise ProbeRuntimeError(message)
+
+
+def require(condition: bool, message: str) -> None:
+    if not condition:
+        fail(message)
+
+
+def write_trace(runtime: ProbeRuntime, fixture_id: str, alias: str, trace: dict) -> None:
+    path = runtime.output_dir / f"{alias}.json"
+    path.write_text(json.dumps(trace, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    path.chmod(0o600)
+    observations = derive_fixture_observations(fixture_id, {alias: path})
+    require(isinstance(observations, dict), "artifact semantic derivation is unavailable")
+    manifest = json.loads((ROOT / "fixtures/acceptance-fixtures.json").read_text(encoding="utf-8"))
+    fixture = next((item for item in manifest["fixtures"] if item["id"] == fixture_id), None)
+    require(isinstance(fixture, dict), "fixture contract is missing")
+    for assertion in fixture["assertions"]:
+        actual = observed_value(observations, assertion["path"])
+        expected = assertion["expected"]
+        passed = actual == expected if assertion["operator"] == "eq" else (
+            assertion["operator"] == "gte"
+            and isinstance(actual, (int, float)) and not isinstance(actual, bool)
+            and actual >= expected
+        )
+        require(passed, f"artifact-derived observation failed: {assertion['path']}")
+    print(json.dumps({
+        "observations": observations,
+        "artifacts": {alias: path.name},
+    }, separators=(",", ":")))
+
+
+def order_shapes(runtime: ProbeRuntime, prefix: str) -> tuple[list[dict], dict]:
+    created: list[dict] = []
+    for index, (shape, amount) in enumerate((
+        ("simple", "17000.00"),
+        ("variable", "23000.00"),
+        ("coupon", "31000.00"),
+    ), start=1):
+        order = runtime.create_order(shape, f"{prefix}-{shape}-{index}", amount)
+        runtime.run_action(order["action_id"])
+        created.append(order)
+    observed = runtime.order_rows([order["order_id"] for order in created])
+    rows = observed["rows"]
+    require(len(rows) == 3, "three order rows were not observed")
+    require(all(row.get("status") == "completed" and row.get("phase") == "completed" for row in rows), "an ORDER_CREATED row did not complete through the installed workflow")
+    return created, observed
+
+
+def gate01(runtime: ProbeRuntime, suffix: str) -> None:
+    created, observed = order_shapes(runtime, f"g01-{suffix}")
+    rows = {row["order_id"]: row for row in observed["rows"]}
+    trace_orders = []
+    for order in created:
+        row = rows[order["order_id"]]
+        trace_orders.append({
+            "order_id": order["order_id"],
+            "product_id": order["product_id"],
+            "variation_id": order["variation_id"],
+            "shape": order["shape"],
+            "coupon_applied": order["coupon_applied"],
+            "payload": {
+                "payload_json": row["payload_json"],
+                "stored_payload_hash": row["stored_payload_hash"],
+            },
+        })
+    write_trace(runtime, "normal-order", "gate01_order_variety_trace", {
+        "schema_version": 1,
+        "fixture_id": "normal-order",
+        "orders": trace_orders,
+        "admin_order_ids": observed["admin_order_ids"],
+        "storage_order_ids": observed["storage_order_ids"],
+    })
+
+
+def gate03(runtime: ProbeRuntime, suffix: str) -> None:
+    baseline = runtime.latest_execution_id()
+    created, observed = order_shapes(runtime, f"g03-{suffix}")
+    details = runtime.new_execution_details(baseline, 3)
+    rows = {row["order_id"]: row for row in observed["rows"]}
+    by_event: dict[str, list[dict]] = {}
+    for detail in details:
+        event_hash = detail.get("event_key_sha256")
+        if isinstance(event_hash, str):
+            by_event.setdefault(event_hash, []).append(detail)
+    trace_orders = []
+    for order in created:
+        row = rows[order["order_id"]]
+        event_hash = runtime.event_key_sha256(row["event_key"])
+        matches = by_event.get(event_hash, [])
+        require(len(matches) == 1, "GATE-03 did not observe exactly one installed-workflow execution per order")
+        execution = matches[0]
+        require(execution.get("status") == "success" and execution.get("verified_authorized") is True, "GATE-03 workflow input was not authenticated successfully")
+        trace_orders.append({
+            "order_id": order["order_id"],
+            "execution_id": execution["execution_id"],
+            "verified_payload_sha256": execution["verified_payload_sha256"],
+            "payload": {
+                "payload_json": row["payload_json"],
+                "stored_payload_hash": row["stored_payload_hash"],
+            },
+        })
+    write_trace(runtime, "variable-input", "gate03_variable_input_trace", {
+        "schema_version": 1,
+        "fixture_id": "variable-input",
+        "orders": trace_orders,
+    })
+
+
+def webhook_url(runtime: ProbeRuntime) -> str:
+    port = runtime.env.get("PF07_PUBLIC_PORT", "18080")
+    require(port.isdigit() and 1 <= int(port) <= 65535, "runtime edge port is invalid")
+    return f"http://127.0.0.1:{port}/webhook/oddroom-orderops-v1"
+
+
+def send_webhook(runtime: ProbeRuntime, body: bytes, headers: dict[str, str]) -> tuple[int, bytes]:
+    request = Request(webhook_url(runtime), data=body, method="POST", headers=headers)
+    try:
+        with urlopen(request, timeout=330) as response:
+            return int(response.status), response.read()
+    except HTTPError as error:
+        return int(error.code), error.read()
+    except URLError as error:
+        raise ProbeRuntimeError(f"webhook transport failed: {type(error).__name__}") from error
+
+
+def signed_headers(runtime: ProbeRuntime, event_key: str, body: bytes, timestamp: int, *, signature: bool = True) -> dict[str, str]:
+    phase = "created"
+    headers = {
+        "Content-Type": "application/json; charset=utf-8",
+        "X-OddRoom-Event-Key": event_key,
+        "X-OddRoom-Timestamp": str(timestamp),
+        "X-OddRoom-Resume-Phase": phase,
+    }
+    if signature:
+        secret = runtime.env.get("ODDROOM_WEBHOOK_HMAC_KEY", "")
+        require(len(secret) >= 16, "runtime HMAC key is unavailable")
+        base = f"{timestamp}.{event_key}.{phase}.".encode("utf-8") + body
+        headers["X-OddRoom-Signature"] = "v1=" + hmac.new(secret.encode("utf-8"), base, hashlib.sha256).hexdigest()
+    return headers
+
+
+def request_payload(runtime: ProbeRuntime, order_id: int, suffix: str, *, item_count: int = 1) -> tuple[str, dict]:
+    shop_id = runtime.env.get("ODDROOM_SHOP_INSTANCE_ID", "")
+    run_id = runtime.env.get("ODDROOM_RUN_ID", "")
+    event_key = f"v1:{shop_id}:{order_id}:ORDER_CREATED"
+    occurred = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    items = [
+        {
+            "item_id": order_id * 1000 + index,
+            "product_id": order_id * 1000 + index,
+            "variation_id": 0,
+            "sku": f"PF07-{suffix}-{index}",
+            "name": f"합성 검증 상품 {index}",
+            "quantity": 1,
+            "line_total": "17000.00",
+        }
+        for index in range(1, item_count + 1)
+    ]
+    value = {
+        "schema_version": "1",
+        "event_key": event_key,
+        "shop_instance_id": shop_id,
+        "run_id": run_id,
+        "event_type": "ORDER_CREATED",
+        "occurred_at_utc": occurred,
+        "occurred_at_source": "date_created",
+        "state_rank": 10,
+        "order": {
+            "id": order_id,
+            "number": f"PF07-{suffix}",
+            "currency": "KRW",
+            "total": "17000.00",
+            "customer": {
+                "email": f"pf07+{suffix}@example.com",
+                "first_name": "합성",
+                "last_name": "검증",
+            },
+            "items": items,
+            "coupon_codes": [],
+        },
+    }
+    return event_key, value
+
+
+def capture_entered_request(runtime: ProbeRuntime, body: bytes, headers: dict[str, str]) -> tuple[int, dict]:
+    baseline = runtime.latest_execution_id()
+    status, _response = send_webhook(runtime, body, headers)
+    details = runtime.new_execution_details(baseline, 1)
+    require(len(details) == 1, "request that entered n8n did not produce exactly one execution")
+    return status, details[0]
+
+
+def hubspot_deal_count(runtime: ProbeRuntime, order_key: str) -> int:
+    token = runtime.env.get("HUBSPOT_RUNTIME_TOKEN", "")
+    require(bool(token), "HubSpot runtime token is unavailable")
+    body = json.dumps({
+        "idProperty": "oddroom_wc_order_key",
+        "properties": ["oddroom_wc_order_key"],
+        "inputs": [{"id": order_key}],
+    }, separators=(",", ":")).encode("utf-8")
+    request = Request(
+        "https://api.hubapi.com/crm/objects/2026-03/deals/batch/read",
+        data=body,
+        method="POST",
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+    )
+    try:
+        with urlopen(request, timeout=60) as response:
+            value = json.loads(response.read())
+    except HTTPError as error:
+        if error.code == 404:
+            return 0
+        raise ProbeRuntimeError(f"HubSpot rejected protected readback with HTTP {error.code}") from error
+    except (URLError, json.JSONDecodeError) as error:
+        raise ProbeRuntimeError(f"HubSpot protected readback failed: {type(error).__name__}") from error
+    results = value.get("results") if isinstance(value, dict) else None
+    require(isinstance(results, list), "HubSpot protected readback shape differs")
+    return sum(1 for item in results if isinstance(item, dict) and item.get("properties", {}).get("oddroom_wc_order_key") == order_key)
+
+
+def hubspot_deal_state(runtime: ProbeRuntime, order_key: str) -> dict:
+    token = runtime.env.get("HUBSPOT_RUNTIME_TOKEN", "")
+    require(bool(token), "HubSpot runtime token is unavailable")
+    body = json.dumps({
+        "idProperty": "oddroom_wc_order_key",
+        "properties": ["oddroom_wc_order_key", "oddroom_order_state_rank", "pipeline", "dealstage"],
+        "inputs": [{"id": order_key}],
+    }, separators=(",", ":")).encode("utf-8")
+    request = Request(
+        "https://api.hubapi.com/crm/objects/2026-03/deals/batch/read",
+        data=body,
+        method="POST",
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+    )
+    try:
+        with urlopen(request, timeout=60) as response:
+            value = json.loads(response.read())
+    except HTTPError as error:
+        raise ProbeRuntimeError(f"HubSpot rejected protected state readback with HTTP {error.code}") from error
+    except (URLError, json.JSONDecodeError) as error:
+        raise ProbeRuntimeError(f"HubSpot protected state readback failed: {type(error).__name__}") from error
+    results = value.get("results") if isinstance(value, dict) else None
+    matches = [item for item in results or [] if isinstance(item, dict) and item.get("properties", {}).get("oddroom_wc_order_key") == order_key]
+    require(len(matches) == 1, "HubSpot state readback did not resolve exactly one Deal")
+    properties = matches[0].get("properties")
+    require(isinstance(properties, dict), "HubSpot state properties are missing")
+    rank_text = properties.get("oddroom_order_state_rank")
+    require(isinstance(rank_text, str) and rank_text.isdigit(), "HubSpot state rank is invalid")
+    pipeline = properties.get("pipeline")
+    stage = properties.get("dealstage")
+    require(isinstance(pipeline, str) and pipeline and isinstance(stage, str) and stage, "HubSpot pipeline readback is incomplete")
+    return {"state_rank": int(rank_text), "pipeline": f"{pipeline}/{stage}"}
+
+
+def rejected_case(runtime: ProbeRuntime, name: str, body: bytes, headers: dict[str, str], order_key: str) -> dict:
+    status, execution = capture_entered_request(runtime, body, headers)
+    return {
+        "name": name,
+        "http_status": status,
+        "executed_nodes": execution["executed_nodes"],
+        "hubspot_calls": execution["hubspot_outbound_call_count"],
+        "association_calls": execution["association_outbound_call_count"],
+        "slack_calls": execution["slack_outbound_call_count"],
+        "deal_count": hubspot_deal_count(runtime, order_key),
+    }
+
+
+def gate05_hmac(runtime: ProbeRuntime, suffix: str) -> None:
+    base_id = int(time.time_ns() % 8_000_000_000_000_000) + 1_000_000
+    rejected: list[dict] = []
+
+    event_key, value = request_payload(runtime, base_id, f"{suffix}-missing")
+    body = json.dumps(value, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    rejected.append(rejected_case(
+        runtime,
+        "missing_signature",
+        body,
+        signed_headers(runtime, event_key, body, int(time.time()), signature=False),
+        f"{runtime.env['ODDROOM_SHOP_INSTANCE_ID']}:{base_id}",
+    ))
+
+    event_key, value = request_payload(runtime, base_id + 1, f"{suffix}-mutated")
+    signed_body = json.dumps(value, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    headers = signed_headers(runtime, event_key, signed_body, int(time.time()))
+    rejected.append(rejected_case(
+        runtime,
+        "mutated_body",
+        signed_body + b" ",
+        headers,
+        f"{runtime.env['ODDROOM_SHOP_INSTANCE_ID']}:{base_id + 1}",
+    ))
+
+    event_key, value = request_payload(runtime, base_id + 2, f"{suffix}-expired")
+    body = json.dumps(value, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    expired = int(time.time()) - 301
+    rejected.append(rejected_case(
+        runtime,
+        "expired_timestamp",
+        body,
+        signed_headers(runtime, event_key, body, expired),
+        f"{runtime.env['ODDROOM_SHOP_INSTANCE_ID']}:{base_id + 2}",
+    ))
+
+    event_key, value = request_payload(runtime, base_id + 3, f"{suffix}-valid")
+    valid_body = json.dumps(value, ensure_ascii=False, indent=2).encode("utf-8") + b"\n"
+    valid_status, valid_execution = capture_entered_request(
+        runtime,
+        valid_body,
+        signed_headers(runtime, event_key, valid_body, int(time.time())),
+    )
+    valid_hash = hashlib.sha256(valid_body).hexdigest()
+    require(valid_execution.get("ingress_raw_body_sha256") == valid_hash and valid_execution.get("verified_authorized") is True, "valid exact bytes were not authenticated from the ingress body")
+    write_trace(runtime, "hmac-rejection", "gate05_hmac_trace", {
+        "schema_version": 1,
+        "fixture_id": "hmac-rejection",
+        "rejected_cases": rejected,
+        "valid_exact_bytes": {
+            "http_status": valid_status,
+            "body_sha256": valid_hash,
+            "authenticated_body_sha256": valid_execution["ingress_raw_body_sha256"],
+            "non_ascii_present": any(byte >= 128 for byte in valid_body),
+            "insignificant_whitespace_present": b"\n" in valid_body and b"  " in valid_body,
+        },
+    })
+
+
+def gate05_resource(runtime: ProbeRuntime, suffix: str) -> None:
+    maximum = 262144
+    before = runtime.execution_state()
+    oversized_body = b"{" + b"x" * (maximum - 1) + b"}"
+    require(len(oversized_body) == maximum + 1, "oversized body construction differs")
+    oversized_status, _response = send_webhook(runtime, oversized_body, {"Content-Type": "application/json"})
+    after = runtime.execution_state()
+
+    base_id = int(time.time_ns() % 8_000_000_000_000_000) + 2_000_000
+    event_key, invalid_value = request_payload(runtime, base_id, f"{suffix}-resource", item_count=101)
+    invalid_body = json.dumps(invalid_value, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    invalid_status, invalid_execution = capture_entered_request(
+        runtime,
+        invalid_body,
+        signed_headers(runtime, event_key, invalid_body, int(time.time())),
+    )
+    resource_invalid = {
+        "http_status": invalid_status,
+        "executed_nodes": invalid_execution["executed_nodes"],
+        "hubspot_calls": invalid_execution["hubspot_outbound_call_count"],
+        "association_calls": invalid_execution["association_outbound_call_count"],
+        "slack_calls": invalid_execution["slack_outbound_call_count"],
+        "deal_count": hubspot_deal_count(runtime, f"{runtime.env['ODDROOM_SHOP_INSTANCE_ID']}:{base_id}"),
+    }
+
+    event_key, valid_value = request_payload(runtime, base_id + 1, f"{suffix}-exact")
+    valid_body = json.dumps(valid_value, ensure_ascii=False, indent=1).encode("utf-8") + b"\n"
+    timestamp = int(time.time())
+    valid_headers = signed_headers(runtime, event_key, valid_body, timestamp)
+    valid_status, valid_execution = capture_entered_request(runtime, valid_body, valid_headers)
+    valid_hash = hashlib.sha256(valid_body).hexdigest()
+    require(valid_execution.get("ingress_raw_body_sha256") == valid_hash and valid_execution.get("verified_authorized") is True, "bounded exact bytes were not authenticated")
+    reserialized = json.dumps(json.loads(valid_body), ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    reserialized_status, reserialized_execution = capture_entered_request(runtime, reserialized, valid_headers)
+    require(reserialized_execution.get("verified_authorized") is False, "old signature accepted reserialized bytes")
+
+    write_trace(runtime, "raw-byte-resource-bounds", "gate05_resource_trace", {
+        "schema_version": 1,
+        "fixture_id": "raw-byte-resource-bounds",
+        "maximum_body_bytes": maximum,
+        "oversized": {
+            "sent_bytes": len(oversized_body),
+            "http_status": oversized_status,
+            **{f"{name}_before": before[name] for name in before},
+            **{f"{name}_after": after[name] for name in after},
+        },
+        "resource_invalid": resource_invalid,
+        "valid_exact_bytes": {
+            "http_status": valid_status,
+            "body_sha256": valid_hash,
+            "authenticated_body_sha256": valid_execution["ingress_raw_body_sha256"],
+            "non_ascii_present": any(byte >= 128 for byte in valid_body),
+            "insignificant_whitespace_present": b"\n" in valid_body and b" " in valid_body,
+            "reserialized_old_signature_status": reserialized_status,
+        },
+    })
+
+
+def create_uncaptured_order(runtime: ProbeRuntime, alias: str, amount: str = "19000.00") -> int:
+    code = f"""
+$product=new WC_Product_Simple();
+$product->set_name('OddRoom Reconciliation {alias}');
+$product->set_sku('PF07-RECON-{alias}');
+$product->set_regular_price('{amount}');
+$product->set_status('publish');
+$product->set_catalog_visibility('hidden');
+$productId=(int)$product->save();
+if($productId<1){{throw new RuntimeException('PRODUCT_CREATE_FAILED');}}
+$order=wc_create_order(['status'=>'pending','created_via'=>'oddroom-orderops-reconciliation-probe']);
+$order->set_currency('KRW');
+$order->set_billing_email('pf07+{alias}@example.com');
+$order->set_billing_first_name('Synthetic-{alias}');
+$order->set_billing_last_name('Buyer');
+$order->add_product($product,1);
+$order->calculate_totals();
+$order->save();
+echo wp_json_encode(['order_id'=>(int)$order->get_id()],JSON_UNESCAPED_SLASHES);
+"""
+    value = runtime.wpcli_json(["eval", code])
+    require(isinstance(value, dict) and isinstance(value.get("order_id"), int) and value["order_id"] > 0, "uncaptured reconciliation order was not created")
+    return value["order_id"]
+
+
+def enable_fault(runtime: ProbeRuntime, order_id: int, event_type: str, fault_constant: str) -> None:
+    code = f"""
+$ids=get_users(['role'=>'administrator','number'=>1,'fields'=>'ids']);
+if(!$ids){{throw new RuntimeException('ADMIN_NOT_FOUND');}}
+$fault=constant('OddRoom_Faults::{fault_constant}');
+$result=OddRoom_Faults::enable({order_id},'{event_type}',$fault,10,(int)$ids[0]);
+echo wp_json_encode(['enabled'=>isset($result['id'])],JSON_UNESCAPED_SLASHES);
+"""
+    value = runtime.wpcli_json(["eval", code])
+    require(isinstance(value, dict) and value.get("enabled") is True, "staging fault control was not enabled")
+
+
+def event_snapshot(runtime: ProbeRuntime, order_id: int, event_type: str) -> dict:
+    code = f"""
+$row=OddRoom_Repository::findEvent({order_id},'{event_type}');
+if(!$row){{echo wp_json_encode(['row_count'=>0,'action_count'=>0,'payload'=>null]);return;}}
+$candidates=OddRoom_Scheduler::exactCandidates(OddRoom_Scheduler::HOOK,(int)$row->id);
+echo wp_json_encode([
+  'row_count'=>1,
+  'action_count'=>count($candidates),
+  'payload'=>['payload_json'=>(string)$row->payload_json,'stored_payload_hash'=>(string)$row->payload_hash],
+],JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE);
+"""
+    value = runtime.wpcli_json(["eval", code])
+    require(isinstance(value, dict), "reconciliation event snapshot is missing")
+    return value
+
+
+def emit_suppressed_fact(runtime: ProbeRuntime, order_id: int, event_type: str) -> None:
+    if event_type == "PAYMENT_CONFIRMED":
+        operation = f"$order=wc_get_order({order_id});if(!$order){{throw new RuntimeException('ORDER_NOT_FOUND');}}$order->payment_complete('pf07-reconciliation-{uuid.uuid4().hex}');"
+    elif event_type == "ORDER_CANCELLED":
+        operation = f"$order=wc_get_order({order_id});if(!$order){{throw new RuntimeException('ORDER_NOT_FOUND');}}$order->update_status('cancelled','PF07 reconciliation fixture.',true);"
+    elif event_type == "ORDER_REFUNDED":
+        operation = f"""
+$order=wc_get_order({order_id});
+if(!$order){{throw new RuntimeException('ORDER_NOT_FOUND');}}
+$refund=wc_create_refund(['order_id'=>{order_id},'amount'=>(string)$order->get_total(),'reason'=>'PF07 reconciliation fixture.','refund_payment'=>false,'restock_items'=>false]);
+if(is_wp_error($refund)){{throw new RuntimeException('REFUND_FAILED');}}
+"""
+    else:
+        fail("unsupported suppressed fact type")
+    runtime.wpcli(["eval", operation])
+
+
+def gate08(runtime: ProbeRuntime, suffix: str) -> None:
+    missing: list[tuple[str, str, int]] = []
+    try:
+        created_order = create_uncaptured_order(runtime, f"{suffix}-created")
+        enable_fault(runtime, created_order, "ORDER_CREATED", "SUPPRESS_OUTBOX_INSERT")
+        runtime.wpcli(["eval", f"do_action('oddroom_orderops_capture_order_created',{created_order});"])
+        missing.append(("ORDER_CREATED", "date_created", created_order))
+
+        payment_order = runtime.create_order("simple", f"{suffix}-payment", "21000.00")
+        enable_fault(runtime, payment_order["order_id"], "PAYMENT_CONFIRMED", "SUPPRESS_OUTBOX_INSERT")
+        emit_suppressed_fact(runtime, payment_order["order_id"], "PAYMENT_CONFIRMED")
+        missing.append(("PAYMENT_CONFIRMED", "date_paid", payment_order["order_id"]))
+
+        cancel_order = runtime.create_order("simple", f"{suffix}-cancel", "22000.00")
+        enable_fault(runtime, cancel_order["order_id"], "ORDER_CANCELLED", "SUPPRESS_OUTBOX_INSERT")
+        emit_suppressed_fact(runtime, cancel_order["order_id"], "ORDER_CANCELLED")
+        missing.append(("ORDER_CANCELLED", "_oddroom_orderops_cancelled_at_utc", cancel_order["order_id"]))
+
+        refund_order = runtime.create_order("simple", f"{suffix}-refund", "23000.00")
+        runtime.wpcli(["oddroom-orderops", "emit-event", str(refund_order["order_id"]), "PAYMENT_CONFIRMED"])
+        enable_fault(runtime, refund_order["order_id"], "ORDER_REFUNDED", "SUPPRESS_OUTBOX_INSERT")
+        emit_suppressed_fact(runtime, refund_order["order_id"], "ORDER_REFUNDED")
+        missing.append(("ORDER_REFUNDED", "full_refund_completion", refund_order["order_id"]))
+
+        schedule_order = create_uncaptured_order(runtime, f"{suffix}-schedule")
+        enable_fault(runtime, schedule_order, "ORDER_CREATED", "SUPPRESS_SCHEDULE")
+        runtime.wpcli(["eval", f"do_action('oddroom_orderops_capture_order_created',{schedule_order});"])
+
+        before = {(event_type, order_id): event_snapshot(runtime, order_id, event_type) for event_type, _source, order_id in missing}
+        require(all(snapshot["row_count"] == 0 for snapshot in before.values()), "a SUPPRESS_OUTBOX_INSERT fixture created a row")
+        schedule_before = event_snapshot(runtime, schedule_order, "ORDER_CREATED")
+        require(schedule_before["row_count"] == 1 and schedule_before["action_count"] == 0, "SUPPRESS_SCHEDULE did not preserve one unscheduled row")
+
+        first_result = runtime.wpcli_json(["oddroom-orderops", "reconcile"])
+        require(isinstance(first_result, dict) and first_result.get("status") == "PASS", "first reconciliation scan failed")
+        after_first = {(event_type, order_id): event_snapshot(runtime, order_id, event_type) for event_type, _source, order_id in missing}
+        schedule_first = event_snapshot(runtime, schedule_order, "ORDER_CREATED")
+
+        second_result = runtime.wpcli_json(["oddroom-orderops", "reconcile"])
+        require(isinstance(second_result, dict) and second_result.get("status") == "PASS", "second reconciliation scan failed")
+        after_second = {(event_type, order_id): event_snapshot(runtime, order_id, event_type) for event_type, _source, order_id in missing}
+        schedule_second = event_snapshot(runtime, schedule_order, "ORDER_CREATED")
+
+        repairs = [
+            {
+                "event_type": event_type,
+                "fact_source": source,
+                "before_row_count": before[(event_type, order_id)]["row_count"],
+                "after_first": after_first[(event_type, order_id)],
+                "after_second": after_second[(event_type, order_id)],
+            }
+            for event_type, source, order_id in missing
+        ]
+        write_trace(runtime, "reconciliation-repair", "gate08_reconciliation_trace", {
+            "schema_version": 1,
+            "fixture_id": "reconciliation-repair",
+            "repairs": repairs,
+            "schedule_repair": {
+                "before": schedule_before,
+                "after_first": schedule_first,
+                "after_second": schedule_second,
+            },
+        })
+    finally:
+        runtime.wpcli_json([
+            "eval",
+            "$run=OddRoom_Repository::requiredConfig('ODDROOM_ORDEROPS_RUN_ID');echo wp_json_encode(['disabled'=>(int)OddRoom_Faults::endRun($run)]);",
+        ])
+
+
+def manual_retry_during_claim(runtime: ProbeRuntime, row_id: int) -> dict:
+    code = f"""
+$ids=get_users(['role'=>'administrator','number'=>1,'fields'=>'ids']);
+if(!$ids){{throw new RuntimeException('ADMIN_NOT_FOUND');}}
+try{{
+  $result=OddRoom_Repository::manualRetry({row_id},(int)$ids[0]);
+  echo wp_json_encode(['outcome'=>'scheduled','code'=>null],JSON_UNESCAPED_SLASHES);
+}}catch(Throwable $error){{
+  echo wp_json_encode(['outcome'=>'conflict','code'=>(string)$error->getMessage()],JSON_UNESCAPED_SLASHES);
+}}
+"""
+    value = runtime.wpcli_json(["eval", code])
+    require(isinstance(value, dict) and value.get("outcome") == "conflict" and value.get("code") in {"ACTION_CONFLICT", "ROW_NOT_MANUALLY_RETRYABLE"}, "Manual Retry did not return a protected conflict during claim")
+    return value
+
+
+def gate04(runtime: ProbeRuntime, suffix: str) -> None:
+    created = runtime.create_order("simple", f"g04-{suffix}", "27000.00")
+    runtime.run_action(created["action_id"])
+    payment = runtime.wpcli_json([
+        "oddroom-orderops", "emit-event", str(created["order_id"]), "PAYMENT_CONFIRMED",
+    ])
+    require(isinstance(payment, dict) and isinstance(payment.get("outbox_id"), int) and isinstance(payment.get("action_id"), int), "GATE-04 payment row was not created")
+    row_id = payment["outbox_id"]
+    action_id = payment["action_id"]
+    enable_fault(runtime, created["order_id"], "PAYMENT_CONFIRMED", "PAUSE_AFTER_CLAIM")
+    baseline = runtime.latest_execution_id()
+    first = runtime.start_wpcli(
+        ["action-scheduler", "action", "run", str(action_id)],
+        service_environment={"ODDROOM_TEST_PAUSE_SECONDS": "10"},
+    )
+    try:
+        during = runtime.wait_for_claim(row_id)
+        require(during["status"] == "processing" and during["phase"] == "created", "GATE-04 first worker did not hold the pre-dispatch claim")
+        worker_code = f"OddRoom_Scheduler::captureExecution({action_id},'acceptance');OddRoom_Worker::process({row_id});"
+        rivals = [runtime.start_wpcli(["eval", worker_code]) for _ in range(2)]
+        manual_before = during["lock_token_sha256"]
+        manual_retry_during_claim(runtime, row_id)
+        manual_after_state = runtime.row_lock_state(row_id)
+        require(manual_after_state["lock_token_sha256"] == manual_before and manual_after_state["row_lock_count"] == 1, "Manual Retry changed or cleared the live claim")
+        for index, rival in enumerate(rivals, start=2):
+            runtime.finish_wpcli(rival, f"GATE-04 rival worker {index}")
+        runtime.finish_wpcli(first, "GATE-04 owning worker")
+        first = None
+    finally:
+        if first is not None and first.poll() is None:
+            first.kill()
+            first.communicate()
+        runtime.wpcli_json([
+            "eval",
+            "$run=OddRoom_Repository::requiredConfig('ODDROOM_ORDEROPS_RUN_ID');echo wp_json_encode(['disabled'=>(int)OddRoom_Faults::endRun($run)]);",
+        ])
+
+    final = runtime.row_lock_state(row_id)
+    require(final["status"] == "completed" and final["phase"] == "completed" and final["row_lock_count"] == 0 and final["order_lease_count"] == 0, "GATE-04 owning worker did not complete and release its fences")
+    details = runtime.new_execution_details(baseline, 1)
+    event_hash = runtime.event_key_sha256(json.loads(final["payload_json"])["event_key"])
+    matches = [item for item in details if item.get("event_key_sha256") == event_hash]
+    require(len(matches) == 1, "GATE-04 did not converge to one event-key-filtered n8n execution")
+    execution = matches[0]
+    require(execution.get("status") == "success" and execution.get("slack_outbound_call_count") == 1 and execution.get("envelope", {}).get("slack_timestamp_present") is True, "GATE-04 one successful Slack effect was not established")
+    order_key = f"{runtime.env['ODDROOM_SHOP_INSTANCE_ID']}:{created['order_id']}"
+    write_trace(runtime, "concurrent-duplicate-suppression", "gate04_duplicate_trace", {
+        "schema_version": 1,
+        "fixture_id": "concurrent-duplicate-suppression",
+        "worker_invocations": [
+            {"invocation_id": 1, "row_claim_owned": True, "order_lease_owned": True, "adapter_dispatched": True},
+            {"invocation_id": 2, "row_claim_owned": False, "order_lease_owned": False, "adapter_dispatched": False},
+            {"invocation_id": 3, "row_claim_owned": False, "order_lease_owned": False, "adapter_dispatched": False},
+        ],
+        "immutable_rows": [{
+            "outbox_id": row_id,
+            "payload": {"payload_json": final["payload_json"], "stored_payload_hash": final["payload_hash"]},
+        }],
+        "manual_retry": {
+            "attempted_during_claim": True,
+            "outcome": "conflict",
+            "lock_token_sha256_before": manual_before,
+            "lock_token_sha256_after": manual_after_state["lock_token_sha256"],
+        },
+        "n8n_executions": [{
+            "execution_id": execution["execution_id"],
+            "status": execution["status"],
+            "slack_outbound_call_count": execution["slack_outbound_call_count"],
+            "returned_slack_timestamp_present": execution["envelope"]["slack_timestamp_present"],
+        }],
+        "hubspot_readback": {"deal_count": hubspot_deal_count(runtime, order_key)},
+    })
+
+
+def event_row(runtime: ProbeRuntime, order_id: int, event_type: str) -> dict:
+    observed = runtime.order_rows([order_id], event_type)
+    rows = observed.get("rows")
+    require(isinstance(rows, list) and len(rows) == 1, f"{event_type} row observation differs")
+    return rows[0]
+
+
+def matching_execution(runtime: ProbeRuntime, details: list[dict], row: dict, label: str) -> dict:
+    event_hash = runtime.event_key_sha256(row["event_key"])
+    matches = [item for item in details if item.get("event_key_sha256") == event_hash]
+    require(len(matches) == 1, f"{label} did not resolve exactly one n8n execution")
+    return matches[0]
+
+
+def disable_active_faults(runtime: ProbeRuntime) -> None:
+    value = runtime.wpcli_json([
+        "eval",
+        "$run=OddRoom_Repository::requiredConfig('ODDROOM_ORDEROPS_RUN_ID');echo wp_json_encode(['disabled'=>(int)OddRoom_Faults::endRun($run)]);",
+    ])
+    require(isinstance(value, dict) and isinstance(value.get("disabled"), int), "fault-control cleanup did not return a count")
+
+
+def schedule_rows(runtime: ProbeRuntime, row_ids: list[int]) -> list[int]:
+    require(len(row_ids) == 2 and all(isinstance(row_id, int) and row_id > 0 for row_id in row_ids), "GATE-02 row scheduling inventory differs")
+    code = (
+        "$ids=[" + ",".join(str(row_id) for row_id in row_ids) + "];"
+        "$actions=[];foreach($ids as $id){$actions[]=(int)OddRoom_Scheduler::scheduleBusiness((int)$id);}"
+        "echo wp_json_encode(['action_ids'=>$actions],JSON_UNESCAPED_SLASHES);"
+    )
+    value = runtime.wpcli_json(["eval", code])
+    actions = value.get("action_ids") if isinstance(value, dict) else None
+    require(isinstance(actions, list) and len(actions) == 2 and all(isinstance(action_id, int) and action_id > 0 for action_id in actions), "GATE-02 normal row actions were not scheduled")
+    return actions
+
+
+def wait_for_followup(runtime: ProbeRuntime, row_id: int, prior_action_id: int) -> dict:
+    deadline = time.monotonic() + 45
+    while True:
+        state = runtime.row_lock_state(row_id)
+        action_id = state.get("action_id")
+        candidates = state.get("candidate_action_ids")
+        if (
+            isinstance(action_id, int)
+            and action_id > 0
+            and action_id != prior_action_id
+            and isinstance(candidates, list)
+            and action_id in candidates
+        ):
+            return state
+        if time.monotonic() >= deadline:
+            fail("GATE-02 lease contender did not receive a distinct follow-up action")
+        time.sleep(0.25)
+
+
+def gate02(runtime: ProbeRuntime, suffix: str) -> None:
+    shop_id = runtime.env["ODDROOM_SHOP_INSTANCE_ID"]
+
+    delayed_created_order = runtime.create_order("simple", f"g02-created-{suffix}", "32000.00")
+    delayed_created_payment = runtime.wpcli_json([
+        "oddroom-orderops", "emit-event", str(delayed_created_order["order_id"]), "PAYMENT_CONFIRMED",
+    ])
+    require(isinstance(delayed_created_payment, dict), "GATE-02 delayed-created payment row is missing")
+    created_row = event_row(runtime, delayed_created_order["order_id"], "ORDER_CREATED")
+    payment_row = event_row(runtime, delayed_created_order["order_id"], "PAYMENT_CONFIRMED")
+    baseline = runtime.latest_execution_id()
+    runtime.run_action(delayed_created_payment["action_id"])
+    created_before = hubspot_deal_state(runtime, f"{shop_id}:{delayed_created_order['order_id']}")
+    runtime.run_action(delayed_created_order["action_id"])
+    created_after = hubspot_deal_state(runtime, f"{shop_id}:{delayed_created_order['order_id']}")
+    created_details = runtime.new_execution_details(baseline, 2)
+    payment_execution = matching_execution(runtime, created_details, payment_row, "GATE-02 payment")
+    delayed_created_execution = matching_execution(runtime, created_details, created_row, "GATE-02 delayed ORDER_CREATED")
+    require(payment_execution.get("envelope", {}).get("result") == "completed", "GATE-02 higher-rank payment did not complete")
+    require(delayed_created_execution.get("envelope", {}).get("result") == "stale_ignored", "GATE-02 delayed ORDER_CREATED was not stale-ignored")
+
+    delayed_payment_order = runtime.create_order("simple", f"g02-refund-{suffix}", "33000.00")
+    refund = runtime.wpcli_json([
+        "oddroom-orderops", "emit-event", str(delayed_payment_order["order_id"]), "ORDER_REFUNDED",
+    ])
+    require(isinstance(refund, dict), "GATE-02 refund row is missing")
+    refund_row = event_row(runtime, delayed_payment_order["order_id"], "ORDER_REFUNDED")
+    delayed_payment_row = event_row(runtime, delayed_payment_order["order_id"], "PAYMENT_CONFIRMED")
+    delayed_payment_created_row = event_row(runtime, delayed_payment_order["order_id"], "ORDER_CREATED")
+    baseline = runtime.latest_execution_id()
+    runtime.run_action(refund["action_id"])
+    payment_before = hubspot_deal_state(runtime, f"{shop_id}:{delayed_payment_order['order_id']}")
+    runtime.run_action(delayed_payment_row["action_id"])
+    payment_after = hubspot_deal_state(runtime, f"{shop_id}:{delayed_payment_order['order_id']}")
+    runtime.run_action(delayed_payment_created_row["action_id"])
+    refund_details = runtime.new_execution_details(baseline, 3)
+    refund_execution = matching_execution(runtime, refund_details, refund_row, "GATE-02 refund")
+    delayed_payment_execution = matching_execution(runtime, refund_details, delayed_payment_row, "GATE-02 delayed PAYMENT_CONFIRMED")
+    require(refund_execution.get("envelope", {}).get("result") == "completed", "GATE-02 refund did not complete")
+    require(delayed_payment_execution.get("envelope", {}).get("result") == "stale_ignored" and delayed_payment_execution.get("slack_outbound_call_count") == 0, "GATE-02 delayed payment was not a zero-Slack stale short-circuit")
+
+    cancel_order = runtime.create_order("simple", f"g02-cancel-{suffix}", "34000.00")
+    cancel = runtime.wpcli_json([
+        "oddroom-orderops", "emit-event", str(cancel_order["order_id"]), "ORDER_CANCELLED",
+    ])
+    require(isinstance(cancel, dict), "GATE-02 cancellation row is missing")
+    cancel_row = event_row(runtime, cancel_order["order_id"], "ORDER_CANCELLED")
+    cancel_created_row = event_row(runtime, cancel_order["order_id"], "ORDER_CREATED")
+    baseline = runtime.latest_execution_id()
+    runtime.run_action(cancel["action_id"])
+    runtime.run_action(cancel_created_row["action_id"])
+    cancel_details = runtime.new_execution_details(baseline, 2)
+    cancel_execution = matching_execution(runtime, cancel_details, cancel_row, "GATE-02 cancellation")
+    require(cancel_execution.get("envelope", {}).get("result") == "completed", "GATE-02 cancellation did not complete")
+
+    concurrent_order_id = create_uncaptured_order(runtime, f"g02-concurrent-{suffix}", "35000.00")
+    enable_fault(runtime, concurrent_order_id, "ORDER_CREATED", "SUPPRESS_SCHEDULE")
+    enable_fault(runtime, concurrent_order_id, "PAYMENT_CONFIRMED", "SUPPRESS_SCHEDULE")
+    runtime.wpcli(["eval", f"do_action('oddroom_orderops_capture_order_created',{concurrent_order_id});$order=wc_get_order({concurrent_order_id});if(!$order){{throw new RuntimeException('ORDER_NOT_FOUND');}}$order->payment_complete('pf07-gate02-{suffix}');"])
+    concurrent_created_row = event_row(runtime, concurrent_order_id, "ORDER_CREATED")
+    concurrent_payment_row = event_row(runtime, concurrent_order_id, "PAYMENT_CONFIRMED")
+    created_pending = runtime.row_lock_state(concurrent_created_row["outbox_id"])
+    payment_pending = runtime.row_lock_state(concurrent_payment_row["outbox_id"])
+    require(
+        created_pending.get("status") == "pending"
+        and payment_pending.get("status") == "pending"
+        and created_pending.get("action_id") is None
+        and payment_pending.get("action_id") is None,
+        "GATE-02 staging fault did not leave both real paid-order rows pending and unscheduled",
+    )
+    disable_active_faults(runtime)
+    created_action_id, payment_action_id = schedule_rows(
+        runtime,
+        [concurrent_created_row["outbox_id"], concurrent_payment_row["outbox_id"]],
+    )
+    enable_fault(runtime, concurrent_order_id, "ORDER_CREATED", "PAUSE_AFTER_CLAIM")
+    concurrent_baseline = runtime.latest_execution_id()
+    invocations: list[str] = []
+    owner = runtime.start_wpcli(
+        ["action-scheduler", "action", "run", str(created_action_id)],
+        service_environment={"ODDROOM_TEST_PAUSE_SECONDS": "10"},
+    )
+    invocations.append("ORDER_CREATED")
+    try:
+        owner_during = runtime.wait_for_claim(concurrent_created_row["outbox_id"])
+        contender = runtime.start_wpcli([
+            "action-scheduler", "action", "run", str(payment_action_id),
+        ])
+        invocations.append("PAYMENT_CONFIRMED")
+        runtime.finish_wpcli(contender, "GATE-02 concurrent payment contender")
+        contender_state = runtime.row_lock_state(concurrent_payment_row["outbox_id"])
+        require(owner_during["row_lock_count"] == 1 and owner_during["order_lease_count"] == 1 and contender_state["row_lock_count"] == 0 and contender_state["order_lease_count"] == 0, "GATE-02 concurrent workers did not leave exactly one fenced owner")
+        runtime.finish_wpcli(owner, "GATE-02 concurrent owning worker")
+        owner = None
+    finally:
+        if owner is not None and owner.poll() is None:
+            owner.kill()
+            owner.communicate()
+        disable_active_faults(runtime)
+    initial_details = runtime.new_execution_details(concurrent_baseline, 1)
+    concurrent_hashes = {
+        runtime.event_key_sha256(concurrent_created_row["event_key"]),
+        runtime.event_key_sha256(concurrent_payment_row["event_key"]),
+    }
+    concurrent_dispatches = [
+        detail for detail in initial_details
+        if detail.get("event_key_sha256") in concurrent_hashes
+    ]
+    require(len(concurrent_dispatches) == 1, "GATE-02 concurrent workers did not produce exactly one adapter dispatch before follow-up")
+    followup = wait_for_followup(runtime, concurrent_payment_row["outbox_id"], payment_action_id)
+    runtime.run_action(followup["action_id"])
+    concurrent_state = hubspot_deal_state(runtime, f"{shop_id}:{concurrent_order_id}")
+    require(concurrent_state["state_rank"] == concurrent_payment_row["state_rank"], "GATE-02 paid-order follow-up did not leave the higher state authoritative")
+
+    events = []
+    for row, execution in (
+        (created_row, delayed_created_execution),
+        (payment_row, payment_execution),
+        (cancel_row, cancel_execution),
+        (refund_row, refund_execution),
+    ):
+        events.append({
+            "event_type": row["event_type"],
+            "state_rank": row["state_rank"],
+            "payload": {"payload_json": row["payload_json"], "stored_payload_hash": row["stored_payload_hash"]},
+            "execution_result": execution["envelope"]["result"],
+        })
+    write_trace(runtime, "state-non-regression", "gate02_state_trace", {
+        "schema_version": 1,
+        "fixture_id": "state-non-regression",
+        "events": events,
+        "concurrent_claim": {
+            "worker_invocations": len(invocations),
+            "row_claim_owners": owner_during["row_lock_count"],
+            "order_lease_owners": owner_during["order_lease_count"],
+            "adapter_dispatches": len(concurrent_dispatches),
+        },
+        "delayed_lower_rank": [
+            {
+                "event_type": "ORDER_CREATED",
+                "result": delayed_created_execution["envelope"]["result"],
+                "slack_calls": delayed_created_execution["slack_outbound_call_count"],
+                "rank_before": created_before["state_rank"],
+                "rank_after": created_after["state_rank"],
+                "pipeline_before": created_before["pipeline"],
+                "pipeline_after": created_after["pipeline"],
+            },
+            {
+                "event_type": "PAYMENT_CONFIRMED",
+                "result": delayed_payment_execution["envelope"]["result"],
+                "slack_calls": delayed_payment_execution["slack_outbound_call_count"],
+                "rank_before": payment_before["state_rank"],
+                "rank_after": payment_after["state_rank"],
+                "pipeline_before": payment_before["pipeline"],
+                "pipeline_after": payment_after["pipeline"],
+            },
+        ],
+        "authoritative_readback": payment_after,
+    })
+
+
+parser = argparse.ArgumentParser(description="Run protected PF07 core acceptance fixtures against the active restored runtime.")
+parser.add_argument("--fixture", choices=sorted(SUPPORTED), required=True)
+args = parser.parse_args()
+
+try:
+    runtime = ProbeRuntime()
+    runtime.assert_run_identity()
+    suffix = uuid.uuid4().hex[:10]
+    if args.fixture == "normal-order":
+        gate01(runtime, suffix)
+    elif args.fixture == "variable-input":
+        gate03(runtime, suffix)
+    elif args.fixture == "hmac-rejection":
+        gate05_hmac(runtime, suffix)
+    elif args.fixture == "raw-byte-resource-bounds":
+        gate05_resource(runtime, suffix)
+    elif args.fixture == "reconciliation-repair":
+        gate08(runtime, suffix)
+    elif args.fixture == "concurrent-duplicate-suppression":
+        gate04(runtime, suffix)
+    elif args.fixture == "state-non-regression":
+        gate02(runtime, suffix)
+    else:
+        fail(f"live fixture implementation is not yet available: {args.fixture}")
+except (ProbeRuntimeError, AcceptanceSemanticError) as error:
+    print(f"probe-core-acceptance failed: {error}", file=sys.stderr)
+    raise SystemExit(1)

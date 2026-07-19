@@ -14,6 +14,7 @@ require_once __DIR__ . '/includes/class-oddroom-canonical-payload.php';
 require_once __DIR__ . '/includes/class-oddroom-signature.php';
 require_once __DIR__ . '/includes/class-oddroom-state-machine.php';
 require_once __DIR__ . '/includes/class-oddroom-retry-policy.php';
+require_once __DIR__ . '/includes/class-oddroom-dependencies.php';
 require_once __DIR__ . '/includes/class-oddroom-installer.php';
 require_once __DIR__ . '/includes/class-oddroom-repository.php';
 require_once __DIR__ . '/includes/class-oddroom-scheduler.php';
@@ -24,7 +25,10 @@ require_once __DIR__ . '/includes/class-oddroom-events.php';
 require_once __DIR__ . '/includes/class-oddroom-reconciliation.php';
 require_once __DIR__ . '/includes/class-oddroom-storefront.php';
 require_once __DIR__ . '/includes/class-oddroom-admin.php';
+require_once __DIR__ . '/includes/class-oddroom-private-admin.php';
 require_once __DIR__ . '/includes/class-oddroom-cli.php';
+
+OddRoom_Dependencies::registerAdminNotice();
 
 register_activation_hook(__FILE__, ['OddRoom_Installer', 'activate']);
 
@@ -38,8 +42,14 @@ add_action('before_woocommerce_init', static function (): void {
     }
 });
 
-add_action('plugins_loaded', static function (): void {
+$oddroomOrderOpsBoot = static function (): void {
+    static $booted = false;
+    if ($booted || !OddRoom_Dependencies::runtimeReady()) {
+        return;
+    }
+    $booted = true;
     OddRoom_Installer::maybeUpgrade();
+    OddRoom_Private_Admin::boot();
     OddRoom_Scheduler::boot();
     OddRoom_Events::boot();
     OddRoom_Faults::boot();
@@ -47,7 +57,9 @@ add_action('plugins_loaded', static function (): void {
     OddRoom_Storefront::boot();
     OddRoom_Admin::boot();
     OddRoom_CLI::boot();
-}, 20);
+};
+add_action('action_scheduler_init', $oddroomOrderOpsBoot, 20);
+add_action('init', $oddroomOrderOpsBoot, 20);
 
 register_deactivation_hook(__FILE__, static function (): void {
     OddRoom_Reconciliation::unschedule();

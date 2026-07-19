@@ -2,9 +2,9 @@
   "schema_version": "1",
   "acceptance_id": "GATE-10",
   "run_id": "PF07-ACCEPTANCE-RUN",
-  "started_at": "2026-07-18T23:07:43.578848Z",
-  "finished_at": "2026-07-18T23:16:09.934847Z",
-  "source_tree_sha256": "87300de2b289766dd0c7cb458912f4f636cda76bfe9879d25e0c9c239a32d603",
+  "started_at": "2026-07-19T16:10:29Z",
+  "finished_at": "2026-07-19T16:10:47Z",
+  "source_tree_sha256": "4c80be861524363d89a47c49b9c017bea9a7a64ff5f603a9212219c39f136a83",
   "command_or_probe": "recorded redaction of protected acceptance observation",
   "exit_code": 0,
   "observations": {
@@ -13,33 +13,35 @@
     "clean_compose_project": true,
     "fresh_wordpress_database_and_volume": true,
     "fresh_n8n_runtime_and_volume": true,
-    "restore_run_distinct": true,
+    "backup_artifact_count": 8,
+    "original_quiescent_before_snapshot": true,
+    "reprovisioned_workflow_credential_bindings": true,
     "restored_hubspot_credential_smoke": "PASS",
     "restored_slack_credential_smoke": "PASS",
     "new_order_created_and_paid": true,
+    "restored_created_n8n_executions": 1,
+    "restored_payment_n8n_executions": 1,
     "new_deal_count": 1,
     "payment_slack_posts": 1,
     "duplicate_additional_slack_posts": 0,
+    "duplicate_n8n_executions": 0,
     "original_runtime_calls": 0,
     "active_runtime_after_restore": "RESTORED",
     "original_outbound_runtime_enabled": false,
-    "formal_backup_manifest_verified": true,
-    "source_tree_binding": "DOCUMENTATION_ONLY_REBIND_EXECUTABLE_BYTES_UNCHANGED"
+    "restored_webhook_and_queue_enabled": true,
+    "original_services_stopped": true,
+    "formal_backup_manifest_verified": true
   },
   "artifact_hashes": {},
   "redaction_state": "PUBLIC_REDACTED",
   "redaction_transform": {
     "id": "pf07-public-evidence-redaction",
     "version": "1",
-    "script_sha256": "79e626c47a9d60bcc12ec333c311eb945ffb997dd671ce186574979da7504049"
+    "script_sha256": "3b0acb03398ab18e38428adda75db3f870fe52510093067c4fcd59061830cd46"
   },
   "source_acceptance_id": "GATE-10",
-  "source_record_sha256": "f7315d3862a0e7c64b7555c35c9962fb76cd73b74034c8b74cd4f32a89d2e4a9",
+  "source_record_sha256": "da3fe943c451595ab1db1ad8547b22c226ab766b884434fc6cb6f1ce27f06a3c",
   "source_artifact_hashes": {
-    "restore_backup_integrity": "c422495b4b93e747e467c4477cff6342920247411a62b6c968d13ee1a34fabc1",
-    "restore_duplicate_trace": "04c3838c2a7631153f2c6c1f3ede0a05af0522b8652fc61e026e679ef319c07a",
-    "restore_execution_trace": "3e3e55cd043d4a450653d9661df2139e48b587dc3ca438c1fba9d1d62fa4e3e7",
-    "restore_hubspot_readback": "b45386745cd8ebaf14be884905b76eeef75a6764857fc558b7bb16052ebdb11f",
-    "source_tree_rebind": "70dd63bf2d103cee5d1f39cef1027ab93445d98301784290977843cd1275b943"
+    "gate10_restore_trace": "44661c4f0275ebe8d34c879805166cc6b4cdbfa3bccce97ca4fedabc63f38344"
   }
 }

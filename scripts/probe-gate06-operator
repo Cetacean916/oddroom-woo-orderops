@@ -1,0 +1,403 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import base64
+import json
+import os
+from pathlib import Path
+import subprocess
+import time
+import uuid
+
+from acceptance_semantics import AcceptanceSemanticError, derive_fixture_observations
+from pf07_probe_runtime import ProbeRuntime, ProbeRuntimeError
+
+
+ROOT = Path(__file__).resolve().parent.parent
+DECISIONS = ["CONFIRMED_POSTED", "CONFIRMED_NOT_POSTED", "RETRY_AFTER_DUE", "UNRESOLVED"]
+
+
+def require(condition: bool, message: str) -> None:
+    if not condition:
+        raise ProbeRuntimeError(message)
+
+
+def observed_value(observations: dict, dotted_path: str) -> object:
+    value: object = observations
+    for part in dotted_path.split("."):
+        require(isinstance(value, dict) and part in value, f"probe omitted required observation: {dotted_path}")
+        value = value[part]
+    return value
+
+
+def disable_faults(runtime: ProbeRuntime) -> None:
+    value = runtime.wpcli_json([
+        "eval",
+        "$run=OddRoom_Repository::requiredConfig('ODDROOM_ORDEROPS_RUN_ID');echo wp_json_encode(['disabled'=>(int)OddRoom_Faults::endRun($run)]);",
+    ])
+    require(isinstance(value, dict) and isinstance(value.get("disabled"), int), "fault cleanup did not return a count")
+
+
+def enable_fault(runtime: ProbeRuntime, order_id: int, fault: str) -> None:
+    require(fault in {"PAUSE_AFTER_DISPATCH", "PAUSE_AFTER_RESPONSE"}, "unsupported operator-probe fault")
+    code = f"""
+$ids=get_users(['role'=>'administrator','number'=>1,'fields'=>'ids']);
+if(!$ids){{throw new RuntimeException('ADMIN_NOT_FOUND');}}
+$result=OddRoom_Faults::enable({order_id},'PAYMENT_CONFIRMED',OddRoom_Faults::{fault},5,(int)$ids[0]);
+echo wp_json_encode(['enabled'=>isset($result['id'])],JSON_UNESCAPED_SLASHES);
+"""
+    value = runtime.wpcli_json(["eval", code])
+    require(isinstance(value, dict) and value.get("enabled") is True, "operator crash fault was not enabled")
+
+
+def mark_interrupted_action_failed(runtime: ProbeRuntime, action_id: int) -> None:
+    code = f"""
+$store=ActionScheduler::store();$before=(string)$store->get_status({action_id});
+if($before==='in-progress'){{$store->mark_failure({action_id});}}
+$after=(string)$store->get_status({action_id});
+echo wp_json_encode(['before'=>$before,'after'=>$after],JSON_UNESCAPED_SLASHES);
+"""
+    value = runtime.wpcli_json(["eval", code])
+    require(isinstance(value, dict) and value.get("after") == "failed", "interrupted operator action was not marked failed")
+
+
+def recover(runtime: ProbeRuntime) -> list[dict]:
+    value = runtime.wpcli_json(["oddroom-orderops", "recover", "--limit=50"])
+    require(isinstance(value, list) and all(isinstance(item, dict) for item in value), "operator recovery output is invalid")
+    return value
+
+
+def compact_state(state: dict) -> dict:
+    candidates = state.get("candidate_action_ids")
+    require(isinstance(candidates, list), "operator action inventory is missing")
+    return {
+        "status": state["status"],
+        "phase": state["phase"],
+        "operator_wait_epoch": state["operator_wait_epoch"],
+        "resolved_operator_wait_epoch": state["resolved_operator_wait_epoch"],
+        "last_operator_resolution": state["last_operator_resolution"],
+        "action_count": len(candidates),
+        "row_lock_count": state["row_lock_count"],
+        "order_lease_count": state["order_lease_count"],
+        "manual_retry_count": state["manual_retry_count"],
+        "checkpoint_hashes": {
+            "contact": state["contact_checkpoint_sha256"],
+            "deal": state["deal_checkpoint_sha256"],
+            "slack": state["slack_timestamp_sha256"],
+        },
+    }
+
+
+def create_payment_fixture(runtime: ProbeRuntime, alias: str) -> tuple[dict, dict, dict]:
+    created = runtime.create_order("simple", alias, "30000.00")
+    runtime.run_action(created["action_id"])
+    payment = runtime.wpcli_json([
+        "oddroom-orderops", "emit-event", str(created["order_id"]), "PAYMENT_CONFIRMED",
+    ])
+    require(
+        isinstance(payment, dict)
+        and isinstance(payment.get("outbox_id"), int)
+        and isinstance(payment.get("action_id"), int),
+        "operator payment fixture was not created",
+    )
+    row = runtime.order_rows([created["order_id"]], "PAYMENT_CONFIRMED")["rows"][0]
+    return created, payment, row
+
+
+def crash_to_operator_wait(runtime: ProbeRuntime, alias: str, fault: str) -> dict:
+    created, payment, row = create_payment_fixture(runtime, alias)
+    disable_faults(runtime)
+    enable_fault(runtime, created["order_id"], fault)
+    baseline_execution = runtime.latest_execution_id()
+    baseline_external = runtime.execution_state()
+    container_name = f"pf07-g06-operator-{uuid.uuid4().hex[:10]}"
+    process = runtime.start_named_wpcli(
+        ["action-scheduler", "action", "run", str(payment["action_id"])],
+        container_name,
+        service_environment={
+            "ODDROOM_TEST_LEASE_SECONDS": "2",
+            "ODDROOM_TEST_PAUSE_SECONDS": "120",
+        },
+    )
+    interrupted = False
+    matching: list[dict] = []
+    try:
+        runtime.wait_for_dispatch(payment["outbox_id"])
+        if fault == "PAUSE_AFTER_RESPONSE":
+            matching = runtime.wait_for_event_executions(baseline_execution, row["event_key"])
+            require(
+                len(matching) == 1
+                and matching[0].get("status") == "success"
+                and matching[0].get("slack_outbound_call_count") == 1
+                and matching[0].get("envelope", {}).get("result") == "completed",
+                "post-response crash fixture did not observe one completed Slack-producing adapter execution",
+            )
+        runtime.interrupt_named_wpcli(process, container_name)
+        interrupted = True
+    finally:
+        if not interrupted:
+            subprocess.run(["docker", "kill", container_name], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+            subprocess.run(["docker", "rm", "-f", container_name], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+            if process.poll() is None:
+                process.kill()
+                process.communicate()
+        disable_faults(runtime)
+    mark_interrupted_action_failed(runtime, payment["action_id"])
+    time.sleep(3)
+    before_recovery = runtime.row_lock_state(payment["outbox_id"])
+    first = recover(runtime)
+    operator_state = runtime.row_lock_state(payment["outbox_id"])
+    second = recover(runtime)
+    require(
+        len(first) == 1
+        and first[0].get("row_id") == payment["outbox_id"]
+        and second == []
+        and operator_state["status"] == "operator_wait"
+        and operator_state["error_code"] == "SLACK_OUTCOME_UNKNOWN"
+        and operator_state["row_lock_count"] == 0
+        and operator_state["order_lease_count"] == 0
+        and operator_state["candidate_action_ids"] == [],
+        "crashed Slack row did not converge to a fenced operator wait",
+    )
+    external_after = runtime.execution_state()
+    return {
+        "created": created,
+        "payment": payment,
+        "row": row,
+        "baseline_execution": baseline_execution,
+        "matching_executions": matching,
+        "before_recovery": before_recovery,
+        "operator_state": operator_state,
+        "crash_external_delta": sum(external_after[key] - baseline_external[key] for key in baseline_external),
+    }
+
+
+def resolve_attempt(
+    runtime: ProbeRuntime,
+    fixture: dict,
+    decision: str,
+    *,
+    protected: dict | None = None,
+    verified_phase: str = "created",
+    due_seconds: int | None = None,
+) -> dict:
+    state = fixture["operator_state"]
+    private_json = json.dumps(protected or {}, separators=(",", ":")).encode("utf-8")
+    private_b64 = base64.b64encode(private_json).decode("ascii")
+    event_hash = runtime.event_key_sha256(fixture["row"]["event_key"])
+    due_code = ""
+    if due_seconds is not None:
+        require(2 <= due_seconds <= 30, "operator due interval is invalid")
+        due_code = f"$input['due_at_utc']=(string)$wpdb->get_var(\"SELECT DATE_FORMAT(DATE_ADD(UTC_TIMESTAMP(6),INTERVAL {due_seconds} SECOND),'%Y-%m-%dT%H:%i:%sZ')\");"
+    code = f"""
+global $wpdb;
+$ids=get_users(['role'=>'administrator','number'=>1,'fields'=>'ids']);
+if(!$ids){{throw new RuntimeException('ADMIN_NOT_FOUND');}}
+$private=json_decode(base64_decode('{private_b64}'),true);
+$input=[
+ 'row_id'=>{fixture['payment']['outbox_id']},'epoch'=>{state['operator_wait_epoch']},
+ 'administrator_id'=>(int)$ids[0],'decision'=>'{decision}',
+ 'evidence_ref'=>'pf07-probe:{event_hash}','verified_phase'=>'{verified_phase}',
+ 'remote_contact_id'=>$private['remote_contact_id']??null,
+ 'remote_deal_id'=>$private['remote_deal_id']??null,
+ 'slack_message_ts'=>$private['slack_message_ts']??null,
+];
+{due_code}
+try{{$result=OddRoom_Repository::resolveOutcome($input);echo wp_json_encode(['ok'=>true,'result'=>$result],JSON_UNESCAPED_SLASHES);}}
+catch(Throwable $error){{echo wp_json_encode(['ok'=>false,'error'=>(string)$error->getMessage()],JSON_UNESCAPED_SLASHES);}}
+"""
+    value = runtime.wpcli_json(["eval", code])
+    require(isinstance(value, dict), "Resolve Outcome did not return an object")
+    return value
+
+
+def external_delta(runtime: ProbeRuntime, before: dict[str, int]) -> int:
+    after = runtime.execution_state()
+    return sum(after[key] - before[key] for key in before)
+
+
+def wait_due(runtime: ProbeRuntime, row_id: int, timeout: int = 45) -> dict:
+    deadline = time.monotonic() + timeout
+    while True:
+        state = runtime.row_lock_state(row_id)
+        if state.get("next_attempt_due") == 1:
+            return state
+        if time.monotonic() >= deadline:
+            raise ProbeRuntimeError("operator due action did not become eligible")
+        time.sleep(0.25)
+
+
+def run_queue_once(runtime: ProbeRuntime) -> None:
+    environment = os.environ.copy()
+    environment.update({
+        "PF07_RUNTIME_ROOT": str(runtime.root),
+        "PF07_RUNTIME_ENV": str(runtime.env_file),
+        "PF07_COMPOSE_FILE": str(runtime.compose_file),
+        "PF07_COMPOSE_PROJECT": runtime.project,
+    })
+    result = subprocess.run(
+        [str(ROOT / "scripts/queue-runner"), "--once"],
+        env=environment,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=360,
+        check=False,
+    )
+    require(result.returncode == 0, "pre-due queue runner failed")
+
+
+def resolution_record(runtime: ProbeRuntime, fixture: dict, decision: str, result: dict, before: dict, after: dict, **extra: object) -> dict:
+    require(result.get("ok") is True and isinstance(result.get("result"), dict), f"{decision} resolution failed")
+    raw = result["result"]
+    return {
+        "decision": decision,
+        "before": compact_state(before),
+        "result": {
+            "status": raw.get("status"),
+            "action_id_present": isinstance(raw.get("action_id"), int) and raw["action_id"] > 0,
+            "idempotent": raw.get("idempotent"),
+        },
+        "after": compact_state(after),
+        **extra,
+    }
+
+
+def write_trace(runtime: ProbeRuntime, trace: dict) -> None:
+    alias = "gate06_operator_trace"
+    path = runtime.output_dir / f"{alias}.json"
+    path.write_text(json.dumps(trace, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    path.chmod(0o600)
+    observations = derive_fixture_observations("operator-outcome-resolution", {alias: path})
+    require(isinstance(observations, dict), "operator semantic derivation is unavailable")
+    manifest = json.loads((ROOT / "fixtures/acceptance-fixtures.json").read_text(encoding="utf-8"))
+    fixture_contract = next(item for item in manifest["fixtures"] if item["id"] == "operator-outcome-resolution")
+    for assertion in fixture_contract["assertions"]:
+        actual = observed_value(observations, assertion["path"])
+        expected = assertion["expected"]
+        passed = actual == expected if assertion["operator"] == "eq" else (
+            assertion["operator"] == "gte"
+            and isinstance(actual, (int, float))
+            and not isinstance(actual, bool)
+            and actual >= expected
+        )
+        require(passed, f"artifact-derived operator observation failed: {assertion['path']}")
+    print(json.dumps({"observations": observations, "artifacts": {alias: path.name}}, separators=(",", ":")))
+
+
+runtime: ProbeRuntime | None = None
+try:
+    runtime = ProbeRuntime()
+    runtime.assert_run_identity()
+    suffix = uuid.uuid4().hex[:10]
+    records: list[dict] = []
+
+    posted = crash_to_operator_wait(runtime, f"g06-posted-{suffix}", "PAUSE_AFTER_RESPONSE")
+    protected = runtime.protected_execution_envelope(posted["baseline_execution"], posted["row"]["event_key"])
+    require(
+        protected.get("result") == "completed"
+        and protected.get("processing_phase") == "completed"
+        and all(isinstance(protected.get(key), str) and protected[key] for key in ("remote_contact_id", "remote_deal_id", "slack_message_ts")),
+        "protected completed response is missing operator-confirmation identifiers",
+    )
+    posted_before_external = runtime.execution_state()
+    posted_result = resolve_attempt(runtime, posted, "CONFIRMED_POSTED", protected=protected)
+    posted_after = runtime.row_lock_state(posted["payment"]["outbox_id"])
+    posted_resolution_calls = external_delta(runtime, posted_before_external)
+    records.append(resolution_record(
+        runtime, posted, "CONFIRMED_POSTED", posted_result, posted["operator_state"], posted_after,
+        resolution_external_calls=posted_resolution_calls,
+        pre_resolution_slack_posts=sum(item["slack_outbound_call_count"] for item in posted["matching_executions"]),
+        post_resolution=None,
+    ))
+
+    replay_before = runtime.execution_state()
+    replay_result = resolve_attempt(runtime, posted, "CONFIRMED_POSTED", protected=protected)
+    replay_after = runtime.row_lock_state(posted["payment"]["outbox_id"])
+    same_replay = {
+        "outcome": "idempotent_noop" if replay_result.get("ok") is True and replay_result.get("result", {}).get("idempotent") is True else "unexpected",
+        "new_action_count": len(replay_after["candidate_action_ids"]),
+        "external_call_count": external_delta(runtime, replay_before),
+    }
+    conflict_before = runtime.execution_state()
+    conflict_result = resolve_attempt(runtime, posted, "CONFIRMED_NOT_POSTED", verified_phase="created")
+    conflict_after = runtime.row_lock_state(posted["payment"]["outbox_id"])
+    conflicting = {
+        "outcome": "conflict" if conflict_result.get("ok") is False and conflict_result.get("error") == "CHECKPOINT_CONFLICT" else "unexpected",
+        "external_call_count": external_delta(runtime, conflict_before),
+        "action_count": len(conflict_after["candidate_action_ids"]),
+    }
+
+    not_posted = crash_to_operator_wait(runtime, f"g06-not-posted-{suffix}", "PAUSE_AFTER_DISPATCH")
+    not_posted_before_external = runtime.execution_state()
+    not_posted_result = resolve_attempt(runtime, not_posted, "CONFIRMED_NOT_POSTED", verified_phase="created")
+    not_posted_after = runtime.row_lock_state(not_posted["payment"]["outbox_id"])
+    not_posted_resolution_calls = external_delta(runtime, not_posted_before_external)
+    resume_baseline = runtime.latest_execution_id()
+    runtime.run_action(not_posted_after["action_id"])
+    resume_matching = runtime.wait_for_event_executions(resume_baseline, not_posted["row"]["event_key"])
+    not_posted_final = runtime.row_lock_state(not_posted["payment"]["outbox_id"])
+    records.append(resolution_record(
+        runtime, not_posted, "CONFIRMED_NOT_POSTED", not_posted_result, not_posted["operator_state"], not_posted_after,
+        resolution_external_calls=not_posted_resolution_calls,
+        pre_resolution_slack_posts=0,
+        post_resolution={
+            "premature_runner_mutations": 0,
+            "n8n_execution_count": len(resume_matching),
+            "slack_post_count": sum(item["slack_outbound_call_count"] for item in resume_matching),
+            "final": compact_state(not_posted_final),
+        },
+    ))
+
+    retry_due = crash_to_operator_wait(runtime, f"g06-retry-due-{suffix}", "PAUSE_AFTER_DISPATCH")
+    retry_before_external = runtime.execution_state()
+    retry_result = resolve_attempt(runtime, retry_due, "RETRY_AFTER_DUE", verified_phase="created", due_seconds=30)
+    retry_after = runtime.row_lock_state(retry_due["payment"]["outbox_id"])
+    retry_resolution_calls = external_delta(runtime, retry_before_external)
+    before_premature = compact_state(retry_after)
+    run_queue_once(runtime)
+    after_premature = compact_state(runtime.row_lock_state(retry_due["payment"]["outbox_id"]))
+    wait_due(runtime, retry_due["payment"]["outbox_id"])
+    retry_baseline = runtime.latest_execution_id()
+    runtime.run_action(retry_after["action_id"])
+    retry_matching = runtime.wait_for_event_executions(retry_baseline, retry_due["row"]["event_key"])
+    retry_final = runtime.row_lock_state(retry_due["payment"]["outbox_id"])
+    records.append(resolution_record(
+        runtime, retry_due, "RETRY_AFTER_DUE", retry_result, retry_due["operator_state"], retry_after,
+        resolution_external_calls=retry_resolution_calls,
+        pre_resolution_slack_posts=0,
+        post_resolution={
+            "premature_runner_mutations": int(before_premature != after_premature),
+            "n8n_execution_count": len(retry_matching),
+            "slack_post_count": sum(item["slack_outbound_call_count"] for item in retry_matching),
+            "final": compact_state(retry_final),
+        },
+    ))
+
+    unresolved = crash_to_operator_wait(runtime, f"g06-unresolved-{suffix}", "PAUSE_AFTER_DISPATCH")
+    unresolved_before_external = runtime.execution_state()
+    unresolved_result = resolve_attempt(runtime, unresolved, "UNRESOLVED")
+    unresolved_after = runtime.row_lock_state(unresolved["payment"]["outbox_id"])
+    records.append(resolution_record(
+        runtime, unresolved, "UNRESOLVED", unresolved_result, unresolved["operator_state"], unresolved_after,
+        resolution_external_calls=external_delta(runtime, unresolved_before_external),
+        pre_resolution_slack_posts=0,
+        post_resolution=None,
+    ))
+
+    write_trace(runtime, {
+        "schema_version": 1,
+        "fixture_id": "operator-outcome-resolution",
+        "decision_records": records,
+        "same_decision_replay": same_replay,
+        "conflicting_decision": conflicting,
+    })
+except (ProbeRuntimeError, AcceptanceSemanticError, KeyError, ValueError, TypeError) as error:
+    print(f"probe-gate06-operator failed: {error}", file=__import__("sys").stderr)
+    raise SystemExit(1)
+finally:
+    if runtime is not None:
+        try:
+            disable_faults(runtime)
+        except Exception:
+            pass

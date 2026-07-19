@@ -1,0 +1,249 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:oddroom-orderops:payload-schema:1",
+  "title": "OddRoom OrderOps immutable request payload v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "event_key",
+    "shop_instance_id",
+    "run_id",
+    "event_type",
+    "occurred_at_utc",
+    "occurred_at_source",
+    "state_rank",
+    "order"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1"
+    },
+    "event_key": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "pattern": "^v1:pf07-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}:(?:0|[1-9][0-9]{0,18}):(ORDER_CREATED|PAYMENT_CONFIRMED|ORDER_CANCELLED|ORDER_REFUNDED)$"
+    },
+    "shop_instance_id": {
+      "type": "string",
+      "minLength": 41,
+      "maxLength": 41,
+      "pattern": "^pf07-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 36,
+      "maxLength": 36,
+      "format": "uuid",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "ORDER_CREATED",
+        "PAYMENT_CONFIRMED",
+        "ORDER_CANCELLED",
+        "ORDER_REFUNDED"
+      ]
+    },
+    "occurred_at_utc": {
+      "type": "string",
+      "minLength": 20,
+      "maxLength": 20,
+      "format": "date-time",
+      "pattern": "^[1-9][0-9]{3}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    },
+    "occurred_at_source": {
+      "type": "string",
+      "enum": [
+        "date_created",
+        "date_paid",
+        "_oddroom_orderops_cancelled_at_utc",
+        "full_refund_completion"
+      ]
+    },
+    "state_rank": {
+      "type": "integer",
+      "enum": [10, 20, 30, 40]
+    },
+    "order": {
+      "$ref": "#/$defs/order"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "event_type": { "const": "ORDER_CREATED" }
+        },
+        "required": ["event_type"]
+      },
+      "then": {
+        "properties": {
+          "state_rank": { "const": 10 },
+          "occurred_at_source": { "const": "date_created" }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": { "const": "PAYMENT_CONFIRMED" }
+        },
+        "required": ["event_type"]
+      },
+      "then": {
+        "properties": {
+          "state_rank": { "const": 20 },
+          "occurred_at_source": { "const": "date_paid" }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": { "const": "ORDER_CANCELLED" }
+        },
+        "required": ["event_type"]
+      },
+      "then": {
+        "properties": {
+          "state_rank": { "const": 30 },
+          "occurred_at_source": { "const": "_oddroom_orderops_cancelled_at_utc" }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": { "const": "ORDER_REFUNDED" }
+        },
+        "required": ["event_type"]
+      },
+      "then": {
+        "properties": {
+          "state_rank": { "const": 40 },
+          "occurred_at_source": { "const": "full_refund_completion" }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "signed64NonNegative": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9223372036854775807
+    },
+    "money": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]{0,17})\\.[0-9]{2}$"
+    },
+    "customer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["email", "first_name", "last_name"],
+      "properties": {
+        "email": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 254,
+          "pattern": "^[^@\\s]+@example\\.com$"
+        },
+        "first_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "last_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        }
+      }
+    },
+    "item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "item_id",
+        "product_id",
+        "variation_id",
+        "sku",
+        "name",
+        "quantity",
+        "line_total"
+      ],
+      "properties": {
+        "item_id": { "$ref": "#/$defs/signed64NonNegative" },
+        "product_id": { "$ref": "#/$defs/signed64NonNegative" },
+        "variation_id": { "$ref": "#/$defs/signed64NonNegative" },
+        "sku": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 255
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "quantity": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "line_total": { "$ref": "#/$defs/money" }
+      }
+    },
+    "order": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "number",
+        "currency",
+        "total",
+        "customer",
+        "items",
+        "coupon_codes"
+      ],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "number": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "currency": {
+          "type": "string",
+          "const": "KRW",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "total": { "$ref": "#/$defs/money" },
+        "customer": { "$ref": "#/$defs/customer" },
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "items": { "$ref": "#/$defs/item" }
+        },
+        "coupon_codes": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 50,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          }
+        }
+      }
+    }
+  }
+}

@@ -2,23 +2,36 @@
 set -euo pipefail
 
 project_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+runtime_root=${PF07_RUNTIME_ROOT:-$project_root}
 compose_project=${PF07_COMPOSE_PROJECT:-pf07-orderops-original}
 poll_seconds=${PF07_QUEUE_POLL_SECONDS:-5}
 mode=${1:---loop}
+runtime_env=${PF07_RUNTIME_ENV:-$runtime_root/runtime/runtime.env}
+compose_file=${PF07_COMPOSE_FILE:-$runtime_root/infra/compose.yaml}
+webhook_override=${PF07_QUEUE_WEBHOOK_URL_OVERRIDE:-}
 
 [[ "$poll_seconds" =~ ^[1-9][0-9]*$ ]] || { echo "PF07_QUEUE_POLL_SECONDS must be a positive integer" >&2; exit 64; }
 [[ "$mode" == "--loop" || "$mode" == "--once" ]] || { echo "usage: scripts/queue-runner [--loop|--once]" >&2; exit 64; }
+[[ -f "$runtime_env" && -f "$compose_file" ]] || { echo "PF07 runtime env or Compose file is missing" >&2; exit 66; }
+if [[ -n "$webhook_override" && ! "$webhook_override" =~ ^http://[a-z0-9][a-z0-9-]{0,62}:[1-9][0-9]{0,4}/webhook/oddroom-orderops-v1$ ]]; then
+  echo "PF07_QUEUE_WEBHOOK_URL_OVERRIDE must be an exact private-container PF07 webhook URL" >&2
+  exit 64
+fi
 
 compose=(
   docker compose
-  --env-file "$project_root/runtime/runtime.env"
-  -f "$project_root/infra/compose.yaml"
+  --env-file "$runtime_env"
+  -f "$compose_file"
   -p "$compose_project"
 )
+wpcli_environment=()
+if [[ -n "$webhook_override" ]]; then
+  wpcli_environment=(-e "ODDROOM_WEBHOOK_URL=$webhook_override")
+fi
 
 run_once() {
-  "${compose[@]}" --profile tools run --rm wpcli oddroom-orderops recover
-  "${compose[@]}" --profile tools run --rm wpcli action-scheduler run \
+  "${compose[@]}" --profile tools run --rm "${wpcli_environment[@]}" wpcli oddroom-orderops recover
+  "${compose[@]}" --profile tools run --rm "${wpcli_environment[@]}" wpcli action-scheduler run \
     --hooks=oddroom_orderops_process \
     --batch-size=25 \
     --batches=1 \

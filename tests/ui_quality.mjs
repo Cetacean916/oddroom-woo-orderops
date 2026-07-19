@@ -6,6 +6,7 @@ const baseUrl = (process.env.PF07_BASE_URL || '').replace(/\/$/, '');
 if (!/^https?:\/\//.test(baseUrl)) {
   throw new Error('PF07_BASE_URL must identify the staging storefront.');
 }
+const adminBaseUrl = (process.env.PF07_ADMIN_BASE_URL || '').replace(/\/$/, '');
 
 const viewports = [390, 768, 1440];
 const routes = [
@@ -33,7 +34,10 @@ const browser = await chromium.launch({
 evidence.toolchain.chrome = browser.version();
 
 for (const width of viewports) {
-  const context = await browser.newContext({ viewport: { width, height: 1000 } });
+  const context = await browser.newContext({
+    viewport: { width, height: 1000 },
+    extraHTTPHeaders: { 'ngrok-skip-browser-warning': 'pf07-validation' },
+  });
   const page = await context.newPage();
   page.setDefaultTimeout(15000);
   let consoleErrors = [];
@@ -74,33 +78,96 @@ for (const width of viewports) {
     await page.evaluate(async () => { if (document.fonts) await document.fonts.ready; });
     const metrics = await page.evaluate(() => {
       const root = document.documentElement;
+      const visible = (element) => {
+        const style = getComputedStyle(element);
+        const box = element.getBoundingClientRect();
+        const closedDetails = element.closest('details:not([open])');
+        return style.display !== 'none'
+          && style.visibility !== 'hidden'
+          && Number.parseFloat(style.opacity || '1') > 0
+          && box.width > 0
+          && box.height > 0
+          && !closedDetails
+          && !element.matches('.oddroom-skip:not(:focus)')
+          && !element.closest('[aria-hidden="true"],[hidden],[inert]');
+      };
       const images = [...document.images].map((image) => ({
         complete: image.complete,
         natural_width: image.naturalWidth,
         alt_present: image.hasAttribute('alt'),
+        placeholder_marker: /placeholder/i.test(`${image.currentSrc} ${image.alt}`),
       }));
       const controls = [...document.querySelectorAll('a[href],button,input:not([type=hidden]),select,textarea,[role=button]')]
-        .filter((element) => {
-          const style = getComputedStyle(element);
-          return style.display !== 'none'
-            && style.visibility !== 'hidden'
-            && !element.closest('[aria-hidden="true"],[hidden],[inert]');
-        });
+        .filter(visible);
       const clipped = controls.filter((element) => {
         const box = element.getBoundingClientRect();
         return box.width > 0 && (box.left < -1 || box.right > root.clientWidth + 1);
       }).length;
+      let overlappingControls = 0;
+      for (let leftIndex = 0; leftIndex < controls.length; leftIndex += 1) {
+        for (let rightIndex = leftIndex + 1; rightIndex < controls.length; rightIndex += 1) {
+          const left = controls[leftIndex];
+          const right = controls[rightIndex];
+          if (left.contains(right) || right.contains(left)) continue;
+          const sameComposite = ['.woocommerce-product-gallery', '.password-input']
+            .some((selector) => left.closest(selector) && left.closest(selector) === right.closest(selector));
+          if (sameComposite) continue;
+          const leftBox = left.getBoundingClientRect();
+          const rightBox = right.getBoundingClientRect();
+          const overlapWidth = Math.min(leftBox.right, rightBox.right) - Math.max(leftBox.left, rightBox.left);
+          const overlapHeight = Math.min(leftBox.bottom, rightBox.bottom) - Math.max(leftBox.top, rightBox.top);
+          if (overlapWidth > 2 && overlapHeight > 2) overlappingControls += 1;
+        }
+      }
+      const accessibleName = (element) => {
+        const id = element.getAttribute('id');
+        const explicitLabel = id ? document.querySelector(`label[for="${CSS.escape(id)}"]`) : null;
+        const labelledBy = (element.getAttribute('aria-labelledby') || '')
+          .split(/\s+/)
+          .filter(Boolean)
+          .map((labelId) => document.getElementById(labelId)?.innerText || '')
+          .join(' ');
+        return [
+          element.getAttribute('aria-label'),
+          element.getAttribute('title'),
+          element.getAttribute('alt'),
+          labelledBy,
+          explicitLabel?.innerText,
+          element.closest('label')?.innerText,
+          element.querySelector('img[alt]')?.getAttribute('alt'),
+          element.innerText,
+          element.value && ['button', 'submit'].includes(element.type) ? element.value : '',
+        ].some((value) => typeof value === 'string' && value.trim() !== '');
+      };
+      const unlabeledControls = controls.filter((element) => !accessibleName(element)).length;
+      const keyboardInoperableControls = controls.filter((element) => {
+        const native = ['A', 'BUTTON', 'INPUT', 'SELECT', 'TEXTAREA'].includes(element.tagName);
+        return !native && element.getAttribute('role') === 'button' && element.tabIndex < 0;
+      }).length;
+      const bodyText = document.body.innerText;
+      const internalCopyPattern = /lorem ipsum|\bTODO\b|Product proof surface|Synthetic catalog|Cart rehearsal|No-funds checkout|Synthetic order account|Store fixtures are being prepared|\bUncategorized\b/i;
       return {
         client_width: root.clientWidth,
         scroll_width: root.scrollWidth,
         body_scroll_width: document.body.scrollWidth,
         page_overflow_px: Math.max(root.scrollWidth, document.body.scrollWidth) - root.clientWidth,
+        document_language: document.documentElement.lang,
+        korean_locale: /^ko(?:-|_)/i.test(document.documentElement.lang),
         image_count: images.length,
         broken_image_count: images.filter((image) => !image.complete || image.natural_width < 1).length,
         image_without_alt_count: images.filter((image) => !image.alt_present).length,
+        placeholder_asset_count: images.filter((image) => image.placeholder_marker).length,
         visible_control_count: controls.length,
         horizontally_clipped_control_count: clipped,
-        forbidden_copy: /lorem ipsum|\bTODO\b/i.test(document.body.innerText),
+        overlapping_control_count: overlappingControls,
+        unlabeled_control_count: unlabeledControls,
+        keyboard_inoperable_control_count: keyboardInoperableControls,
+        unresolved_skeleton_count: document.querySelectorAll('.wc-block-components-skeleton__element,.wc-block-components-skeleton--checkout-payment').length,
+        required_font_load_failures: [
+          document.fonts?.check('16px "OddRoom Sans"') === false,
+          document.fonts?.check('24px "OddRoom Display"') === false,
+        ].filter(Boolean).length,
+        forbidden_copy: internalCopyPattern.test(bodyText),
       };
     });
     const axe = await new AxeBuilder({ page }).analyze();
@@ -130,7 +197,14 @@ for (const width of viewports) {
       || !observation.expected_path_reached
       || observation.page_overflow_px > 1
       || observation.broken_image_count > 0
+      || observation.placeholder_asset_count > 0
       || observation.horizontally_clipped_control_count > 0
+      || observation.overlapping_control_count > 0
+      || observation.unlabeled_control_count > 0
+      || observation.keyboard_inoperable_control_count > 0
+      || observation.unresolved_skeleton_count > 0
+      || observation.required_font_load_failures > 0
+      || !observation.korean_locale
       || observation.forbidden_copy
       || observation.critical_or_serious.length > 0
       || observation.console_errors.length > 0
@@ -143,30 +217,65 @@ for (const width of viewports) {
 
 const adminUser = process.env.PF07_ADMIN_USER || '';
 const passwordFile = process.env.PF07_ADMIN_PASSWORD_FILE || '';
+if ([adminUser, passwordFile, adminBaseUrl].some(Boolean)
+  && ![adminUser, passwordFile, adminBaseUrl].every(Boolean)) {
+  throw new Error('PF07_ADMIN_BASE_URL, PF07_ADMIN_USER, and PF07_ADMIN_PASSWORD_FILE must be supplied together.');
+}
+if (adminBaseUrl && !/^http:\/\/(?:127\.0\.0\.1|localhost|\[::1\])(?::[1-9][0-9]{0,4})?$/.test(adminBaseUrl)) {
+  throw new Error('PF07_ADMIN_BASE_URL must identify a loopback-only HTTP origin.');
+}
 if (adminUser && passwordFile) {
   const password = fs.readFileSync(passwordFile, 'utf8').trim();
   for (const width of viewports) {
-    const context = await browser.newContext({ viewport: { width, height: 1000 } });
+    const context = await browser.newContext({
+      viewport: { width, height: 1000 },
+      extraHTTPHeaders: { 'X-OddRoom-Private-Admin': 'loopback' },
+    });
     const page = await context.newPage();
     page.setDefaultTimeout(15000);
     const consoleErrors = [];
     page.on('console', (message) => {
       if (message.type() === 'error') consoleErrors.push(message.text());
     });
-    await page.goto(`${baseUrl}/wp-login.php`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${adminBaseUrl}/wp-login.php`, { waitUntil: 'domcontentloaded' });
     await page.fill('#user_login', adminUser);
     await page.fill('#user_pass', password);
     await Promise.all([
       page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
       page.click('#wp-submit'),
     ]);
-    const response = await page.goto(`${baseUrl}/wp-admin/admin.php?page=oddroom-orderops`, { waitUntil: 'networkidle' });
+    const response = await page.goto(`${adminBaseUrl}/wp-admin/admin.php?page=oddroom-orderops`, { waitUntil: 'networkidle' });
     await page.locator('.oddroom-orderops').waitFor();
     await page.evaluate(async () => { if (document.fonts) await document.fonts.ready; });
     const metrics = await page.evaluate(() => {
       const root = document.querySelector('.oddroom-orderops');
       const scroller = root.querySelector('.oddroom-table-wrap');
-      const buttons = [...root.querySelectorAll('button,input[type=submit],a.button')];
+      const buttons = [...root.querySelectorAll('button,input[type=submit],a.button')].filter((button) => {
+        const style = getComputedStyle(button);
+        const box = button.getBoundingClientRect();
+        return style.display !== 'none'
+          && style.visibility !== 'hidden'
+          && box.width > 0
+          && box.height > 0
+          && !button.closest('details:not([open])')
+          && !button.closest('[aria-hidden="true"],[hidden],[inert]');
+      });
+      let overlappingActions = 0;
+      for (let leftIndex = 0; leftIndex < buttons.length; leftIndex += 1) {
+        for (let rightIndex = leftIndex + 1; rightIndex < buttons.length; rightIndex += 1) {
+          const left = buttons[leftIndex];
+          const right = buttons[rightIndex];
+          if (left.contains(right) || right.contains(left)) continue;
+          const leftBox = left.getBoundingClientRect();
+          const rightBox = right.getBoundingClientRect();
+          const overlapWidth = Math.min(leftBox.right, rightBox.right) - Math.max(leftBox.left, rightBox.left);
+          const overlapHeight = Math.min(leftBox.bottom, rightBox.bottom) - Math.max(leftBox.top, rightBox.top);
+          if (overlapWidth > 2 && overlapHeight > 2) overlappingActions += 1;
+        }
+      }
+      const unlabeledActions = buttons.filter((button) => ![
+        button.getAttribute('aria-label'), button.getAttribute('title'), button.innerText, button.value,
+      ].some((value) => typeof value === 'string' && value.trim() !== '')).length;
       return {
         root_selector: '.oddroom-orderops',
         document_client_width: document.documentElement.clientWidth,
@@ -177,6 +286,8 @@ if (adminUser && passwordFile) {
         table_overflow_contained: scroller.scrollWidth > scroller.clientWidth
           && document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
         protected_action_count: buttons.length,
+        overlapping_protected_action_count: overlappingActions,
+        unlabeled_protected_action_count: unlabeledActions,
         horizontally_clipped_action_count: buttons.filter((button) => {
           const box = button.getBoundingClientRect();
           const ownerScroller = button.closest('.oddroom-table-wrap');
@@ -207,6 +318,8 @@ if (adminUser && passwordFile) {
     if (observation.http_status !== 200
       || !observation.table_overflow_contained
       || observation.horizontally_clipped_action_count > 0
+      || observation.overlapping_protected_action_count > 0
+      || observation.unlabeled_protected_action_count > 0
       || observation.critical_or_serious.length > 0
       || observation.console_errors.length > 0) {
       evidence.failures.push({ surface: 'admin', viewport_width: width });

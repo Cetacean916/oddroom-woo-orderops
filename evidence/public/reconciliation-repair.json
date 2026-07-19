@@ -2,9 +2,9 @@
   "schema_version": "1",
   "acceptance_id": "GATE-08",
   "run_id": "PF07-ACCEPTANCE-RUN",
-  "started_at": "2026-07-18T22:58:06.766213Z",
-  "finished_at": "2026-07-18T22:59:06.872611Z",
-  "source_tree_sha256": "87300de2b289766dd0c7cb458912f4f636cda76bfe9879d25e0c9c239a32d603",
+  "started_at": "2026-07-19T16:06:53Z",
+  "finished_at": "2026-07-19T16:07:47Z",
+  "source_tree_sha256": "4c80be861524363d89a47c49b9c017bea9a7a64ff5f603a9212219c39f136a83",
   "command_or_probe": "recorded redaction of protected acceptance observation",
   "exit_code": 0,
   "observations": {
@@ -16,22 +16,18 @@
     "first_scan_scheduled_missing_rows": 4,
     "second_scan_mutations": 0,
     "payload_mutations": 0,
-    "protected_cancellation_fact_used": true,
-    "source_tree_binding": "DOCUMENTATION_ONLY_REBIND_EXECUTABLE_BYTES_UNCHANGED"
+    "protected_cancellation_fact_used": true
   },
   "artifact_hashes": {},
   "redaction_state": "PUBLIC_REDACTED",
   "redaction_transform": {
     "id": "pf07-public-evidence-redaction",
     "version": "1",
-    "script_sha256": "79e626c47a9d60bcc12ec333c311eb945ffb997dd671ce186574979da7504049"
+    "script_sha256": "3b0acb03398ab18e38428adda75db3f870fe52510093067c4fcd59061830cd46"
   },
   "source_acceptance_id": "GATE-08",
-  "source_record_sha256": "67fda77d4a44be971d327655a0472e97b97a36fbf786214cdce39cd4850cacbc",
+  "source_record_sha256": "4f90f98dbdc912d2b9542cecac30bcbf9e2b147b53785c15795d3605402fef63",
   "source_artifact_hashes": {
-    "reconciliation_first_trace": "f4ae65592ab5e2505d92d432450cd86c812c225e4ba60970e0cf35bb5588dc3e",
-    "reconciliation_second_trace": "f4ae65592ab5e2505d92d432450cd86c812c225e4ba60970e0cf35bb5588dc3e",
-    "schedule_repair_trace": "dda334e6bd64200c196d91b07ebcd3db51d733b40520a60ae70a29026305e59c",
-    "source_tree_rebind": "70dd63bf2d103cee5d1f39cef1027ab93445d98301784290977843cd1275b943"
+    "gate08_reconciliation_trace": "5706fd3c15e87bfa1fa8b967b1c41234ded916c31f9bf80e1ffc1b4309552f83"
   }
 }

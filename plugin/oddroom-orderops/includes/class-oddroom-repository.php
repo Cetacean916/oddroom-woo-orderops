@@ -49,7 +49,7 @@ final class OddRoom_Repository
                 'sku' => $product ? (string) $product->get_sku() : 'unknown-' . (int) $itemId,
                 'name' => (string) $item->get_name(),
                 'quantity' => (int) $item->get_quantity(),
-                'line_total' => number_format((float) $item->get_total(), 2, '.', ''),
+                'line_total' => OddRoom_Canonical_Payload::normalizeMoney((string) $item->get_total()),
             ];
         }
         if ($items === []) {
@@ -67,7 +67,7 @@ final class OddRoom_Repository
                 'id' => $orderId,
                 'number' => (string) $order->get_order_number(),
                 'currency' => strtoupper((string) $order->get_currency()),
-                'total' => number_format((float) $order->get_total(), 2, '.', ''),
+                'total' => OddRoom_Canonical_Payload::normalizeMoney((string) $order->get_total()),
                 'customer' => [
                     'email' => strtolower((string) $order->get_billing_email()),
                     'first_name' => (string) $order->get_billing_first_name(),
@@ -146,6 +146,19 @@ final class OddRoom_Repository
         )));
     }
 
+    public static function linkedEligibleRows(int $limit): array
+    {
+        global $wpdb;
+        $table = OddRoom_Installer::outboxTable();
+        return $wpdb->get_results($wpdb->prepare(
+            "SELECT id, status, action_id, next_attempt_at FROM {$table}
+             WHERE action_id IS NOT NULL AND lock_token IS NULL
+               AND (status = 'pending' OR status = 'retry_wait')
+             ORDER BY id ASC LIMIT %d",
+            $limit
+        ));
+    }
+
     public static function linkAction(int $rowId, int $actionId): bool
     {
         global $wpdb;
@@ -155,10 +168,24 @@ final class OddRoom_Repository
                     last_error = CASE WHEN error_code LIKE 'ACTION_%' THEN NULL ELSE last_error END,
                     error_code = CASE WHEN error_code LIKE 'ACTION_%' THEN NULL ELSE error_code END,
                     updated_at = UTC_TIMESTAMP(6)
-             WHERE id = %d AND action_id IS NULL
+             WHERE id = %d AND action_id IS NULL AND lock_token IS NULL
                AND (status = 'pending' OR status = 'retry_wait')",
             $actionId,
             $rowId
+        ));
+        return $updated === 1;
+    }
+
+    public static function unlinkFinishedEligibleAction(int $rowId, int $actionId): bool
+    {
+        global $wpdb;
+        $table = OddRoom_Installer::outboxTable();
+        $updated = $wpdb->query($wpdb->prepare(
+            "UPDATE {$table} SET action_id = NULL, updated_at = UTC_TIMESTAMP(6)
+             WHERE id = %d AND action_id = %d AND lock_token IS NULL
+               AND (status = 'pending' OR status = 'retry_wait')",
+            $rowId,
+            $actionId
         ));
         return $updated === 1;
     }
@@ -211,6 +238,7 @@ final class OddRoom_Repository
         $leases = OddRoom_Installer::leaseTable();
         $rowToken = bin2hex(random_bytes(32));
         $leaseToken = bin2hex(random_bytes(32));
+        $leaseSeconds = self::leaseSeconds();
 
         $wpdb->query('START TRANSACTION');
         try {
@@ -226,12 +254,6 @@ final class OddRoom_Repository
                 return null;
             }
 
-            $wpdb->query($wpdb->prepare(
-                "DELETE FROM {$leases} WHERE shop_instance_id = %s AND order_id = %d
-                 AND expires_at <= UTC_TIMESTAMP(6)",
-                $row->shop_instance_id,
-                (int) $row->order_id
-            ));
             $leaseInserted = $wpdb->query($wpdb->prepare(
                 "INSERT IGNORE INTO {$leases}
                  (shop_instance_id,order_id,lease_token,holder_outbox_id,holder_action_id,
@@ -244,7 +266,7 @@ final class OddRoom_Repository
                 $rowId,
                 $actionId,
                 $rowToken,
-                self::LEASE_SECONDS
+                $leaseSeconds
             ));
             if ($leaseInserted !== 1) {
                 $wpdb->query('ROLLBACK');
@@ -266,7 +288,7 @@ final class OddRoom_Repository
                  WHERE id = %d AND action_id = %d AND lock_token IS NULL
                    AND (status = 'pending' OR (status = 'retry_wait' AND next_attempt_at <= UTC_TIMESTAMP(6)))",
                 $rowToken,
-                self::LEASE_SECONDS,
+                $leaseSeconds,
                 $automaticIncrement,
                 $rowId,
                 $actionId
@@ -289,13 +311,14 @@ final class OddRoom_Repository
         global $wpdb;
         $outbox = OddRoom_Installer::outboxTable();
         $leases = OddRoom_Installer::leaseTable();
+        $leaseSeconds = self::leaseSeconds();
         $wpdb->query('START TRANSACTION');
         try {
             $leaseUpdated = $wpdb->query($wpdb->prepare(
                 "UPDATE {$leases} SET expires_at = DATE_ADD(UTC_TIMESTAMP(6), INTERVAL %d SECOND)
                  WHERE shop_instance_id = %s AND order_id = %d AND lease_token = %s
                    AND holder_outbox_id = %d AND holder_action_id = %d AND holder_row_lock_token = %s",
-                self::LEASE_SECONDS,
+                $leaseSeconds,
                 $row->shop_instance_id,
                 (int) $row->order_id,
                 $leaseToken,
@@ -310,7 +333,7 @@ final class OddRoom_Repository
                      updated_at = UTC_TIMESTAMP(6)
                  WHERE id = %d AND lock_token = %s AND status = 'processing'
                    AND adapter_dispatch_state = 'not_started' AND adapter_dispatch_attempt = attempt_count",
-                self::LEASE_SECONDS,
+                $leaseSeconds,
                 (int) $row->id,
                 $rowToken
             ));
@@ -450,6 +473,31 @@ final class OddRoom_Repository
             'slack_message_ts' => self::nullableString($claimedRow->slack_message_ts),
             'retryable' => true,
             'retry_after_seconds' => $retryAfter,
+            'error_code' => $code,
+            'error_message' => $message,
+        ];
+        return self::finish($claimedRow, $rowToken, $leaseToken, $result, $httpStatus);
+    }
+
+    public static function terminalResponseFailure(
+        object $claimedRow,
+        string $rowToken,
+        string $leaseToken,
+        string $code,
+        string $message,
+        int $httpStatus
+    ): array {
+        $result = [
+            'schema_version' => '1',
+            'event_key' => (string) $claimedRow->event_key,
+            'result' => 'terminal_error',
+            'processing_phase' => (string) $claimedRow->processing_phase,
+            'remote_contact_id' => self::nullableString($claimedRow->remote_contact_id),
+            'remote_deal_id' => self::nullableString($claimedRow->remote_deal_id),
+            'slack_status' => (string) $claimedRow->slack_status,
+            'slack_message_ts' => self::nullableString($claimedRow->slack_message_ts),
+            'retryable' => false,
+            'retry_after_seconds' => null,
             'error_code' => $code,
             'error_message' => $message,
         ];
@@ -789,6 +837,21 @@ final class OddRoom_Repository
         return filter_var(getenv('ODDROOM_TEST_MODE'), FILTER_VALIDATE_BOOLEAN);
     }
 
+    private static function leaseSeconds(): int
+    {
+        if (!self::testMode()) {
+            return self::LEASE_SECONDS;
+        }
+        $raw = trim((string) getenv('ODDROOM_TEST_LEASE_SECONDS'));
+        if ($raw === '') {
+            return self::LEASE_SECONDS;
+        }
+        if (preg_match('/\A(?:[1-9]|[1-9][0-9]|[1-5][0-9]{2}|600)\z/D', $raw) !== 1) {
+            throw new RuntimeException('ODDROOM_TEST_LEASE_SECONDS must be an integer from 1 through 600.');
+        }
+        return (int) $raw;
+    }
+
     private static function transitionFor(object $row, array $result): array
     {
         $kind = (string) $result['result'];
@@ -869,11 +932,11 @@ final class OddRoom_Repository
             (int) $claimedRow->action_id,
             $rowToken
         ));
-        if ($updated === 1 && $released === 1) {
-            $wpdb->query('COMMIT');
-        } else {
+        if ($updated !== 1 || $released !== 1) {
             $wpdb->query('ROLLBACK');
+            throw new RuntimeException('LOCK_LOST');
         }
+        $wpdb->query('COMMIT');
     }
 
     private static function isDue(string $date): bool

@@ -43,12 +43,15 @@ if "release/public-allowlist.json" not in paths or "scripts/build-public-release
 forbidden_roots = ("evidence/raw", "runtime", "backup", "backups", "credentials", ".git")
 forbidden_exact = {".env", "reports/FINAL-REPORT.md"}
 allowed_suffixes = {
-    ".conf", ".css", ".example", ".jpg", ".js", ".json", ".md", ".mjs", ".php",
+    ".conf", ".css", ".dockerfile", ".example", ".jpg", ".js", ".json", ".md", ".mjs", ".php",
     ".py", ".sha256", ".svg", ".txt", ".woff2", ".yaml", ".yml",
 }
 allowed_names = {
     ".env.example", ".gitignore", "LICENSE", "ci", "build-public-release",
-    "build-workflow", "generate-public-evidence", "queue-runner",
+    "build-workflow", "collect-evidence", "derive-gate06-linked-evidence", "generate-public-evidence",
+    "probe-clean-restore", "probe-core-acceptance", "probe-gate06", "probe-gate06-lease",
+    "probe-gate06-operator", "probe-gate09-compatibility", "probe-gate09-product-quality",
+    "queue-runner", "run",
     "runtime-import-credentials", "runtime-materialize", "runtime-wp-install",
     "validate-all", "validate-public", "validate-ui",
 }

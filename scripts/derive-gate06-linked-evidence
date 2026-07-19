@@ -1,0 +1,264 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import fcntl
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import shutil
+import subprocess
+import tempfile
+
+
+ROOT = Path(__file__).resolve().parent.parent
+RAW_ROOT = ROOT / "evidence/raw"
+OUTAGE_RECORD = RAW_ROOT / "outage-retry.json"
+INVENTORY_PATH = RAW_ROOT / "protected-artifact-inventory.json"
+FIXTURE_RUNNER = ROOT / "fixtures/run"
+
+
+def fail(message: str) -> None:
+    raise SystemExit(f"FAIL: {message}")
+
+
+def load_json(path: Path) -> dict:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        fail(f"cannot read {path.name}: {error}")
+    if not isinstance(value, dict):
+        fail(f"JSON root is not an object: {path.name}")
+    return value
+
+
+def sha256_file(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def write_record(path: Path, value: dict) -> None:
+    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    path.chmod(0o600)
+
+
+parser = argparse.ArgumentParser(description="Derive linked GATE-06 exhaustion and GATE-07 records from one semantically verified live probe.")
+parser.add_argument("--replace", action="store_true")
+args = parser.parse_args()
+
+targets = [RAW_ROOT / "retry-exhaustion.json", RAW_ROOT / "partial-failure-recovery.json"]
+
+semantic = subprocess.run(
+    [str(FIXTURE_RUNNER), "--protected", "--fixture", "outage-retry"],
+    cwd=ROOT,
+    text=True,
+    stdout=subprocess.PIPE,
+    stderr=subprocess.PIPE,
+    check=False,
+)
+if semantic.returncode != 0:
+    fail("current GATE-06 protected artifact semantics did not validate")
+
+outage = load_json(OUTAGE_RECORD)
+inventory_document = load_json(INVENTORY_PATH)
+inventory = inventory_document.get("artifacts")
+if (
+    outage.get("acceptance_id") != "GATE-06"
+    or outage.get("redaction_state") != "RAW_PROTECTED"
+    or outage.get("exit_code") != 0
+    or not re.fullmatch(r"[0-9a-f]{64}", str(outage.get("source_tree_sha256", "")))
+    or not isinstance(inventory, dict)
+):
+    fail("canonical GATE-06 source record or inventory is invalid")
+
+artifact_paths: dict[str, Path] = {}
+for alias in ("exhaustion_attempt_trace", "slack_checkpoint_trace"):
+    item = inventory.get(alias)
+    if not isinstance(item, dict) or not isinstance(item.get("path"), str):
+        fail(f"protected artifact inventory is missing {alias}")
+    path = RAW_ROOT / item["path"]
+    expected = outage.get("artifact_hashes", {}).get(alias)
+    if not path.is_file() or sha256_file(path) != expected or item.get("sha256") != expected:
+        fail(f"protected artifact commitment failed: {alias}")
+    artifact_paths[alias] = path
+
+attempt_entries = []
+for line_number, line in enumerate(artifact_paths["exhaustion_attempt_trace"].read_text(encoding="utf-8").splitlines(), start=1):
+    try:
+        value = json.loads(line)
+    except json.JSONDecodeError as error:
+        fail(f"attempt trace JSONL failed at line {line_number}: {error.msg}")
+    if not isinstance(value, dict):
+        fail(f"attempt trace entry is not an object at line {line_number}")
+    attempt_entries.append(value)
+
+automatic = [entry for entry in attempt_entries if entry.get("scenario") == "exhaustion"]
+manual = [entry for entry in attempt_entries if entry.get("scenario") == "manual_retry"]
+if len(automatic) != 6 or len(manual) != 1:
+    fail("semantically validated attempt trace cardinality changed")
+automatic_states = [entry["state"] for entry in automatic]
+manual_state = manual[0]["state"]
+
+slack = load_json(artifact_paths["slack_checkpoint_trace"])
+first_state = slack.get("first_state")
+final_state = slack.get("final_state")
+executions = slack.get("n8n_executions")
+if not isinstance(first_state, dict) or not isinstance(final_state, dict) or not isinstance(executions, list):
+    fail("semantically validated Slack trace shape changed")
+
+base = {
+    "schema_version": "1",
+    "run_id": outage["run_id"],
+    "started_at": outage["started_at"],
+    "finished_at": outage["finished_at"],
+    "source_tree_sha256": outage["source_tree_sha256"],
+    "exit_code": 0,
+    "redaction_state": "RAW_PROTECTED",
+}
+
+retry_record = {
+    **base,
+    "acceptance_id": "GATE-06-EXHAUSTION",
+    "command_or_probe": "scripts/derive-gate06-linked-evidence --replace",
+    "observations": {
+        "result": "PASS",
+        "terminal_automatic_attempts": automatic_states[-1]["automatic_attempt_count"],
+        "retry_delays_seconds": [state["scheduled_delay_seconds"] for state in automatic_states[:-1]],
+        "automatic_action_ids_distinct": len({entry["action_id"] for entry in automatic}) == 6,
+        "terminal_error": automatic_states[-1]["error_code"],
+        "follow_up_actions": len(automatic_states[-1]["candidate_action_ids"]),
+        "manual_attempt_count_greater_than_automatic": manual_state["attempt_count"] > manual_state["automatic_attempt_count"],
+        "manual_total_attempt_count": manual_state["attempt_count"],
+        "manual_automatic_attempt_count": manual_state["automatic_attempt_count"],
+        "manual_retry_count": manual_state["manual_retry_count"],
+        "manual_terminal_error": manual_state["error_code"],
+        "manual_terminal_follow_up_actions": len(manual_state["candidate_action_ids"]),
+        "immutable_payload_preserved": len({state["payload_hash"] for state in automatic_states + [manual_state]}) == 1,
+        "residual_lock_or_lease_count": sum(
+            int(bool(state["lock_present"])) + int(state["order_lease_count"])
+            for state in automatic_states + [manual_state]
+        ),
+    },
+    "artifact_hashes": {
+        "exhaustion_attempt_trace": outage["artifact_hashes"]["exhaustion_attempt_trace"],
+    },
+}
+
+partial_record = {
+    **base,
+    "acceptance_id": "GATE-07",
+    "command_or_probe": "scripts/derive-gate06-linked-evidence --replace",
+    "observations": {
+        "result": "PASS",
+        "first_phase": first_state["phase"],
+        "first_slack_posts": executions[0]["slack_outbound_call_count"],
+        "crm_checkpoints_persisted_before_retry": bool(first_state["contact_checkpoint_sha256"] and first_state["deal_checkpoint_sha256"]),
+        "same_immutable_payload": first_state["payload_hash"] == final_state["payload_hash"] == slack["payload_hash"],
+        "retry_resume_phase": first_state["phase"],
+        "distinct_followup_action": slack["distinct_followup_action"],
+        "n8n_execution_count": len(executions),
+        "final_slack_posts": executions[1]["slack_outbound_call_count"],
+        "total_slack_posts": slack["total_slack_outbound_call_count"],
+        "stored_slack_timestamp_count": int(final_state["slack_timestamp_sha256"] is not None),
+        "checkpoint_overwrites": int(first_state["contact_checkpoint_sha256"] != final_state["contact_checkpoint_sha256"])
+        + int(first_state["deal_checkpoint_sha256"] != final_state["deal_checkpoint_sha256"]),
+        "residual_action_or_lock_count": len(final_state["candidate_action_ids"])
+        + int(final_state["action_id"] is not None)
+        + int(bool(final_state["lock_present"]))
+        + int(final_state["order_lease_count"]),
+    },
+    "artifact_hashes": {
+        "slack_checkpoint_trace": outage["artifact_hashes"]["slack_checkpoint_trace"],
+    },
+}
+
+collector_output_raw = os.environ.get("PF07_EVIDENCE_OUTPUT_DIR", "")
+if collector_output_raw:
+    fixture_id = os.environ.get("PF07_FIXTURE_ID", "")
+    if fixture_id not in {"retry-exhaustion", "partial-failure-recovery"}:
+        fail("collector fixture identity is invalid for linked GATE-06 evidence")
+    output_dir = Path(collector_output_raw).resolve()
+    if not output_dir.is_dir():
+        fail("PF07_EVIDENCE_OUTPUT_DIR is unavailable")
+    if fixture_id == "retry-exhaustion":
+        selected = retry_record
+        alias = "exhaustion_attempt_trace"
+    else:
+        selected = partial_record
+        alias = "slack_checkpoint_trace"
+    source = artifact_paths[alias]
+    destination = output_dir / source.name
+    shutil.copyfile(source, destination)
+    destination.chmod(0o600)
+    observations = {key: value for key, value in selected["observations"].items() if key != "result"}
+    print(json.dumps({"observations": observations, "artifacts": {alias: destination.name}}, separators=(",", ":")))
+    raise SystemExit(0)
+
+lock_path = RAW_ROOT.parent / ".collect-evidence.lock"
+lock_file = lock_path.open("a+", encoding="utf-8")
+lock_path.chmod(0o600)
+fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+if not args.replace and any(path.exists() for path in targets):
+    fail("linked canonical records already exist; preserve a formal preimage before explicit --replace")
+
+scratch_root = Path(os.environ.get("PF07_SCRATCH_ROOT", tempfile.gettempdir()))
+scratch_root.mkdir(parents=True, exist_ok=True)
+with tempfile.TemporaryDirectory(prefix="pf07-gate06-derive-", dir=scratch_root) as temporary:
+    stage_root = Path(temporary) / "stage"
+    rollback_root = Path(temporary) / "rollback"
+    stage_root.mkdir(mode=0o700)
+    rollback_root.mkdir(mode=0o700)
+    staged: dict[Path, Path] = {}
+    for index, (target, record) in enumerate(zip(targets, (retry_record, partial_record), strict=True)):
+        stage = stage_root / f"record-{index}.json"
+        write_record(stage, record)
+        staged[target] = stage
+
+    future_hashes: dict[Path, str] = {}
+    for path in sorted(RAW_ROOT.rglob("*")):
+        if path.is_file() and path.name != "evidence-manifest.sha256" and path not in staged:
+            future_hashes[path] = sha256_file(path)
+    for destination, stage in staged.items():
+        future_hashes[destination] = sha256_file(stage)
+    manifest_path = RAW_ROOT / "evidence-manifest.sha256"
+    manifest_stage = stage_root / manifest_path.name
+    manifest_stage.write_text(
+        "\n".join(
+            f"{digest}  {path.relative_to(ROOT).as_posix()}"
+            for path, digest in sorted(future_hashes.items(), key=lambda item: item[0].as_posix())
+        ) + "\n",
+        encoding="utf-8",
+    )
+    manifest_stage.chmod(0o600)
+    staged[manifest_path] = manifest_stage
+
+    backups: dict[Path, Path | None] = {}
+    promoted: list[Path] = []
+    try:
+        for index, destination in enumerate(staged):
+            if destination.exists():
+                backup = rollback_root / f"{index:03d}-{destination.name}"
+                shutil.copy2(destination, backup)
+                backups[destination] = backup
+            else:
+                backups[destination] = None
+        for destination, stage in staged.items():
+            os.replace(stage, destination)
+            destination.chmod(0o600)
+            promoted.append(destination)
+    except BaseException:
+        for destination in reversed(promoted):
+            backup = backups[destination]
+            if backup is None:
+                destination.unlink(missing_ok=True)
+            else:
+                os.replace(backup, destination)
+        raise
+
+print(json.dumps({
+    "status": "PASS",
+    "source_acceptance_id": "GATE-06",
+    "derived_records": [path.name for path in targets],
+    "semantic_validator": "fixtures/run --protected --fixture outage-retry",
+}, separators=(",", ":")))

@@ -5,13 +5,17 @@ project_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$project_root"
 
 python3 tests/test_public_builder.py
+python3 tests/test_evidence_contract.py
+python3 tests/test_acceptance_semantics.py
+python3 tests/test_collect_evidence.py
 python3 -B - <<'PY'
 from pathlib import Path
 
 for raw in (
-    "scripts/build-public-release", "scripts/generate-public-evidence",
+    "fixtures/run", "scripts/build-public-release", "scripts/collect-evidence",
+    "scripts/acceptance_semantics.py", "scripts/derive-gate06-linked-evidence", "scripts/evidence_contract.py", "scripts/generate-public-evidence", "scripts/pf07_probe_runtime.py", "scripts/probe-clean-restore", "scripts/probe-core-acceptance", "scripts/probe-gate06", "scripts/probe-gate06-lease", "scripts/probe-gate06-operator", "scripts/probe-gate09-compatibility", "scripts/probe-gate09-product-quality",
     "scripts/validate-all", "scripts/validate-public",
-    "tests/test_public_builder.py", "tests/test_vsl_contract.py",
+    "tests/test_acceptance_semantics.py", "tests/test_collect_evidence.py", "tests/test_evidence_contract.py", "tests/test_public_builder.py", "tests/test_vsl_contract.py",
 ):
     path = Path(raw)
     compile(path.read_text(encoding="utf-8"), raw, "exec")
@@ -19,9 +23,19 @@ print("PASS: Python source syntax checks")
 PY
 ./scripts/build-workflow --check
 python3 tests/test_vsl_contract.py
+npm ci --prefix infra/task-runner-deps --ignore-scripts --no-audit --no-fund
+node tests/workflow_resume_semantics.mjs
 jq -e . workflow/oddroom-orderops-vsl.json >/dev/null
+jq -e . fixtures/acceptance-fixtures.json >/dev/null
+jq -e . infra/n8n-task-runners.json >/dev/null
+jq -e . infra/task-runner-deps/package.json >/dev/null
+jq -e . infra/task-runner-deps/package-lock.json >/dev/null
 node --check tests/public_case_quality.mjs
-bash -n scripts/ci scripts/queue-runner scripts/runtime-materialize scripts/runtime-import-credentials scripts/runtime-wp-install
+node --check tests/ui_quality.mjs
+node --check scripts/build-public-stills.mjs
+node --check scripts/record-public-media.mjs
+bash -n scripts/ci scripts/queue-runner scripts/runtime-materialize scripts/runtime-import-credentials scripts/runtime-wp-install scripts/validate-ui
+./scripts/collect-evidence --check
 
 PF07_DB_PASSWORD=x \
 PF07_DB_ROOT_PASSWORD=x \
@@ -36,14 +50,22 @@ HUBSPOT_INITIAL_STAGE_ID=appointmentscheduled \
 SLACK_CHANNEL_ID=C0000000000 \
 docker compose -f infra/compose.yaml config --quiet
 
+runner_image=oddroom-orderops-task-runners:2.25.7-json-bigint-1.0.0
+docker build --file infra/task-runner.Dockerfile --tag "$runner_image" .
+docker run --rm --entrypoint node "$runner_image" -e \
+  "const BigNumber=require('/opt/runners/task-runner-javascript/node_modules/bignumber.js'); const parser=require('/opt/runners/task-runner-javascript/node_modules/json-bigint')(); const value=parser.parse('{\"id\":9.223372036854775807e18}').id; if(!BigNumber.isBigNumber(value)||value.toFixed(0)!=='9223372036854775807') process.exit(1)"
+docker run --rm --entrypoint sh "$runner_image" -eu -c \
+  "grep -F '\"NODE_FUNCTION_ALLOW_EXTERNAL\": \"json-bigint,bignumber.js\"' /etc/n8n-task-runners.json >/dev/null; test \"\$(id -u runner)\" = 1000"
+
 if command -v php >/dev/null 2>&1; then
   while IFS= read -r file; do
     php -l "$file" >/dev/null
   done < <(find plugin -type f -name '*.php' -print | sort)
   php plugin/oddroom-orderops/tests/run.php
+  php plugin/oddroom-orderops/tests/scheduler-branches.php
 elif command -v docker >/dev/null 2>&1; then
   docker run --rm --volume "$project_root:/workspace:ro" --workdir /workspace php:8.3-cli \
-    sh -eu -c 'find plugin -type f -name "*.php" -print | sort | while IFS= read -r file; do php -l "$file" >/dev/null; done; php plugin/oddroom-orderops/tests/run.php'
+    sh -eu -c 'find plugin -type f -name "*.php" -print | sort | while IFS= read -r file; do php -l "$file" >/dev/null; done; php plugin/oddroom-orderops/tests/run.php; php plugin/oddroom-orderops/tests/scheduler-branches.php'
 else
   printf 'FAIL: PHP 8.1+ or Docker is required\n' >&2
   exit 1

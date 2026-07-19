@@ -131,7 +131,7 @@ final class OddRoom_Reconciliation
             try {
                 $facts[] = [
                     'ORDER_CANCELLED',
-                    new DateTimeImmutable($cancelledRaw, new DateTimeZone('UTC')),
+                    OddRoom_Canonical_Payload::parseUtcTimestamp($cancelledRaw),
                     '_oddroom_orderops_cancelled_at_utc',
                 ];
             } catch (Throwable $error) {
@@ -182,11 +182,14 @@ final class OddRoom_Reconciliation
 
     private static function fullRefundCompletion(WC_Order $order): DateTimeInterface|false|null
     {
-        $precision = max(0, (int) wc_get_price_decimals());
-        $scale = 10 ** $precision;
-        $totalMinor = (int) round((float) $order->get_total() * $scale);
-        $refundedMinor = (int) round((float) $order->get_total_refunded() * $scale);
-        if ($totalMinor <= 0 || $refundedMinor < $totalMinor) {
+        try {
+            $totalMinor = OddRoom_Canonical_Payload::toMinorUnits((string) $order->get_total());
+            $refundedMinor = OddRoom_Canonical_Payload::toMinorUnits((string) $order->get_total_refunded());
+        } catch (Throwable $error) {
+            return false;
+        }
+        if ($totalMinor === '0'
+            || OddRoom_Canonical_Payload::compareMinorUnits($refundedMinor, $totalMinor) < 0) {
             return null;
         }
         $refunds = $order->get_refunds();
@@ -197,13 +200,24 @@ final class OddRoom_Reconciliation
             $rightTime = $rightDate ? $rightDate->getTimestamp() : PHP_INT_MAX;
             return [$leftTime, (int) $left->get_id()] <=> [$rightTime, (int) $right->get_id()];
         });
-        $running = 0;
+        $runningMinor = '0';
         foreach ($refunds as $refund) {
             if (!$refund instanceof WC_Order_Refund) {
                 continue;
             }
-            $running += (int) round(abs((float) $refund->get_amount()) * $scale);
-            if ($running >= $totalMinor) {
+            $amount = (string) $refund->get_amount();
+            if (str_starts_with($amount, '-')) {
+                $amount = substr($amount, 1);
+            }
+            try {
+                $runningMinor = OddRoom_Canonical_Payload::addMinorUnits(
+                    $runningMinor,
+                    OddRoom_Canonical_Payload::toMinorUnits($amount)
+                );
+            } catch (Throwable $error) {
+                return false;
+            }
+            if (OddRoom_Canonical_Payload::compareMinorUnits($runningMinor, $totalMinor) >= 0) {
                 return $refund->get_date_created() ?: false;
             }
         }

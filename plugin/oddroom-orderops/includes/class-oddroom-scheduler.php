@@ -15,6 +15,7 @@ final class OddRoom_Scheduler
         add_action('action_scheduler_begin_execute', [self::class, 'captureExecution'], 1, 2);
         add_action('action_scheduler_after_execute', [self::class, 'clearExecution'], PHP_INT_MAX, 1);
         add_action('action_scheduler_failed_execution', [self::class, 'clearExecution'], PHP_INT_MAX, 1);
+        add_action('action_scheduler_completed_action', [self::class, 'handleCompletedBusinessAction'], 10, 1);
         add_action(self::HOOK, [OddRoom_Worker::class, 'process'], 10, 1);
         add_action(self::PREFLIGHT_HOOK, '__return_null', 10, 1);
         add_action('action_scheduler_init', [self::class, 'scheduleEligibleRows'], 50);
@@ -155,8 +156,12 @@ final class OddRoom_Scheduler
         if (!self::guard(true)['ok']) {
             return;
         }
+        self::repairFinishedEligibleLinks();
         foreach (OddRoom_Repository::eligibleUnscheduledIds(50) as $rowId) {
-            self::scheduleBusiness((int) $rowId);
+            $row = OddRoom_Repository::find((int) $rowId);
+            if ($row) {
+                self::scheduleEligibleRow($row);
+            }
         }
     }
 
@@ -170,6 +175,7 @@ final class OddRoom_Scheduler
 
         $timestamp ??= time();
         $actionId = (int) as_schedule_single_action($timestamp, self::HOOK, [$rowId], self::GROUP, true);
+        $createdAction = $actionId > 0;
         if ($actionId === 0) {
             $candidates = self::exactCandidates(self::HOOK, $rowId);
             if (count($candidates) === 1) {
@@ -186,11 +192,125 @@ final class OddRoom_Scheduler
         if (!OddRoom_Repository::linkAction($rowId, $actionId)) {
             $row = OddRoom_Repository::find($rowId);
             if (!$row || (int) ($row->action_id ?? 0) !== $actionId) {
-                self::cancelIds([$actionId]);
+                if ($createdAction) {
+                    self::cancelIds([$actionId]);
+                }
                 return 0;
             }
         }
         return $actionId;
+    }
+
+    public static function handleCompletedBusinessAction(int $actionId): void
+    {
+        $rowId = self::completedBusinessRowId($actionId);
+        if ($rowId === null) {
+            return;
+        }
+        $row = OddRoom_Repository::find($rowId);
+        if (!$row || $row->lock_token !== null
+            || !in_array((string) $row->status, ['pending', 'retry_wait'], true)) {
+            return;
+        }
+
+        $linkedActionId = (int) ($row->action_id ?? 0);
+        if ($linkedActionId === $actionId) {
+            if (!OddRoom_Repository::unlinkFinishedEligibleAction($rowId, $actionId)) {
+                return;
+            }
+            $row = OddRoom_Repository::find($rowId);
+        } elseif ($linkedActionId !== 0) {
+            return;
+        }
+
+        if ($row) {
+            self::scheduleEligibleRow($row);
+        }
+    }
+
+    private static function completedBusinessRowId(int $actionId): ?int
+    {
+        if ($actionId < 1 || !class_exists('ActionScheduler')) {
+            return null;
+        }
+        try {
+            $action = ActionScheduler::store()->fetch_action($actionId);
+            if (!is_object($action)
+                || $action->get_hook() !== self::HOOK
+                || $action->get_group() !== self::GROUP) {
+                return null;
+            }
+            $args = $action->get_args();
+            if (!is_array($args) || count($args) !== 1 || !is_int($args[0]) || $args[0] < 1) {
+                return null;
+            }
+            return self::actionMatches($actionId, $args[0]) ? $args[0] : null;
+        } catch (Throwable $error) {
+            return null;
+        }
+    }
+
+    private static function repairFinishedEligibleLinks(): void
+    {
+        foreach (OddRoom_Repository::linkedEligibleRows(50) as $row) {
+            $rowId = (int) $row->id;
+            $actionId = (int) $row->action_id;
+            if ($rowId < 1 || $actionId < 1) {
+                continue;
+            }
+            $candidates = self::exactCandidates(self::HOOK, $rowId);
+            if (count($candidates) > 1) {
+                OddRoom_Repository::recordSchedulingError($rowId, 'ACTION_ID_AMBIGUOUS', true);
+                continue;
+            }
+            if ($candidates === [$actionId]) {
+                continue;
+            }
+            if (!OddRoom_Repository::unlinkFinishedEligibleAction($rowId, $actionId)) {
+                continue;
+            }
+            $current = OddRoom_Repository::find($rowId);
+            if ($current) {
+                self::scheduleEligibleRow($current);
+            }
+        }
+    }
+
+    private static function scheduleEligibleRow(object $row, int $notBefore = 0): void
+    {
+        if ($row->lock_token !== null
+            || $row->action_id !== null
+            || self::schedulingSuppressed($row)) {
+            return;
+        }
+        $rowId = (int) $row->id;
+        if ($rowId < 1 || (string) $row->status === 'pending') {
+            if ($rowId > 0 && (string) $row->status === 'pending') {
+                self::scheduleBusiness($rowId, max(time(), $notBefore));
+            }
+            return;
+        }
+        if ((string) $row->status !== 'retry_wait'
+            || !is_string($row->next_attempt_at)
+            || $row->next_attempt_at === '') {
+            return;
+        }
+        $timestamp = strtotime($row->next_attempt_at . ' UTC');
+        self::scheduleBusiness(
+            $rowId,
+            max(time(), $notBefore, $timestamp === false ? time() : $timestamp)
+        );
+    }
+
+    private static function schedulingSuppressed(object $row): bool
+    {
+        return OddRoom_Repository::testMode()
+            && isset($row->order_id, $row->event_type)
+            && OddRoom_Faults::isActiveForEvent(
+                (int) $row->order_id,
+                (string) $row->event_type,
+                OddRoom_Faults::SUPPRESS_SCHEDULE
+            );
     }
 
     public static function deferContentionRequeue(int $rowId, int $actionId): void
@@ -207,20 +327,28 @@ final class OddRoom_Scheduler
                 || self::exactCandidates(self::HOOK, $rowId) !== []) {
                 return;
             }
-            if (!OddRoom_Repository::unlinkCompletedAction($rowId, $actionId)) {
+            if (!OddRoom_Repository::unlinkFinishedEligibleAction($rowId, $actionId)) {
                 return;
             }
-            self::scheduleBusiness($rowId, time() + 2);
+            $current = OddRoom_Repository::find($rowId);
+            if ($current) {
+                self::scheduleEligibleRow($current, time() + 2);
+            }
         });
     }
 
     public static function exactCandidates(string $hook, int $rowId): array
     {
+        return self::exactCandidatesForStatuses($hook, $rowId, ['pending', 'in-progress']);
+    }
+
+    private static function exactCandidatesForStatuses(string $hook, int $rowId, array $statuses): array
+    {
         if (!self::runtimeIdentity()['initialized'] || !function_exists('as_get_scheduled_actions')) {
             return [];
         }
         $ids = [];
-        foreach (['pending', 'in-progress'] as $status) {
+        foreach ($statuses as $status) {
             $found = as_get_scheduled_actions([
                 'hook' => $hook,
                 'args' => [$rowId],

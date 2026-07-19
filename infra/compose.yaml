@@ -139,7 +139,10 @@ services:
     networks: [private]
 
   task-runners:
-    image: n8nio/runners@sha256:d890fe221de44d75e1900eaf83f4499ad63503bfcc97cb04f0abfe5bc48bc0a6
+    build:
+      context: ..
+      dockerfile: infra/task-runner.Dockerfile
+    image: oddroom-orderops-task-runners:2.25.7-json-bigint-1.0.0
     restart: unless-stopped
     depends_on: [n8n]
     environment:

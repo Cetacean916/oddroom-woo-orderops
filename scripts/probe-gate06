@@ -1,0 +1,693 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+from datetime import datetime, timezone
+import json
+import os
+from pathlib import Path
+import re
+import shutil
+import sqlite3
+import subprocess
+import sys
+import tempfile
+import time
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
+import uuid
+
+
+TOXIPROXY_IMAGE = (
+    "ghcr.io/shopify/toxiproxy@"
+    "sha256:9378ed52a28bc50edc1350f936f518f31fa95f0d15917d6eb40b8e376d1a214e"
+)
+PROXY_NAME = "n8n-gate06"
+RETRY_DELAYS = [2, 5, 10, 20, 30]
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+QUEUE_RUNNER = PROJECT_ROOT / "scripts/queue-runner"
+
+
+def fail(message: str) -> None:
+    raise RuntimeError(message)
+
+
+def now_utc() -> str:
+    return datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
+
+
+def run(
+    command: list[str],
+    *,
+    input_text: str | None = None,
+    timeout: int = 180,
+    label: str,
+    environment: dict[str, str] | None = None,
+) -> subprocess.CompletedProcess[str]:
+    result = subprocess.run(
+        command,
+        input=input_text,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=timeout,
+        check=False,
+        env=environment,
+    )
+    if result.returncode != 0:
+        lines = [line.strip() for line in result.stderr.splitlines() if line.strip()]
+        detail = lines[-1] if lines else "no diagnostic"
+        detail = re.sub(r"https?://\S+", "<url>", detail)
+        detail = re.sub(
+            r"(?i)((?:authorization|password|secret|token)\s*[=:]\s*)\S+",
+            r"\1<redacted>",
+            detail,
+        )[:240]
+        fail(f"{label} failed with exit code {result.returncode}: {detail}")
+    return result
+
+
+def parse_json_output(result: subprocess.CompletedProcess[str], label: str) -> dict:
+    output = result.stdout.strip()
+    try:
+        value = json.loads(output)
+    except json.JSONDecodeError as error:
+        fail(f"{label} did not return one JSON object: {error.msg}")
+    if not isinstance(value, dict):
+        fail(f"{label} JSON root was not an object")
+    return value
+
+
+runtime_root = Path(os.environ.get("PF07_RUNTIME_ROOT", "")).resolve()
+compose_project = os.environ.get("PF07_COMPOSE_PROJECT", "pf07-orderops-restored")
+compose_file = Path(os.environ.get("PF07_COMPOSE_FILE", runtime_root / "infra/compose.yaml")).resolve()
+runtime_env = Path(os.environ.get("PF07_RUNTIME_ENV", runtime_root / "runtime/runtime.env")).resolve()
+output_dir = Path(os.environ.get("PF07_EVIDENCE_OUTPUT_DIR", "")).resolve()
+scratch_root = Path(os.environ.get("PF07_SCRATCH_ROOT", Path.home() / "tmp")).expanduser().resolve()
+
+if not runtime_root.is_dir() or not compose_file.is_file() or not runtime_env.is_file():
+    raise SystemExit("PF07 restored runtime inputs are missing")
+if not output_dir.is_dir():
+    raise SystemExit("PF07_EVIDENCE_OUTPUT_DIR is missing")
+scratch_root.mkdir(parents=True, exist_ok=True)
+if not scratch_root.is_dir():
+    raise SystemExit("PF07_SCRATCH_ROOT is not a directory")
+if not re.fullmatch(r"[a-z0-9][a-z0-9_-]{2,62}", compose_project):
+    raise SystemExit("PF07_COMPOSE_PROJECT is invalid")
+
+compose = [
+    "docker", "compose", "--env-file", str(runtime_env), "-f", str(compose_file),
+    "-p", compose_project, "--profile", "tools",
+]
+network = f"{compose_project}_private"
+suffix = uuid.uuid4().hex[:12]
+proxy_container = f"pf07-gate06-{suffix}"
+proxy_alias = f"pf07-gate06-proxy-{suffix}"
+proxy_url = f"http://{proxy_alias}:8666/webhook/oddroom-orderops-v1"
+proxy_api: str | None = None
+proxy_started = False
+n8n_paused = False
+fault_enabled = False
+trace_lines: list[dict] = []
+proxy_transitions: list[dict] = []
+snapshot_directories: list[Path] = []
+foreground_runner_invocations = 0
+
+
+def wpcli(arguments: list[str], *, proxied: bool = True, timeout: int = 180) -> subprocess.CompletedProcess[str]:
+    command = compose + ["run", "--rm", "-T"]
+    if proxied:
+        command += ["-e", f"ODDROOM_WEBHOOK_URL={proxy_url}"]
+    command += ["wpcli", *arguments]
+    operation = " ".join(arguments[:2])
+    for attempt in range(10):
+        try:
+            return run(command, timeout=timeout, label=f"protected WP-CLI probe ({operation})")
+        except RuntimeError as error:
+            if "Error establishing a database connection" not in str(error) or attempt == 9:
+                raise
+            time.sleep(1)
+    fail("protected WP-CLI database readiness retry was exhausted")
+
+
+def wpcli_json(arguments: list[str], *, proxied: bool = True, timeout: int = 180) -> dict:
+    return parse_json_output(wpcli(arguments, proxied=proxied, timeout=timeout), "protected WP-CLI probe")
+
+
+def row_state(row_id: int) -> dict:
+    if row_id < 1:
+        fail("invalid outbox row identity")
+    code = f"""
+global $wpdb;
+$row=OddRoom_Repository::find({row_id});
+if (!$row) {{ throw new RuntimeException('ROW_NOT_FOUND'); }}
+$outbox=OddRoom_Installer::outboxTable();
+$leases=OddRoom_Installer::leaseTable();
+$delayMicros=$row->next_attempt_at === null ? null : (int) $wpdb->get_var($wpdb->prepare(
+    'SELECT TIMESTAMPDIFF(MICROSECOND,updated_at,next_attempt_at) FROM ' . $outbox . ' WHERE id=%d',
+    {row_id}
+));
+$delay=$delayMicros === null ? null : (int) round($delayMicros / 1000000);
+$remaining=$row->next_attempt_at === null ? null : (int) $wpdb->get_var($wpdb->prepare(
+    'SELECT GREATEST(0,TIMESTAMPDIFF(SECOND,UTC_TIMESTAMP(6),next_attempt_at)) FROM ' . $outbox . ' WHERE id=%d',
+    {row_id}
+));
+$result=[
+    'id'=>(int)$row->id,
+    'order_id'=>(int)$row->order_id,
+    'event_type'=>(string)$row->event_type,
+    'event_key_sha256'=>hash('sha256',(string)$row->event_key),
+    'payload_hash'=>(string)$row->payload_hash,
+    'payload_bytes'=>strlen((string)$row->payload_json),
+    'status'=>(string)$row->status,
+    'phase'=>(string)$row->processing_phase,
+    'attempt_count'=>(int)$row->attempt_count,
+    'automatic_attempt_count'=>(int)$row->automatic_attempt_count,
+    'max_attempts'=>(int)$row->max_attempts,
+    'manual_retry_count'=>(int)$row->manual_retry_count,
+    'manual_attempt_pending'=>(int)$row->manual_attempt_pending,
+    'action_id'=>$row->action_id === null ? null : (int)$row->action_id,
+    'candidate_action_ids'=>array_values(array_map('intval',OddRoom_Scheduler::exactCandidates(OddRoom_Scheduler::HOOK,{row_id}))),
+    'adapter_dispatch_state'=>(string)$row->adapter_dispatch_state,
+    'http_status'=>$row->last_http_status === null ? null : (int)$row->last_http_status,
+    'error_code'=>$row->error_code === null ? null : (string)$row->error_code,
+    'retryable'=>$row->retryable === null ? null : (bool)$row->retryable,
+    'scheduled_delay_seconds'=>$delay,
+    'scheduled_delay_microseconds'=>$delayMicros,
+    'due_remaining_seconds'=>$remaining,
+    'lock_present'=>$row->lock_token !== null,
+    'order_lease_count'=>(int)$wpdb->get_var($wpdb->prepare('SELECT COUNT(*) FROM ' . $leases . ' WHERE holder_outbox_id=%d',{row_id})),
+    'contact_checkpoint_sha256'=>$row->remote_contact_id === null ? null : hash('sha256',(string)$row->remote_contact_id),
+    'deal_checkpoint_sha256'=>$row->remote_deal_id === null ? null : hash('sha256',(string)$row->remote_deal_id),
+    'slack_timestamp_sha256'=>$row->slack_message_ts === null ? null : hash('sha256',(string)$row->slack_message_ts),
+    'database_utc'=>(string)$wpdb->get_var('SELECT DATE_FORMAT(UTC_TIMESTAMP(6),"%Y-%m-%dT%H:%i:%s.%fZ")'),
+];
+echo wp_json_encode($result,JSON_UNESCAPED_SLASHES);
+"""
+    return wpcli_json(["eval", code])
+
+
+def wait_until_due(row_id: int, maximum_seconds: int = 45) -> dict:
+    deadline = time.monotonic() + maximum_seconds
+    while True:
+        state = row_state(row_id)
+        remaining = state.get("due_remaining_seconds")
+        if isinstance(remaining, int) and remaining <= 0:
+            return state
+        if time.monotonic() >= deadline:
+            fail("scheduled retry did not become due")
+        time.sleep(min(1.0, max(0.25, float(remaining or 1))))
+
+
+def create_order(alias_prefix: str) -> dict:
+    alias = f"{alias_prefix}-{suffix}"
+    created = wpcli_json([
+        "oddroom-orderops", "create-order", f"--alias={alias}", "--amount=17000.00", "--shape=simple",
+    ])
+    if not all(isinstance(created.get(key), int) and created[key] > 0 for key in ("order_id", "outbox_id", "action_id")):
+        fail("synthetic order did not create an outbox action")
+    return created
+
+
+def run_action(action_id: int) -> None:
+    if action_id < 1:
+        fail("invalid action identity")
+    wpcli(["action-scheduler", "action", "run", str(action_id)], timeout=360)
+
+
+def run_queue_once() -> None:
+    global foreground_runner_invocations
+    environment = os.environ.copy()
+    environment.update({
+        "PF07_RUNTIME_ROOT": str(runtime_root),
+        "PF07_RUNTIME_ENV": str(runtime_env),
+        "PF07_COMPOSE_FILE": str(compose_file),
+        "PF07_COMPOSE_PROJECT": compose_project,
+        "PF07_QUEUE_WEBHOOK_URL_OVERRIDE": proxy_url,
+    })
+    run([str(QUEUE_RUNNER), "--once"], timeout=360, label="foreground queue runner", environment=environment)
+    foreground_runner_invocations += 1
+
+
+def manual_retry(row_id: int) -> dict:
+    code = f"""
+$ids=get_users(['role'=>'administrator','number'=>1,'fields'=>'ids']);
+if (!$ids) {{ throw new RuntimeException('ADMIN_NOT_FOUND'); }}
+$result=OddRoom_Repository::manualRetry({row_id},(int)$ids[0]);
+echo wp_json_encode($result,JSON_UNESCAPED_SLASHES);
+"""
+    return wpcli_json(["eval", code])
+
+
+def enable_slack_fault(order_id: int) -> dict:
+    code = f"""
+$ids=get_users(['role'=>'administrator','number'=>1,'fields'=>'ids']);
+if (!$ids) {{ throw new RuntimeException('ADMIN_NOT_FOUND'); }}
+$result=OddRoom_Faults::enable({order_id},'PAYMENT_CONFIRMED',OddRoom_Faults::BEFORE_SLACK_POST,5,(int)$ids[0]);
+echo wp_json_encode($result,JSON_UNESCAPED_SLASHES);
+"""
+    return wpcli_json(["eval", code])
+
+
+def end_fault_run() -> int:
+    code = """
+$run=OddRoom_Repository::requiredConfig('ODDROOM_ORDEROPS_RUN_ID');
+echo wp_json_encode(['disabled'=>(int)OddRoom_Faults::endRun($run)],JSON_UNESCAPED_SLASHES);
+"""
+    result = wpcli_json(["eval", code])
+    return int(result.get("disabled", 0))
+
+
+def proxy_request(method: str, path: str, payload: dict | None = None) -> dict:
+    if proxy_api is None:
+        fail("Toxiproxy API is unavailable")
+    body = None if payload is None else json.dumps(payload, separators=(",", ":")).encode("utf-8")
+    request = Request(
+        proxy_api + path,
+        data=body,
+        method=method,
+        headers={"Content-Type": "application/json"} if body is not None else {},
+    )
+    try:
+        with urlopen(request, timeout=10) as response:
+            raw = response.read()
+    except (HTTPError, URLError) as error:
+        fail(f"Toxiproxy API request failed: {type(error).__name__}")
+    if not raw:
+        return {}
+    value = json.loads(raw)
+    if not isinstance(value, dict):
+        fail("Toxiproxy API returned a non-object")
+    return value
+
+
+def set_proxy(enabled: bool, reason: str) -> dict:
+    state = proxy_request("POST", f"/proxies/{PROXY_NAME}", {"enabled": enabled})
+    if bool(state.get("enabled")) is not enabled:
+        fail("Toxiproxy state read-back failed")
+    proxy_transitions.append({"observed_at_utc": now_utc(), "enabled": enabled, "reason": reason})
+    return state
+
+
+def n8n_snapshot(destination: Path) -> Path:
+    global n8n_paused
+    container = f"{compose_project}-n8n-1"
+    run(["docker", "pause", container], label="n8n snapshot pause")
+    n8n_paused = True
+    try:
+        for name in ("database.sqlite", "database.sqlite-wal", "database.sqlite-shm"):
+            result = subprocess.run(
+                ["docker", "cp", f"{container}:/home/node/.n8n/{name}", str(destination / name)],
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+            )
+            if name == "database.sqlite" and result.returncode != 0:
+                fail("n8n database snapshot failed")
+    finally:
+        run(["docker", "unpause", container], label="n8n snapshot unpause")
+        n8n_paused = False
+    return destination / "database.sqlite"
+
+
+def n8n_max_execution(database: Path) -> int:
+    connection = sqlite3.connect(f"file:{database}?mode=ro", uri=True)
+    try:
+        value = connection.execute("SELECT COALESCE(MAX(id),0) FROM execution_entity").fetchone()[0]
+        return int(value)
+    finally:
+        connection.close()
+
+
+NODE_EXECUTION_SANITIZER = r"""
+const fs = require('fs');
+const crypto = require('crypto');
+const { parse } = require('/usr/local/lib/node_modules/n8n/node_modules/.pnpm/flatted@3.4.2/node_modules/flatted');
+const [inputPath, ...targets] = process.argv.slice(1);
+const wanted = new Set(targets);
+const records = JSON.parse(fs.readFileSync(inputPath, 'utf8'));
+const digest = value => crypto.createHash('sha256').update(value, 'utf8').digest('hex');
+const jsonItems = runs => (runs || []).flatMap(run => (run?.data?.main || []).flatMap(branch => (branch || []).map(item => item?.json).filter(Boolean)));
+const findEnvelope = (value, seen = new Set(), depth = 0) => {
+  if (!value || typeof value !== 'object' || depth > 10 || seen.has(value)) return null;
+  seen.add(value);
+  if (typeof value.event_key === 'string' && typeof value.result === 'string' && typeof value.processing_phase === 'string') return value;
+  for (const child of Object.values(value)) {
+    const found = findEnvelope(child, seen, depth + 1);
+    if (found) return found;
+  }
+  return null;
+};
+const output = [];
+for (const record of records) {
+  const decoded = parse(record.data);
+  const runData = decoded?.resultData?.runData || {};
+  const verified = jsonItems(runData['Verify HMAC Then Decode']);
+  const eventKey = verified.map(item => item?.event_key).find(value => typeof value === 'string') || null;
+  if (!eventKey || !wanted.has(digest(eventKey))) continue;
+  let envelope = null;
+  for (const runs of Object.values(runData)) {
+    for (const item of jsonItems(runs)) envelope = findEnvelope(item) || envelope;
+  }
+  output.push({
+    execution_id: Number(record.id),
+    status: record.status,
+    started_at: record.startedAt,
+    stopped_at: record.stoppedAt,
+    event_key_sha256: digest(eventKey),
+    executed_nodes: Object.keys(runData),
+    slack_outbound_call_count: (runData['Slack chat.postMessage'] || []).length,
+    envelope: envelope ? {
+      result: envelope.result,
+      processing_phase: envelope.processing_phase,
+      slack_status: envelope.slack_status,
+      retryable: envelope.retryable,
+      retry_after_seconds: envelope.retry_after_seconds,
+      error_code: envelope.error_code,
+      contact_checkpoint_present: typeof envelope.remote_contact_id === 'string' && envelope.remote_contact_id !== '',
+      deal_checkpoint_present: typeof envelope.remote_deal_id === 'string' && envelope.remote_deal_id !== '',
+      slack_timestamp_present: typeof envelope.slack_message_ts === 'string' && envelope.slack_message_ts !== '',
+    } : null,
+  });
+}
+process.stdout.write(JSON.stringify(output));
+"""
+
+
+def sanitized_n8n_executions(database: Path, baseline: int, targets: list[str]) -> list[dict]:
+    connection = sqlite3.connect(f"file:{database}?mode=ro", uri=True)
+    try:
+        rows = connection.execute(
+            "SELECT e.id,e.status,e.startedAt,e.stoppedAt,d.data "
+            "FROM execution_entity e JOIN execution_data d ON d.executionId=e.id "
+            "WHERE e.id>? ORDER BY e.id",
+            (baseline,),
+        ).fetchall()
+    finally:
+        connection.close()
+    records = [
+        {"id": row[0], "status": row[1], "startedAt": row[2], "stoppedAt": row[3], "data": row[4]}
+        for row in rows
+    ]
+    local_name = f"gate06-executions-{suffix}.json"
+    local_path = output_dir / local_name
+    container_path = f"/tmp/{local_name}"
+    local_path.write_text(json.dumps(records, separators=(",", ":")), encoding="utf-8")
+    try:
+        run(
+            ["docker", "cp", str(local_path), f"{compose_project}-n8n-1:{container_path}"],
+            label="n8n execution sanitizer input copy",
+        )
+        result = run(
+            ["docker", "exec", f"{compose_project}-n8n-1", "node", "-e", NODE_EXECUTION_SANITIZER, container_path, *targets],
+            label="n8n execution sanitizer",
+        )
+        value = json.loads(result.stdout)
+        if not isinstance(value, list) or not all(isinstance(item, dict) for item in value):
+            fail("n8n execution sanitizer returned invalid output")
+        return value
+    finally:
+        local_path.unlink(missing_ok=True)
+        subprocess.run(
+            ["docker", "exec", f"{compose_project}-n8n-1", "rm", "-f", container_path],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
+
+
+def assert_state(condition: bool, message: str) -> None:
+    if not condition:
+        fail(message)
+
+
+try:
+    run(["docker", "network", "inspect", network], label="restored runtime network inspection")
+    baseline_dir = Path(tempfile.mkdtemp(prefix="pf07-gate06-baseline-", dir=scratch_root))
+    snapshot_directories.append(baseline_dir)
+    baseline_database = n8n_snapshot(baseline_dir)
+    baseline_execution_id = n8n_max_execution(baseline_database)
+
+    run_result = run(
+        [
+            "docker", "run", "-d", "--name", proxy_container, "--network", network,
+            "--network-alias", proxy_alias, "-p", "127.0.0.1::8474", TOXIPROXY_IMAGE,
+        ],
+        label="Toxiproxy start",
+    )
+    proxy_started = True
+    if not re.fullmatch(r"[0-9a-f]{64}\n?", run_result.stdout):
+        fail("Toxiproxy container identity was not returned")
+    port_result = run(["docker", "port", proxy_container, "8474/tcp"], label="Toxiproxy API port discovery")
+    port_match = re.search(r"127\.0\.0\.1:(\d+)", port_result.stdout)
+    if not port_match:
+        fail("Toxiproxy loopback API port was not resolved")
+    proxy_api = f"http://127.0.0.1:{port_match.group(1)}"
+    for _ in range(30):
+        try:
+            proxy_request("GET", "/version")
+            break
+        except RuntimeError:
+            time.sleep(0.2)
+    else:
+        fail("Toxiproxy API did not become ready")
+    proxy_config = proxy_request("POST", "/proxies", {
+        "name": PROXY_NAME,
+        "listen": "0.0.0.0:8666",
+        "upstream": "n8n:5678",
+        "enabled": True,
+    })
+    proxy_transitions.append({"observed_at_utc": now_utc(), "enabled": True, "reason": "created"})
+
+    # Check A: outage followed by recovery before the sixth automatic attempt.
+    set_proxy(False, "check_a_outage")
+    recovery_created = create_order("gate06-recovery")
+    recovery_row_id = int(recovery_created["outbox_id"])
+    recovery_initial = row_state(recovery_row_id)
+    recovery_first_action = int(recovery_initial["action_id"])
+    run_action(recovery_first_action)
+    recovery_failed = row_state(recovery_row_id)
+    assert_state(recovery_failed["status"] == "retry_wait", "Check A did not enter retry_wait")
+    assert_state(recovery_failed["attempt_count"] == 1 and recovery_failed["automatic_attempt_count"] == 1, "Check A counters are wrong")
+    assert_state(recovery_failed["scheduled_delay_seconds"] == 2, "Check A retry delay is wrong")
+    assert_state(isinstance(recovery_failed["action_id"], int) and recovery_failed["action_id"] != recovery_first_action, "Check A follow-up action is not distinct")
+    trace_lines.append({"scenario": "recovery", "step": "outage_attempt", "action_id": recovery_first_action, "state": recovery_failed})
+    set_proxy(True, "check_a_restore")
+    wait_until_due(recovery_row_id)
+    recovery_second_action = int(row_state(recovery_row_id)["action_id"])
+    run_queue_once()
+    recovery_complete = row_state(recovery_row_id)
+    assert_state(recovery_complete["status"] == "completed" and recovery_complete["phase"] == "completed", "Check A did not recover")
+    assert_state(recovery_complete["attempt_count"] == 2 and recovery_complete["automatic_attempt_count"] == 2, "Check A recovery counters are wrong")
+    assert_state(recovery_complete["payload_hash"] == recovery_initial["payload_hash"], "Check A payload changed")
+    assert_state(recovery_complete["deal_checkpoint_sha256"] is not None, "Check A Deal checkpoint is missing")
+    assert_state(recovery_complete["action_id"] is None and recovery_complete["candidate_action_ids"] == [], "Check A left a follow-up action")
+    trace_lines.append({"scenario": "recovery", "step": "restored_attempt", "action_id": recovery_second_action, "state": recovery_complete})
+
+    # Check B: six automatic attempts, exact test delays, and no seventh action.
+    set_proxy(False, "check_b_exhaustion")
+    exhausted_created = create_order("gate06-exhaust")
+    exhausted_row_id = int(exhausted_created["outbox_id"])
+    exhausted_initial = row_state(exhausted_row_id)
+    exhausted_actions: list[int] = []
+    observed_delays: list[int] = []
+    for attempt in range(1, 7):
+        state_before = row_state(exhausted_row_id)
+        action_id = int(state_before["action_id"])
+        assert_state(action_id not in exhausted_actions, "Check B reused an earlier action")
+        exhausted_actions.append(action_id)
+        if attempt > 1:
+            wait_until_due(exhausted_row_id)
+        run_action(action_id)
+        state_after = row_state(exhausted_row_id)
+        trace_lines.append({"scenario": "exhaustion", "step": "automatic_attempt", "attempt": attempt, "action_id": action_id, "state": state_after})
+        assert_state(state_after["attempt_count"] == attempt and state_after["automatic_attempt_count"] == attempt, "Check B counters are wrong")
+        assert_state(state_after["payload_hash"] == exhausted_initial["payload_hash"], "Check B payload changed")
+        assert_state(not state_after["lock_present"] and state_after["order_lease_count"] == 0, "Check B left a lease")
+        if attempt < 6:
+            expected_delay = RETRY_DELAYS[attempt - 1]
+            observed_delays.append(int(state_after["scheduled_delay_seconds"]))
+            assert_state(state_after["status"] == "retry_wait", "Check B did not remain retryable")
+            assert_state(state_after["scheduled_delay_seconds"] == expected_delay, "Check B delay order is wrong")
+            assert_state(isinstance(state_after["action_id"], int) and state_after["action_id"] != action_id, "Check B follow-up action is not distinct")
+        else:
+            assert_state(state_after["status"] == "failed" and state_after["error_code"] == "ATTEMPTS_EXHAUSTED", "Check B did not exhaust")
+            assert_state(state_after["action_id"] is None and state_after["candidate_action_ids"] == [], "Check B scheduled a seventh automatic action")
+    assert_state(observed_delays == RETRY_DELAYS, "Check B did not observe the exact retry policy")
+    exhausted_terminal = state_after
+
+    # Check C: one protected manual attempt fails definitively with no follow-up.
+    manual_scheduled = manual_retry(exhausted_row_id)
+    manual_action = int(manual_scheduled.get("action_id", 0))
+    assert_state(manual_action > 0 and manual_action not in exhausted_actions, "Check C manual action is invalid")
+    manual_before = row_state(exhausted_row_id)
+    assert_state(manual_before["manual_retry_count"] == 1 and manual_before["manual_attempt_pending"] == 1, "Check C did not arm one manual attempt")
+    run_action(manual_action)
+    manual_after = row_state(exhausted_row_id)
+    assert_state(manual_after["status"] == "failed", "Check C did not return to failed")
+    assert_state(manual_after["attempt_count"] == 7 and manual_after["automatic_attempt_count"] == 6, "Check C counters are wrong")
+    assert_state(manual_after["manual_retry_count"] == 1 and manual_after["manual_attempt_pending"] == 0, "Check C manual counter is wrong")
+    assert_state(manual_after["payload_hash"] == exhausted_initial["payload_hash"], "Check C payload changed")
+    assert_state(manual_after["action_id"] is None and manual_after["candidate_action_ids"] == [], "Check C scheduled a follow-up")
+    trace_lines.append({"scenario": "manual_retry", "step": "definite_failure", "action_id": manual_action, "state": manual_after})
+
+    # Slack checkpoint path: deterministic pre-post failure then one resumed post.
+    set_proxy(True, "slack_checkpoint_path")
+    slack_created = create_order("gate07-slack")
+    slack_order_row = int(slack_created["outbox_id"])
+    wait_until_due(slack_order_row) if int(row_state(slack_order_row).get("due_remaining_seconds") or 0) > 0 else None
+    run_action(int(row_state(slack_order_row)["action_id"]))
+    assert_state(row_state(slack_order_row)["status"] == "completed", "Slack fixture ORDER_CREATED did not complete")
+    enable_slack_fault(int(slack_created["order_id"]))
+    fault_enabled = True
+    payment_created = wpcli_json([
+        "oddroom-orderops", "emit-event", str(slack_created["order_id"]), "PAYMENT_CONFIRMED",
+    ])
+    payment_row_id = int(payment_created["outbox_id"])
+    payment_initial = row_state(payment_row_id)
+    payment_first_action = int(payment_initial["action_id"])
+    run_action(payment_first_action)
+    payment_failed = row_state(payment_row_id)
+    assert_state(payment_failed["status"] == "retry_wait" and payment_failed["phase"] == "slack_pending", "Slack fixture did not stop before post")
+    assert_state(payment_failed["error_code"] == "SLACK_RETRYABLE_BEFORE_POST" and payment_failed["http_status"] == 503, "Slack fixture failure was not definite")
+    assert_state(payment_failed["contact_checkpoint_sha256"] is not None and payment_failed["deal_checkpoint_sha256"] is not None, "Slack fixture checkpoints are missing")
+    assert_state(payment_failed["slack_timestamp_sha256"] is None, "Slack fixture stored a timestamp before post")
+    payment_second_action = int(payment_failed["action_id"])
+    assert_state(payment_second_action != payment_first_action, "Slack fixture follow-up action is not distinct")
+    end_fault_run()
+    fault_enabled = False
+    wait_until_due(payment_row_id)
+    run_action(payment_second_action)
+    payment_complete = row_state(payment_row_id)
+    assert_state(payment_complete["status"] == "completed" and payment_complete["phase"] == "completed", "Slack fixture did not complete")
+    assert_state(payment_complete["attempt_count"] == 2 and payment_complete["automatic_attempt_count"] == 2, "Slack fixture counters are wrong")
+    assert_state(payment_complete["payload_hash"] == payment_initial["payload_hash"], "Slack fixture payload changed")
+    assert_state(payment_complete["contact_checkpoint_sha256"] == payment_failed["contact_checkpoint_sha256"], "Contact checkpoint changed")
+    assert_state(payment_complete["deal_checkpoint_sha256"] == payment_failed["deal_checkpoint_sha256"], "Deal checkpoint changed")
+    assert_state(payment_complete["slack_timestamp_sha256"] is not None, "Slack fixture completion lacks timestamp")
+    assert_state(payment_complete["action_id"] is None and not payment_complete["lock_present"], "Slack fixture left an action or lock")
+
+    final_dir = Path(tempfile.mkdtemp(prefix="pf07-gate06-final-", dir=scratch_root))
+    snapshot_directories.append(final_dir)
+    final_database = n8n_snapshot(final_dir)
+    executions = sanitized_n8n_executions(
+        final_database,
+        baseline_execution_id,
+        [recovery_complete["event_key_sha256"], payment_complete["event_key_sha256"]],
+    )
+    recovery_executions = [item for item in executions if item["event_key_sha256"] == recovery_complete["event_key_sha256"]]
+    payment_executions = [item for item in executions if item["event_key_sha256"] == payment_complete["event_key_sha256"]]
+    assert_state(len(recovery_executions) == 1 and recovery_executions[0]["slack_outbound_call_count"] == 0, "Check A n8n execution count is wrong")
+    assert_state(len(payment_executions) == 2, "Slack fixture n8n execution count is wrong")
+    assert_state(sum(int(item["slack_outbound_call_count"]) for item in payment_executions) == 1, "Slack fixture did not make exactly one outbound post")
+    assert_state(payment_executions[0]["slack_outbound_call_count"] == 0 and payment_executions[1]["slack_outbound_call_count"] == 1, "Slack call occurred in the wrong attempt")
+
+    image_data = json.loads(run(["docker", "image", "inspect", TOXIPROXY_IMAGE], label="Toxiproxy image inspection").stdout)[0]
+    proxy_artifact = {
+        "schema_version": "1",
+        "tool": "Toxiproxy",
+        "version": proxy_request("GET", "/version").get("version"),
+        "image_id": image_data.get("Id"),
+        "repo_digests": image_data.get("RepoDigests", []),
+        "network_scope": "RESTORED_RUNTIME_PRIVATE_NETWORK",
+        "api_exposure": "LOOPBACK_EPHEMERAL_ONLY",
+        "proxy": {
+            "name": proxy_config.get("name"),
+            "listen": proxy_config.get("listen"),
+            "upstream": proxy_config.get("upstream"),
+        },
+        "transitions": proxy_transitions,
+    }
+    proxy_path = output_dir / "outage_proxy_trace.json"
+    proxy_path.write_text(json.dumps(proxy_artifact, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    exhaustion_path = output_dir / "exhaustion_attempt_trace.jsonl"
+    exhaustion_path.write_text(
+        "".join(json.dumps(item, ensure_ascii=False, separators=(",", ":")) + "\n" for item in trace_lines),
+        encoding="utf-8",
+    )
+
+    slack_artifact = {
+        "schema_version": "1",
+        "fault": "BEFORE_SLACK_POST",
+        "first_action_id": payment_first_action,
+        "followup_action_id": payment_second_action,
+        "distinct_followup_action": payment_first_action != payment_second_action,
+        "payload_hash": payment_initial["payload_hash"],
+        "first_state": payment_failed,
+        "final_state": payment_complete,
+        "n8n_executions": payment_executions,
+        "total_slack_outbound_call_count": sum(int(item["slack_outbound_call_count"]) for item in payment_executions),
+        "fault_disabled_before_resume": True,
+    }
+    slack_path = output_dir / "slack_checkpoint_trace.json"
+    slack_path.write_text(json.dumps(slack_artifact, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    payload_rebuilt = not (
+        recovery_initial["payload_hash"] == recovery_failed["payload_hash"] == recovery_complete["payload_hash"]
+        and all(entry["state"]["payload_hash"] == exhausted_initial["payload_hash"] for entry in trace_lines if entry["scenario"] in {"exhaustion", "manual_retry"})
+        and payment_initial["payload_hash"] == payment_failed["payload_hash"] == payment_complete["payload_hash"]
+    )
+    assert_state(foreground_runner_invocations == 1, "Check A did not use the foreground queue runner exactly once")
+    assert_state(payload_rebuilt is False, "an immutable payload changed across retry")
+    observations = {
+        "automatic_attempt_limit": 6,
+        "retry_delays_seconds": observed_delays,
+        "payload_rebuilt": payload_rebuilt,
+        "manual_retry_preserves_payload": manual_after["payload_hash"] == exhausted_initial["payload_hash"],
+        "outage_transport": "maintained_toxiproxy",
+        "runner_mode": "foreground_wp_cli_without_admin_page_load" if foreground_runner_invocations == 1 else "unobserved",
+        "admin_page_load_count": 0,
+        "recovery_completed_before_attempt_six": recovery_complete["automatic_attempt_count"] < 6,
+        "recovery_attempt_count": recovery_complete["attempt_count"],
+        "recovery_n8n_execution_count": len(recovery_executions),
+        "recovery_deal_checkpoint_present": recovery_complete["deal_checkpoint_sha256"] is not None,
+        "automatic_action_ids_distinct": len(set(exhausted_actions)) == 6,
+        "seventh_automatic_action_count": len(exhausted_terminal["candidate_action_ids"]),
+        "terminal_automatic_error": exhausted_terminal["error_code"],
+        "manual_total_attempt_count": manual_after["attempt_count"],
+        "manual_automatic_attempt_count": manual_after["automatic_attempt_count"],
+        "manual_followup_action_count": len(manual_after["candidate_action_ids"]),
+        "slack_first_attempt_calls": payment_executions[0]["slack_outbound_call_count"],
+        "slack_resume_attempt_calls": payment_executions[1]["slack_outbound_call_count"],
+        "slack_total_calls": sum(int(item["slack_outbound_call_count"]) for item in payment_executions),
+        "slack_payload_immutable": payment_complete["payload_hash"] == payment_initial["payload_hash"],
+        "slack_checkpoints_preserved": (
+            payment_complete["contact_checkpoint_sha256"] == payment_failed["contact_checkpoint_sha256"]
+            and payment_complete["deal_checkpoint_sha256"] == payment_failed["deal_checkpoint_sha256"]
+        ),
+    }
+    print(json.dumps({
+        "observations": observations,
+        "artifacts": {
+            "exhaustion_attempt_trace": exhaustion_path.name,
+            "outage_proxy_trace": proxy_path.name,
+            "slack_checkpoint_trace": slack_path.name,
+        },
+    }, separators=(",", ":")))
+except Exception as error:
+    print(f"probe-gate06 failed: {error}", file=sys.stderr)
+    raise SystemExit(1)
+finally:
+    if fault_enabled:
+        try:
+            end_fault_run()
+        except Exception:
+            pass
+    if n8n_paused:
+        subprocess.run(
+            ["docker", "unpause", f"{compose_project}-n8n-1"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
+    if proxy_started:
+        subprocess.run(
+            ["docker", "rm", "-f", proxy_container],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
+    for directory in snapshot_directories:
+        if directory.parent == scratch_root and directory.name.startswith(("pf07-gate06-baseline-", "pf07-gate06-final-")):
+            shutil.rmtree(directory, ignore_errors=True)

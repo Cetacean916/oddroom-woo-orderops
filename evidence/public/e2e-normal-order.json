@@ -2,9 +2,9 @@
   "schema_version": "1",
   "acceptance_id": "GATE-01",
   "run_id": "PF07-ACCEPTANCE-RUN",
-  "started_at": "2026-07-18T20:28:41.834109Z",
-  "finished_at": "2026-07-18T20:28:41.834109Z",
-  "source_tree_sha256": "87300de2b289766dd0c7cb458912f4f636cda76bfe9879d25e0c9c239a32d603",
+  "started_at": "2026-07-19T15:54:26Z",
+  "finished_at": "2026-07-19T15:54:48Z",
+  "source_tree_sha256": "4c80be861524363d89a47c49b9c017bea9a7a64ff5f603a9212219c39f136a83",
   "command_or_probe": "recorded redaction of protected acceptance observation",
   "exit_code": 0,
   "observations": {
@@ -13,20 +13,18 @@
     "variable_product_orders": 1,
     "coupon_orders": 1,
     "woocommerce_admin_and_storage_observed": true,
-    "immutable_payload_hashes_valid": true,
-    "source_tree_binding": "DOCUMENTATION_ONLY_REBIND_EXECUTABLE_BYTES_UNCHANGED"
+    "immutable_payload_hashes_valid": true
   },
   "artifact_hashes": {},
   "redaction_state": "PUBLIC_REDACTED",
   "redaction_transform": {
     "id": "pf07-public-evidence-redaction",
     "version": "1",
-    "script_sha256": "79e626c47a9d60bcc12ec333c311eb945ffb997dd671ce186574979da7504049"
+    "script_sha256": "3b0acb03398ab18e38428adda75db3f870fe52510093067c4fcd59061830cd46"
   },
   "source_acceptance_id": "GATE-01",
-  "source_record_sha256": "09630ae758f5cded033f60542177209d8b2c579c57a8f4a7d9958c720f57bcc5",
+  "source_record_sha256": "a0d4dcf8967ff8eaee2dc1761aeeceafc83a9dcc40f826d17b177fccf4e02683",
   "source_artifact_hashes": {
-    "order_variety_trace": "d4cc054cd799d2dab589cdd8b8680bf768f006d35d70773fb0fd065e3c1ba4a6",
-    "source_tree_rebind": "70dd63bf2d103cee5d1f39cef1027ab93445d98301784290977843cd1275b943"
+    "gate01_order_variety_trace": "099e3cfa5d88e5c1183fe81e2d1fdc023c33ceb6998c14d15506468c4908925c"
   }
 }

@@ -32,9 +32,12 @@ The public case, exact proof scorecard, architecture, and claim boundaries are i
 ## Local checks
 
 ```bash
+npm ci
 ./scripts/ci
 ./scripts/validate-public --pre-public
 ```
+
+`npm ci` is required on a fresh clone. It installs the pinned Playwright, axe-core, Tesseract.js, and offline English OCR model used by the browser and execution-video validators. The machine must also provide Google Chrome, `ffmpeg`, `ffprobe`, Python 3, and either PHP 8.1+ or Docker.
 
 After the repository becomes public, an unauthenticated clone can establish the repository-only release state without depending on the separately deployed showcase. Once that showcase is live, the final mode also checks its case data, media, and browser-quality suite:
 
@@ -56,16 +59,47 @@ With the protected staging runtime available, the pinned browser suite is:
 
 ```bash
 PF07_BASE_URL=<STAGING_URL> \
+PF07_ADMIN_BASE_URL=http://127.0.0.1:<LOOPBACK_WORDPRESS_PORT> \
 PF07_ADMIN_USER=<SYNTHETIC_ADMIN_ALIAS> \
 PF07_ADMIN_PASSWORD_FILE=<PROTECTED_SECRET_FILE> \
 ./scripts/validate-ui
 ```
+
+`PF07_BASE_URL` exercises the public storefront ingress. Administrator validation is deliberately separate: `PF07_ADMIN_BASE_URL` must be a loopback-only WordPress origin. The suite supplies the fixed private-observation header itself. Never expose or tunnel the direct WordPress port. The public nginx route strips that header and continues to return `404` for WordPress login and administration.
 
 During an authorized on-demand acceptance window, the foreground queue process is:
 
 ```bash
 ./scripts/queue-runner --loop
 ```
+
+To regenerate the two public execution videos from the real protected runtime, first start a private X display and then run the recorder. The recorder verifies the public HTTPS storefront, performs two real no-funds checkouts through the loopback WordPress origin, types the checkout input visibly, and records the live administrator row transitions. It opens a captured terminal for the actual foreground queue command and for the actual n8n stop/start commands, so the result is a continuous execution walkthrough rather than narrated static screens. It refuses to overwrite an existing output directory:
+
+```bash
+Xvfb :99 -screen 0 1280x720x24 -nolisten tcp &
+xvfb_pid=$!
+trap 'kill "$xvfb_pid"' EXIT
+
+DISPLAY=:99 \
+PF07_BASE_URL=<AUTHORIZED_PUBLIC_HTTPS_STOREFRONT> \
+PF07_RECORDING_BASE_URL=http://127.0.0.1:<LOOPBACK_WORDPRESS_PORT> \
+PF07_ADMIN_BASE_URL=http://127.0.0.1:<LOOPBACK_WORDPRESS_PORT> \
+PF07_ADMIN_USER=<SYNTHETIC_ADMIN_ALIAS> \
+PF07_ADMIN_PASSWORD_FILE=<PROTECTED_SECRET_FILE> \
+PF07_RUNTIME_ROOT=<PROTECTED_RUNTIME_ROOT> \
+PF07_COMPOSE_PROJECT=<PROTECTED_COMPOSE_PROJECT> \
+node scripts/record-public-media.mjs <NEW_OUTPUT_DIRECTORY>
+```
+
+`PF07_XTERM_PATH` may point to a maintained xterm executable when it is not available at `/usr/bin/xterm` or the documented user-local install. The output must contain `demo-video.mp4`, `recovery-clip.mp4`, `video-poster.png`, and `execution-proof.json`. The showcase validator independently re-decodes both videos, recomputes their hashes and sampled-frame dynamics, re-extracts every committed event frame, OCR-checks checkout, the visible worker/runtime-control terminals, and `pending → retry_wait → completed` states, and regenerates the poster from its source frame.
+
+The first public detail still is rebuilt from the exact committed `LIVE_STOREFRONT`, `PRODUCT_SELECTED`, and `CHECKOUT_INPUT` frames rather than a separate mock or an old screenshot:
+
+```bash
+node scripts/build-public-stills.mjs <EXECUTION_MEDIA_DIRECTORY> <NEW_OUTPUT_DIRECTORY>
+```
+
+The builder refuses replacement, re-extracts each frame from the source video, verifies its SHA-256 against `execution-proof.json`, and emits a 1200×1350 PNG plus source commitments for the showcase media manifest.
 
 ## Claims boundary
 

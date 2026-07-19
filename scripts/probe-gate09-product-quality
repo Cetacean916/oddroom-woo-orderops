@@ -1,0 +1,225 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+from datetime import datetime, timezone
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import subprocess
+import sys
+
+from acceptance_semantics import AcceptanceSemanticError, derive_fixture_observations
+from pf07_probe_runtime import ProbeRuntimeError
+
+
+ROOT = Path(__file__).resolve().parent.parent
+FIXTURE_MANIFEST = ROOT / "fixtures/acceptance-fixtures.json"
+
+
+def require(condition: bool, message: str) -> None:
+    if not condition:
+        raise ProbeRuntimeError(message)
+
+
+def now_utc() -> str:
+    return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+
+
+def execute(
+    command: list[str],
+    *,
+    environment: dict[str, str],
+    timeout: int = 900,
+) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        command,
+        cwd=ROOT,
+        env=environment,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=timeout,
+        check=False,
+    )
+
+
+def load_json(path: Path, label: str) -> dict:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise ProbeRuntimeError(f"{label} is not readable JSON") from error
+    require(isinstance(value, dict), f"{label} root is not an object")
+    return value
+
+
+def observed_value(observations: dict, dotted_path: str) -> object:
+    value: object = observations
+    for part in dotted_path.split("."):
+        require(isinstance(value, dict) and part in value, f"probe omitted required observation: {dotted_path}")
+        value = value[part]
+    return value
+
+
+def assertion_passes(actual: object, assertion: dict) -> bool:
+    expected = assertion.get("expected")
+    if assertion.get("operator") == "eq":
+        return actual == expected
+    return (
+        assertion.get("operator") == "gte"
+        and isinstance(actual, (int, float))
+        and not isinstance(actual, bool)
+        and isinstance(expected, (int, float))
+        and actual >= expected
+    )
+
+
+def main() -> None:
+    runtime_root_raw = os.environ.get("PF07_RUNTIME_ROOT", "")
+    require(bool(runtime_root_raw), "PF07_RUNTIME_ROOT is required")
+    runtime_root = Path(runtime_root_raw).expanduser().resolve()
+    output_dir = Path(os.environ.get("PF07_EVIDENCE_OUTPUT_DIR", "")).resolve()
+    compose_file = Path(os.environ.get("PF07_COMPOSE_FILE", runtime_root / "infra/compose.yaml")).resolve()
+    runtime_env = Path(os.environ.get("PF07_RUNTIME_ENV", runtime_root / "runtime/runtime.env")).resolve()
+    password_file = Path(os.environ.get(
+        "PF07_ADMIN_PASSWORD_FILE",
+        runtime_root / "runtime/secrets/wordpress_admin_password",
+    )).resolve()
+    secret_root = (runtime_root / "runtime/secrets").resolve()
+    base_url = os.environ.get("PF07_BASE_URL", "http://127.0.0.1:18081").rstrip("/")
+    admin_base_url = os.environ.get("PF07_ADMIN_BASE_URL", "http://127.0.0.1:18081").rstrip("/")
+    project = os.environ.get("PF07_COMPOSE_PROJECT", "pf07-orderops-restored")
+
+    require(runtime_root.is_dir() and compose_file.is_file() and runtime_env.is_file(), "restored runtime inputs are missing")
+    require(output_dir.is_dir(), "PF07_EVIDENCE_OUTPUT_DIR is missing")
+    require(password_file.is_file() and not password_file.is_symlink(), "protected administrator password file is missing")
+    try:
+        password_file.relative_to(secret_root)
+    except ValueError as error:
+        raise ProbeRuntimeError("administrator password file escaped the protected runtime secret root") from error
+    require(re.fullmatch(r"pf07-[a-z0-9-]+", project) is not None, "compose project identity is invalid")
+    require(re.fullmatch(r"https?://[^\s/]+(?::[1-9][0-9]{0,4})?", base_url) is not None, "storefront base URL is invalid")
+    require(re.fullmatch(r"http://(?:127\.0\.0\.1|localhost|\[::1\])(?::[1-9][0-9]{0,4})?", admin_base_url) is not None, "administrator base URL must be loopback-only")
+
+    environment = os.environ.copy()
+    scratch = Path(os.environ.get("PF07_SCRATCH_ROOT", str(Path.home() / "tmp"))).expanduser().resolve()
+    if scratch.is_dir():
+        environment["TMPDIR"] = str(scratch)
+    compose = [
+        "docker", "compose", "--env-file", str(runtime_env), "-f", str(compose_file), "-p", project,
+    ]
+    container_result = execute(compose + ["ps", "-q", "wordpress"], environment=environment, timeout=60)
+    require(container_result.returncode == 0, "WordPress container lookup failed")
+    container_id = container_result.stdout.strip()
+    require(re.fullmatch(r"[0-9a-f]{12,64}", container_id) is not None, "WordPress container is not running")
+
+    def log_size() -> int:
+        result = execute([
+            "docker", "exec", container_id, "sh", "-c",
+            "if test -f /var/www/html/wp-content/debug.log; then wc -c < /var/www/html/wp-content/debug.log; else printf 0; fi",
+        ], environment=environment, timeout=60)
+        require(result.returncode == 0 and re.fullmatch(r"[0-9]+", result.stdout.strip()) is not None, "PHP log size observation failed")
+        return int(result.stdout.strip())
+
+    started_at = now_utc()
+    log_start = log_size()
+    ui_path = output_dir / "gate09-ui-private.json"
+    ui_environment = environment.copy()
+    ui_environment.update({
+        "PF07_BASE_URL": base_url,
+        "PF07_ADMIN_BASE_URL": admin_base_url,
+        "PF07_ADMIN_USER": "oddroom-operator",
+        "PF07_ADMIN_PASSWORD_FILE": str(password_file),
+        "PF07_UI_EVIDENCE": str(ui_path),
+    })
+    ui_result = execute(["node", "tests/ui_quality.mjs"], environment=ui_environment, timeout=900)
+
+    checks: list[tuple[str, list[str]]] = [
+        (
+            "plugin-php-tests",
+            [
+                "docker", "exec", container_id, "sh", "-eu", "-c",
+                "php /var/www/html/wp-content/plugins/oddroom-orderops/tests/run.php && php /var/www/html/wp-content/plugins/oddroom-orderops/tests/scheduler-branches.php",
+            ],
+        ),
+        ("vsl-contract", [sys.executable, "tests/test_vsl_contract.py"]),
+        ("workflow-resume-semantics", ["node", "tests/workflow_resume_semantics.mjs"]),
+        ("evidence-contract", [sys.executable, "tests/test_evidence_contract.py"]),
+        ("public-builder", [sys.executable, "tests/test_public_builder.py"]),
+    ]
+    machine_checks = []
+    for name, command in checks:
+        result = execute(command, environment=environment, timeout=900)
+        machine_checks.append({"name": name, "exit_code": result.returncode})
+
+    log_end = log_size()
+    start_byte = log_start + 1 if log_end >= log_start else 1
+    log_result = execute([
+        "docker", "exec", container_id, "sh", "-c",
+        f"if test -f /var/www/html/wp-content/debug.log; then tail -c +{start_byte} /var/www/html/wp-content/debug.log; fi",
+    ], environment=environment, timeout=60)
+    require(log_result.returncode == 0, "PHP log window read failed")
+    severity_pattern = re.compile(r"PHP (Fatal error|Warning|Notice)|WordPress database error", re.IGNORECASE)
+    attribution_pattern = re.compile(r"oddroom[-_ ]orderops|OddRoom_", re.IGNORECASE)
+    attributable = []
+    for line in log_result.stdout.splitlines():
+        severity = severity_pattern.search(line)
+        if severity is None or attribution_pattern.search(line) is None:
+            continue
+        attributable.append({
+            "severity": severity.group(0).lower().replace(" ", "_"),
+            "fingerprint_sha256": hashlib.sha256(line.encode("utf-8", errors="replace")).hexdigest(),
+        })
+    finished_at = now_utc()
+
+    ui = load_json(ui_path, "UI evidence")
+    require(ui_result.returncode == 0, "UI quality runner reported a failure")
+    require(set(("storefront", "admin", "failures")) <= set(ui), "UI evidence collections are missing")
+    trace = {
+        "schema_version": 1,
+        "fixture_id": "product-quality",
+        "ui_evidence": {
+            "storefront": ui["storefront"],
+            "admin": ui["admin"],
+            "failures": ui["failures"],
+        },
+        "machine_checks": machine_checks,
+        "php_log_window": {
+            "started_at_utc": started_at,
+            "finished_at_utc": finished_at,
+            "pf07_attributable_entries": attributable,
+        },
+    }
+    artifact_name = "gate09-product-quality-trace.json"
+    artifact_path = output_dir / artifact_name
+    temporary_path = output_dir / f".{artifact_name}.tmp"
+    temporary_path.write_text(json.dumps(trace, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    temporary_path.chmod(0o600)
+    os.replace(temporary_path, artifact_path)
+
+    observations = derive_fixture_observations(
+        "product-quality",
+        {"gate09_product_quality_trace": artifact_path},
+    )
+    require(isinstance(observations, dict), "product-quality semantic derivation returned no observations")
+    manifest = load_json(FIXTURE_MANIFEST, "fixture manifest")
+    fixtures = manifest.get("fixtures")
+    fixture = next((item for item in fixtures if item.get("id") == "product-quality"), None) if isinstance(fixtures, list) else None
+    require(isinstance(fixture, dict), "product-quality fixture contract is missing")
+    for assertion in fixture.get("assertions", []):
+        actual = observed_value(observations, assertion["path"])
+        require(assertion_passes(actual, assertion), f"product-quality assertion failed: {assertion['path']}")
+
+    print(json.dumps({
+        "observations": observations,
+        "artifacts": {"gate09_product_quality_trace": artifact_name},
+    }, ensure_ascii=False, separators=(",", ":")))
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (ProbeRuntimeError, AcceptanceSemanticError, OSError, subprocess.SubprocessError) as error:
+        print(f"FAIL: {error}", file=sys.stderr)
+        raise SystemExit(1) from error
