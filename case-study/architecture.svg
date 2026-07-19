@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">OddRoom Woo OrderOps recovery architecture</title>
+  <desc id="desc">WooCommerce records an immutable outbox event, a fenced worker signs the raw bytes, n8n verifies the signature, and HubSpot and Slack return checkpoints. Retry and operator review loop back to the outbox without rebuilding the event.</desc>
+  <rect width="1200" height="630" fill="#fff8eb"/>
+  <style>
+    .title{font:700 38px system-ui,sans-serif;fill:#080604}.sub{font:600 17px system-ui,sans-serif;fill:#4d473e}.box{stroke:#080604;stroke-width:4;rx:12}.h{font:800 22px system-ui,sans-serif;fill:#080604}.p{font:500 16px system-ui,sans-serif;fill:#080604}.white{fill:#fff}.arrow{stroke:#080604;stroke-width:5;fill:none;marker-end:url(#m)}.tag{font:800 14px ui-monospace,monospace;fill:#080604}
+  </style>
+  <defs><marker id="m" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#080604"/></marker></defs>
+  <text x="55" y="62" class="title">복구 가능한 주문 전달, 상태는 WordPress가 소유</text>
+  <text x="55" y="94" class="sub">합성 staging acceptance architecture · raw-byte HMAC · per-order serialization</text>
+  <rect x="55" y="145" width="235" height="155" class="box" fill="#dbfb4f"/>
+  <text x="78" y="182" class="tag">01 / CAPTURE</text><text x="78" y="220" class="h">WooCommerce</text>
+  <text x="78" y="251" class="p">actual order facts</text><text x="78" y="277" class="p">immutable outbox snapshot</text>
+  <rect x="355" y="145" width="235" height="155" class="box" fill="#fff"/>
+  <text x="378" y="182" class="tag">02 / FENCE</text><text x="378" y="220" class="h">WP worker</text>
+  <text x="378" y="251" class="p">row claim + order lease</text><text x="378" y="277" class="p">stored bytes + HMAC</text>
+  <rect x="655" y="145" width="235" height="155" class="box" fill="#315dff"/>
+  <text x="678" y="182" class="tag" fill="#fff">03 / VERIFY</text><text x="678" y="220" class="h" fill="#fff">n8n adapter</text>
+  <text x="678" y="251" class="p" fill="#fff">signature before decode</text><text x="678" y="277" class="p" fill="#fff">checkpointed phases</text>
+  <rect x="955" y="125" width="190" height="85" class="box" fill="#ff4f81"/>
+  <text x="978" y="163" class="h">HubSpot</text><text x="978" y="189" class="p">Contact · Deal</text>
+  <rect x="955" y="235" width="190" height="85" class="box" fill="#fff"/>
+  <text x="978" y="273" class="h">Slack</text><text x="978" y="299" class="p">accepted ts</text>
+  <path d="M290 222 H350" class="arrow"/><path d="M590 222 H650" class="arrow"/><path d="M890 195 H948" class="arrow"/><path d="M890 260 H948" class="arrow"/>
+  <rect x="165" y="405" width="870" height="135" class="box" fill="#080604"/>
+  <text x="195" y="445" class="tag" fill="#dbfb4f">RECOVERY CONTROL PLANE</text>
+  <text x="195" y="482" class="h white">bounded retry · stale-lease recovery · operator_wait · reconciliation</text>
+  <text x="195" y="516" class="p white">Checkpoints are write-once. Ambiguous Slack transmission never auto-retries as a proven failure.</text>
+  <path d="M765 405 C765 350 475 350 475 305" class="arrow" stroke="#ff4f81"/>
+  <text x="55" y="595" class="sub">Public claim boundary: synthetic data, no real funds, on-demand staging, no formal exactly-once claim.</text>
+</svg>

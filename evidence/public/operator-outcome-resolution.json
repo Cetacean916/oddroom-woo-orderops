@@ -1,0 +1,40 @@
+{
+  "schema_version": "1",
+  "acceptance_id": "GATE-06-OPERATOR",
+  "run_id": "PF07-ACCEPTANCE-RUN",
+  "started_at": "2026-07-18T21:16:30.572534Z",
+  "finished_at": "2026-07-18T22:47:17.837651Z",
+  "source_tree_sha256": "5cdb515367fc68a03dfc475449f90e92c604037802b708eacb74542423c6972d",
+  "command_or_probe": "recorded redaction of protected acceptance observation",
+  "exit_code": 0,
+  "observations": {
+    "result": "PASS",
+    "decision_count": 4,
+    "decisions": [
+      "CONFIRMED_POSTED",
+      "CONFIRMED_NOT_POSTED",
+      "RETRY_AFTER_DUE",
+      "UNRESOLVED"
+    ],
+    "proven_not_posted_resume_actions": 1,
+    "proven_resume_total_slack_posts": 1,
+    "unresolved_state": "operator_wait",
+    "unresolved_actions": 0,
+    "same_decision_replay": "idempotent_noop",
+    "conflicting_decision_side_effects": 0
+  },
+  "artifact_hashes": {},
+  "redaction_state": "PUBLIC_REDACTED",
+  "redaction_transform": {
+    "id": "pf07-public-evidence-redaction",
+    "version": "1",
+    "script_sha256": "79e626c47a9d60bcc12ec333c311eb945ffb997dd671ce186574979da7504049"
+  },
+  "source_acceptance_id": "GATE-06-OPERATOR",
+  "source_record_sha256": "9d35f5f4ea2e5d19ec5693fc8e3fdd45cb25c90823fcbbcdd388be45f5b52ed9",
+  "source_artifact_hashes": {
+    "operator_transition_trace": "6fca5c75576965cd67c39fd77c67e26a050421936754a26e8f93500a9bfd6ae4",
+    "ambiguous_proven_trace": "9db39c3d01a4fc1084a8aba1b18f3d4974469c73941f0cb94ca5b4358563827d",
+    "ambiguous_unproven_trace": "d477c65f6d81d879f6b6fa6a154e5ea704d5d755e394da5171048f639c15407c"
+  }
+}

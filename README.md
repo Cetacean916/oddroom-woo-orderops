@@ -4,18 +4,9 @@ OddRoom Woo OrderOps is a recoverable WooCommerce order-operations integration. 
 
 This repository is built from a separate non-Git implementation source by a deny-by-default public builder. It contains synthetic fixtures and public-safe evidence only. Protected raw evidence, credentials, runtime state, backups, and owner-machine paths are excluded.
 
-## Ordered delivery state
+## Delivered system
 
-1. Source-driven public builder, private CI, and the `ORDER_CREATED` vertical slice: implemented and observed.
-2. Complete four-event CRM/Slack lifecycle and bounded recovery: implemented and observed in protected staging.
-3. Operator resolution, reconciliation, fault controls, and minimum OddRoom storefront: implemented and observed in protected staging.
-4. Security/compatibility closure, HTTPS replacement restore, public evidence/case, repository publication, and showcase release: still ordered work.
-
-The project is complete only when the active PF07 contract records `FINAL_PASS`. A local tree, private CI run, or public repository does not by itself establish completion.
-
-## Implemented through STEP-070
-
-The protected staging acceptance run has reached `VSL_PASS` for `ORDER_CREATED`:
+The protected acceptance run exercised the complete four-event path and its recovery boundaries:
 
 - WooCommerce creates immutable, hash-checked outbox snapshots.
 - Action Scheduler 4.0.0 passes the isolated argument-aware uniqueness preflight before business scheduling.
@@ -32,8 +23,11 @@ The protected staging acceptance run has reached `VSL_PASS` for `ORDER_CREATED`:
 - The administrator surface provides deterministic filters, sorting, 50-row pagination, contained table overflow, masked identifiers, protected reveal/actions, and passed an isolated 500-row usability observation.
 - The OddRoom storefront includes a branded home, shop, simple product, two-variation product, coupon, cart, checkout, and account surface. Staging is `noindex`; outbound mail is captured; checkout exposes only a relabelled no-funds synthetic method.
 - Playwright 1.61.1 and axe-core 4.12.1 passed 18 full-document storefront observations and three scoped administrator observations across 390, 768, and 1440 CSS pixels with zero serious/critical violations, page overflow, broken assets, clipped actions, or console errors.
+- An authenticated on-demand HTTPS route exposed only the storefront and the exact signed webhook. WordPress administration and the n8n editor remained private; a 262145-byte chunked request was rejected at ingress before workflow execution.
+- Dependency, activation, HPOS-off/on, migration, data-preserving uninstall, opt-in removal, and every required Action Scheduler failure branch were exercised in an isolated compatibility runtime.
+- A quiesced formal backup was restored into a separate Compose project with fresh WordPress, database, application, and n8n volumes. Recreated HubSpot and Slack credentials passed smoke checks; one new restored order converged on one Deal and one payment notification, and duplicate replay produced no second notification.
 
-This remains a staging milestone, not final project completion. Security/compatibility closure, HTTPS deployment, clean replacement restore, public evidence, public case deployment, repository visibility change, showcase integration, and final release gates remain ordered work.
+The public case, exact proof scorecard, architecture, and claim boundaries are in [case-study/README.md](case-study/README.md). Public machine evidence is indexed by [evidence/public/acceptance-matrix.json](evidence/public/acceptance-matrix.json). Protected raw records, account identifiers, runtime state, backups, and credentials are deliberately absent from this repository.
 
 ## Local checks
 
@@ -41,6 +35,22 @@ This remains a staging milestone, not final project completion. Security/compati
 ./scripts/ci
 ./scripts/validate-public --pre-public
 ```
+
+After the repository becomes public, an unauthenticated clone can establish the repository-only release state without depending on the separately deployed showcase. Once that showcase is live, the final mode also checks its case data, media, and browser-quality suite:
+
+```bash
+./scripts/validate-public --repository-public
+./scripts/validate-public --post-public
+```
+
+The protected source owner can additionally validate raw-to-public lineage with:
+
+```bash
+./scripts/validate-all --pre-public
+./scripts/validate-all --final
+```
+
+`validate-public` never reads protected raw evidence. `validate-all` is intentionally local-only and is not invoked by public CI.
 
 With the protected staging runtime available, the pinned browser suite is:
 
@@ -59,4 +69,4 @@ During an authorized on-demand acceptance window, the foreground queue process i
 
 ## Claims boundary
 
-This staging project uses synthetic data and a non-monetary checkout path. It does not claim production scale, real payment processing, formal exactly-once delivery, or elimination of the Slack accepted/response-lost window.
+This staging project uses synthetic data and a non-monetary checkout path. The runtime is available on demand, while the static public case is persistent. It does not claim production scale, real payment processing, formal exactly-once delivery, or elimination of the Slack accepted/response-lost window. See [docs/CLAIMS-BOUNDARY.md](docs/CLAIMS-BOUNDARY.md) for the complete boundary.

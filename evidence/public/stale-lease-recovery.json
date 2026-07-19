@@ -1,0 +1,33 @@
+{
+  "schema_version": "1",
+  "acceptance_id": "GATE-06-LEASE",
+  "run_id": "PF07-ACCEPTANCE-RUN",
+  "started_at": "2026-07-18T22:35:28.597793Z",
+  "finished_at": "2026-07-18T22:42:09.688864Z",
+  "source_tree_sha256": "5cdb515367fc68a03dfc475449f90e92c604037802b708eacb74542423c6972d",
+  "command_or_probe": "recorded redaction of protected acceptance observation",
+  "exit_code": 0,
+  "observations": {
+    "result": "PASS",
+    "not_started_requeued_once": true,
+    "counters_preserved": true,
+    "locks_cleared_exactly": true,
+    "second_sweep_mutations": 0,
+    "ambiguous_in_flight_state": "operator_wait",
+    "ambiguous_auto_actions": 0
+  },
+  "artifact_hashes": {},
+  "redaction_state": "PUBLIC_REDACTED",
+  "redaction_transform": {
+    "id": "pf07-public-evidence-redaction",
+    "version": "1",
+    "script_sha256": "79e626c47a9d60bcc12ec333c311eb945ffb997dd671ce186574979da7504049"
+  },
+  "source_acceptance_id": "GATE-06-LEASE",
+  "source_record_sha256": "2fb91f29f5fe9134760ef23eedabe6ea05f79aed9f64f85d5a6f5eed52c74289",
+  "source_artifact_hashes": {
+    "lease_recovery_first_trace": "fc6fd33f47a53bad3c61e985dda979f80a2c2883fd70f7dc3cfe167446a845fd",
+    "lease_recovery_second_trace": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "ambiguous_unproven_trace": "d477c65f6d81d879f6b6fa6a154e5ea704d5d755e394da5171048f639c15407c"
+  }
+}

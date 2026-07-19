@@ -1,0 +1,30 @@
+{
+  "schema_version": "1",
+  "acceptance_id": "GATE-06-EXHAUSTION",
+  "run_id": "PF07-ACCEPTANCE-RUN",
+  "started_at": "2026-07-18T22:21:27.111178Z",
+  "finished_at": "2026-07-18T22:21:27.111178Z",
+  "source_tree_sha256": "5cdb515367fc68a03dfc475449f90e92c604037802b708eacb74542423c6972d",
+  "command_or_probe": "recorded redaction of protected acceptance observation",
+  "exit_code": 0,
+  "observations": {
+    "result": "PASS",
+    "terminal_automatic_attempts": 6,
+    "terminal_error": "ATTEMPTS_EXHAUSTED",
+    "follow_up_actions": 0,
+    "manual_attempt_count_greater_than_automatic": true,
+    "manual_terminal_follow_up_actions": 0
+  },
+  "artifact_hashes": {},
+  "redaction_state": "PUBLIC_REDACTED",
+  "redaction_transform": {
+    "id": "pf07-public-evidence-redaction",
+    "version": "1",
+    "script_sha256": "79e626c47a9d60bcc12ec333c311eb945ffb997dd671ce186574979da7504049"
+  },
+  "source_acceptance_id": "GATE-06-EXHAUSTION",
+  "source_record_sha256": "573f283203b9e4d43fc34bdf573159ad1854ec1e9ba91c1734c12bb6a0878da2",
+  "source_artifact_hashes": {
+    "exhaustion_attempt_trace": "a896684c1fc06ca3a5fb620c939a53d3702f1e60404de1c64492a1fe74dd7b5a"
+  }
+}

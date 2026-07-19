@@ -1,21 +1,25 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 import re
 import shutil
+import stat
 import subprocess
 import sys
+from urllib.request import Request, urlopen
 
 
 def fail(message: str) -> None:
     raise SystemExit(f"FAIL: {message}")
 
 
-if len(sys.argv) != 2 or sys.argv[1] not in ("--pre-public", "--post-public"):
-    fail("usage: scripts/validate-public <--pre-public|--post-public>")
+if len(sys.argv) != 2 or sys.argv[1] not in ("--pre-public", "--repository-public", "--post-public"):
+    fail("usage: scripts/validate-public <--pre-public|--repository-public|--post-public>")
 
+mode = sys.argv[1]
 root = Path(__file__).resolve().parent.parent
 allowlist = json.loads((root / "release/public-allowlist.json").read_text(encoding="utf-8"))["paths"]
 manifest_path = root / "release/public-build-manifest.json"
@@ -24,12 +28,17 @@ if manifest_path.exists():
     manifest_paths = [entry["path"] for entry in manifest.get("files", [])]
     if manifest_paths != allowlist:
         fail("generated manifest order or inventory differs from allowlist")
+    for entry in manifest.get("files", []):
+        path = root / entry["path"]
+        mode_value = "0755" if path.stat().st_mode & stat.S_IXUSR else "0644"
+        if hashlib.sha256(path.read_bytes()).hexdigest() != entry["sha256"] or mode_value != entry["mode"]:
+            fail(f"generated manifest bytes or mode differ: {entry['path']}")
 
-for forbidden in ("evidence/raw", "backups", "runtime", ".env", "reports/FINAL-REPORT.md"):
+for forbidden in ("evidence/raw", "backup", "backups", "credentials", "runtime", ".env", "reports/FINAL-REPORT.md"):
     if any(path == forbidden or path.startswith(forbidden + "/") for path in allowlist):
         fail(f"protected path is allowlisted: {forbidden}")
 
-text_suffixes = {".md", ".php", ".py", ".yml", ".yaml", ".json", ".txt", ".example", ""}
+text_suffixes = {".md", ".php", ".py", ".mjs", ".js", ".yml", ".yaml", ".json", ".txt", ".example", ".svg", ""}
 secret_patterns = [
     re.compile(r"-----BEGIN (?:OPENSSH|RSA|EC|DSA) PRIVATE KEY-----"),
     re.compile(r"(?i)authorization\s*:\s*bearer\s+[a-z0-9._-]{12,}"),
@@ -37,13 +46,14 @@ secret_patterns = [
     re.compile(r"(?m)^\s*[A-Z0-9_]*(?:API_KEY|TOKEN|PASSWORD|SECRET)[A-Z0-9_]*\s*:\s*(?![$<{])[^\s#]{8,}\s*$"),
     re.compile(r"(?i)(?:api[_-]?key|token|password|secret)\s*=\s*['\"](?![$<])(?![^'\"]*(?:synthetic|example|test))[^'\"]{8,}['\"]"),
     re.compile("/" + "home/" + r"[^/<\s]+/"),
+    re.compile(r"(?i)hooks\.slack\.com/services|ngrok-free\.(?:app|dev)|v1:pf" + r"07-(?!00000000-0000-4000-8000-000000000000)"),
 ]
 public_container_paths = ("/home/node/.n8n",)
 for relative in allowlist:
     path = root / relative
-    if not path.is_file():
-        fail(f"allowlisted file is missing: {relative}")
-    if path.suffix.lower() not in text_suffixes and path.name not in ("ci", "build-public-release", "validate-public"):
+    if not path.is_file() or path.is_symlink():
+        fail(f"allowlisted regular file is missing: {relative}")
+    if path.suffix.lower() not in text_suffixes and path.name not in ("ci", "build-public-release", "validate-public", "validate-all", "generate-public-evidence"):
         continue
     try:
         text = path.read_text(encoding="utf-8")
@@ -54,7 +64,83 @@ for relative in allowlist:
         scan_text = scan_text.replace(public_container_path, "<PUBLIC_CONTAINER_PATH>")
     for pattern in secret_patterns:
         if pattern.search(scan_text):
-            fail(f"public-bound secret or owner-path pattern in {relative}")
+            fail(f"public-bound secret, protected identifier, or owner-path pattern in {relative}")
+
+public_root = root / "evidence/public"
+manifest_entries: dict[str, str] = {}
+for line in (public_root / "evidence-manifest.sha256").read_text(encoding="utf-8").splitlines():
+    match = re.fullmatch(r"([0-9a-f]{64})  (evidence/public/[a-z0-9-]+\.(?:json|txt))", line)
+    if not match or match.group(2) in manifest_entries:
+        fail("public evidence manifest line is invalid or duplicated")
+    manifest_entries[match.group(2)] = match.group(1)
+expected_manifest = {
+    path.relative_to(root).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
+    for path in public_root.glob("*")
+    if path.is_file() and path.name != "evidence-manifest.sha256"
+}
+if manifest_entries != expected_manifest:
+    fail("public evidence manifest inventory or hash mismatch")
+
+public_records = []
+for relative, digest in manifest_entries.items():
+    record = json.loads((root / relative).read_text(encoding="utf-8"))
+    if relative.endswith("acceptance-matrix.json"):
+        continue
+    required = {
+        "schema_version", "acceptance_id", "run_id", "started_at", "finished_at",
+        "source_tree_sha256", "command_or_probe", "exit_code", "observations",
+        "artifact_hashes", "redaction_state", "redaction_transform",
+        "source_acceptance_id", "source_record_sha256", "source_artifact_hashes",
+    }
+    if required - record.keys() or record.get("redaction_state") != "PUBLIC_REDACTED" or record.get("run_id") != "PF07-ACCEPTANCE-RUN" or record.get("exit_code") != 0:
+        fail(f"public evidence common schema failed: {relative}")
+    transform = record.get("redaction_transform")
+    if not isinstance(transform, dict) or set(transform) != {"id", "version", "script_sha256"} or not re.fullmatch(r"[0-9a-f]{64}", transform.get("script_sha256", "")):
+        fail(f"public redaction transform failed: {relative}")
+    if record.get("source_acceptance_id") != record.get("acceptance_id") or not re.fullmatch(r"[0-9a-f]{64}", record.get("source_record_sha256", "")):
+        fail(f"public source commitment failed: {relative}")
+    if not isinstance(record.get("source_artifact_hashes"), dict) or not record["source_artifact_hashes"]:
+        fail(f"public artifact commitments are missing: {relative}")
+    public_records.append(record)
+
+matrix = json.loads((public_root / "acceptance-matrix.json").read_text(encoding="utf-8"))
+entries = matrix.get("entries")
+expected_gates = [f"GATE-{index:02d}" for index in range(1, 11)]
+if matrix.get("redaction_state") != "PUBLIC_ORIGINAL_SAFE" or matrix.get("matrix_scope") != "PRE_PUBLIC_BUYER_PROOF" or not isinstance(entries, list) or [entry.get("acceptance_id") for entry in entries] != expected_gates:
+    fail("public buyer-proof matrix scope or exact ten-gate inventory failed")
+if any(entry.get("result") != "PASS" or manifest_entries.get(entry.get("record_path")) != entry.get("record_sha256") for entry in entries):
+    fail("public buyer-proof matrix record link failed")
+if any(str(entry.get("acceptance_id", "")).startswith(("REL-", "ACC-")) for entry in entries) or matrix.get("observations", {}).get("final_pass_claimed") is not False:
+    fail("pre-public matrix contains a release/final claim")
+
+fixture = json.loads((root / "tests/fixtures/public-gate-fixtures.json").read_text(encoding="utf-8"))
+fixture_ids = [item.get("acceptance_id") for item in fixture.get("fixtures", [])]
+if fixture.get("classification") != "PUBLIC_ORIGINAL_SAFE_SYNTHETIC" or fixture_ids != expected_gates:
+    fail("public synthetic gate fixtures are incomplete")
+
+case = (root / "case-study/README.md").read_text(encoding="utf-8")
+claims = (root / "docs/CLAIMS-BOUNDARY.md").read_text(encoding="utf-8")
+architecture = (root / "case-study/architecture.svg").read_text(encoding="utf-8")
+for phrase in [
+    "구매자가 겪는 문제", "Proof scorecard", "What this proves", "What this does not prove",
+    "ON_DEMAND_ONLY", "Buyer fit / non-fit", "60–90", "recovery-clip.mp4",
+    "Formal exactly-once", "captured, still-valid signed request", "source-available dependency",
+]:
+    if phrase.lower() not in (case + claims + architecture).lower():
+        fail(f"public case/claims requirement is missing: {phrase}")
+
+for markdown in [root / "README.md", root / "case-study/README.md", *sorted((root / "docs").glob("*.md"))]:
+    text = markdown.read_text(encoding="utf-8")
+    for target in re.findall(r"\[[^\]]+\]\(([^)]+)\)", text):
+        if re.match(r"(?:https?://|#|mailto:)", target):
+            continue
+        resolved = (markdown.parent / target.split("#", 1)[0]).resolve()
+        try:
+            resolved.relative_to(root)
+        except ValueError:
+            fail(f"internal link escapes public tree: {markdown.name}:{target}")
+        if not resolved.exists():
+            fail(f"broken internal link: {markdown.name}:{target}")
 
 if shutil.which("php"):
     subprocess.run(["php", "plugin/oddroom-orderops/tests/run.php"], cwd=root, check=True)
@@ -67,7 +153,34 @@ elif shutil.which("docker"):
 else:
     fail("PHP 8.1+ or Docker is required for plugin tests")
 
-if sys.argv[1] == "--post-public":
-    fail("post-public observations do not exist before the ordered release step")
+if mode in ("--repository-public", "--post-public"):
+    def fetch(url: str) -> bytes:
+        request = Request(url, headers={"User-Agent": "PF07-public-validator/1"})
+        with urlopen(request, timeout=20) as response:
+            if response.status != 200:
+                fail(f"public URL returned {response.status}: {url}")
+            return response.read()
 
-print("PASS: pre-public tree, protected-path, credential-pattern, and unit checks")
+    repository_page = fetch("https://github.com/Cetacean916/oddroom-woo-orderops")
+    if b"OddRoom Woo OrderOps" not in repository_page:
+        fail("unauthenticated repository page lacks the project identity")
+    remote_matrix = fetch("https://raw.githubusercontent.com/Cetacean916/oddroom-woo-orderops/main/evidence/public/acceptance-matrix.json")
+    if hashlib.sha256(remote_matrix).hexdigest() != hashlib.sha256((public_root / "acceptance-matrix.json").read_bytes()).hexdigest():
+        fail("public repository evidence differs from the validated clone")
+
+if mode == "--post-public":
+    showcase_js = fetch("https://cetacean916.github.io/portfolio-showcase/assets/js/projects.js")
+    if b'id: "pf07"' not in showcase_js or b"GATE-10" not in showcase_js:
+        fail("deployed showcase data lacks the PF07 case or scorecard")
+    for url in [
+        "https://cetacean916.github.io/portfolio-showcase/case.html?id=pf07",
+        "https://cetacean916.github.io/portfolio-showcase/assets/media/pf07/main-image.png",
+        "https://cetacean916.github.io/portfolio-showcase/assets/media/pf07/demo-video.mp4",
+        "https://cetacean916.github.io/portfolio-showcase/assets/media/pf07/recovery-clip.mp4",
+    ]:
+        if not fetch(url):
+            fail(f"deployed public case asset is empty: {url}")
+    subprocess.run(["node", "tests/public_case_quality.mjs"], cwd=root, check=True)
+
+suffix = ", public repository" if mode == "--repository-public" else ", public repository and deployed case" if mode == "--post-public" else ""
+print(f"PASS: {mode[2:]} public tree, evidence, fixtures, claims, links, unit checks{suffix}")

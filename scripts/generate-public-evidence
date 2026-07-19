@@ -1,0 +1,194 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import hashlib
+import json
+from pathlib import Path
+import re
+import sys
+
+
+ROOT = Path(__file__).resolve().parent.parent
+RAW_ROOT = ROOT / "evidence/raw"
+PUBLIC_ROOT = ROOT / "evidence/public"
+PUBLIC_RUN_ALIAS = "PF07-ACCEPTANCE-RUN"
+TRANSFORM_ID = "pf07-public-evidence-redaction"
+TRANSFORM_VERSION = "1"
+
+RECORDS = {
+    "e2e-normal-order.json": "e2e-normal-order.json",
+    "e2e-variable-coupon-order.json": "e2e-variable-coupon-order.json",
+    "duplicate-suppression.json": "duplicate-suppression.json",
+    "state-non-regression.json": "state-non-regression.json",
+    "hmac-rejection.json": "hmac-rejection.json",
+    "raw-byte-resource-bounds.json": "raw-byte-resource-bounds.json",
+    "outage-retry.json": "outage-retry.json",
+    "retry-exhaustion.json": "retry-exhaustion.json",
+    "stale-lease-recovery.json": "stale-lease-recovery.json",
+    "partial-failure-recovery.json": "partial-failure-recovery.json",
+    "operator-outcome-resolution.json": "operator-outcome-resolution.json",
+    "reconciliation-repair.json": "reconciliation-repair.json",
+    "hpos-compatibility.json": "hpos-compatibility.json",
+    "product-quality.json": "product-quality.json",
+    "restore-drill.json": "restore-drill.json",
+}
+
+GATE_INDEX = {
+    "GATE-01": "e2e-normal-order.json",
+    "GATE-02": "state-non-regression.json",
+    "GATE-03": "e2e-variable-coupon-order.json",
+    "GATE-04": "duplicate-suppression.json",
+    "GATE-05": "hmac-rejection.json",
+    "GATE-06": "outage-retry.json",
+    "GATE-07": "partial-failure-recovery.json",
+    "GATE-08": "reconciliation-repair.json",
+    "GATE-09": "product-quality.json",
+    "GATE-10": "restore-drill.json",
+}
+
+COMMON_FIELDS = {
+    "schema_version", "acceptance_id", "run_id", "started_at", "finished_at",
+    "source_tree_sha256", "command_or_probe", "exit_code", "observations",
+    "artifact_hashes", "redaction_state",
+}
+
+
+def fail(message: str) -> None:
+    raise SystemExit(f"FAIL: {message}")
+
+
+def sha256_bytes(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def read_json(path: Path) -> dict:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        fail(f"cannot read {path.name}: {error}")
+    if not isinstance(value, dict):
+        fail(f"record is not an object: {path.name}")
+    return value
+
+
+def write_json(path: Path, value: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    path.chmod(0o644)
+
+
+if len(sys.argv) != 2 or sys.argv[1] != "--pre-public":
+    fail("usage: scripts/generate-public-evidence --pre-public")
+
+if not RAW_ROOT.is_dir():
+    fail("protected raw evidence root is missing")
+
+transform_sha = sha256_bytes(Path(__file__).read_bytes())
+PUBLIC_ROOT.mkdir(parents=True, exist_ok=True)
+
+expected_outputs = set(RECORDS.values()) | {"acceptance-matrix.json", "evidence-manifest.sha256"}
+unexpected = {
+    path.name for path in PUBLIC_ROOT.iterdir()
+    if path.is_file() and path.name not in expected_outputs
+}
+if unexpected:
+    fail(f"unexpected public evidence file: {sorted(unexpected)}")
+
+protected_pattern = re.compile(
+    r"(?:/" + "home/" + r"|[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|"
+    + r"v1:pf" + r"07-|ng" + r"rok(?:-free)?\.|hooks\.slack\.com|Authorization|Bearer\s+)",
+    re.IGNORECASE,
+)
+
+public_records: dict[str, dict] = {}
+for raw_name, public_name in RECORDS.items():
+    raw_path = RAW_ROOT / raw_name
+    raw_bytes = raw_path.read_bytes() if raw_path.is_file() else fail(f"missing raw record: {raw_name}")
+    raw = read_json(raw_path)
+    missing = COMMON_FIELDS - raw.keys()
+    if missing or raw.get("redaction_state") != "RAW_PROTECTED" or raw.get("exit_code") != 0:
+        fail(f"raw record is not a passing common-schema record: {raw_name} {sorted(missing)}")
+    observations = raw.get("observations")
+    if not isinstance(observations, dict) or observations.get("result") != "PASS":
+        fail(f"raw observations are not a direct PASS: {raw_name}")
+    serialized_observations = json.dumps(observations, ensure_ascii=False, sort_keys=True)
+    if protected_pattern.search(serialized_observations):
+        fail(f"protected identifier reached public observations: {raw_name}")
+    artifact_hashes = raw.get("artifact_hashes")
+    if not isinstance(artifact_hashes, dict) or not artifact_hashes:
+        fail(f"raw record has no protected source artifacts: {raw_name}")
+    if any(not re.fullmatch(r"[a-z0-9_]+", alias) for alias in artifact_hashes):
+        fail(f"artifact alias is not public-safe: {raw_name}")
+    if any(not re.fullmatch(r"[0-9a-f]{64}", digest) for digest in artifact_hashes.values()):
+        fail(f"artifact hash is invalid: {raw_name}")
+
+    public = {
+        "schema_version": "1",
+        "acceptance_id": raw["acceptance_id"],
+        "run_id": PUBLIC_RUN_ALIAS,
+        "started_at": raw["started_at"],
+        "finished_at": raw["finished_at"],
+        "source_tree_sha256": raw["source_tree_sha256"],
+        "command_or_probe": "recorded redaction of protected acceptance observation",
+        "exit_code": 0,
+        "observations": observations,
+        "artifact_hashes": {},
+        "redaction_state": "PUBLIC_REDACTED",
+        "redaction_transform": {
+            "id": TRANSFORM_ID,
+            "version": TRANSFORM_VERSION,
+            "script_sha256": transform_sha,
+        },
+        "source_acceptance_id": raw["acceptance_id"],
+        "source_record_sha256": sha256_bytes(raw_bytes),
+        "source_artifact_hashes": artifact_hashes,
+    }
+    write_json(PUBLIC_ROOT / public_name, public)
+    public_records[public_name] = public
+
+record_hashes = {
+    name: sha256_bytes((PUBLIC_ROOT / name).read_bytes()) for name in public_records
+}
+started = min(record["started_at"] for record in public_records.values())
+finished = max(record["finished_at"] for record in public_records.values())
+source_hashes = {record["source_tree_sha256"] for record in public_records.values()}
+if len(source_hashes) != 1:
+    fail("public records do not bind one deterministic source tree")
+
+matrix = {
+    "schema_version": "1",
+    "acceptance_id": "ACCEPTANCE-MATRIX",
+    "run_id": PUBLIC_RUN_ALIAS,
+    "started_at": started,
+    "finished_at": finished,
+    "source_tree_sha256": next(iter(source_hashes)),
+    "command_or_probe": "pre-public buyer-proof index over generated public records",
+    "exit_code": 0,
+    "observations": {
+        "result": "PASS",
+        "gate_count": 10,
+        "final_pass_claimed": False,
+    },
+    "artifact_hashes": {},
+    "redaction_state": "PUBLIC_ORIGINAL_SAFE",
+    "matrix_scope": "PRE_PUBLIC_BUYER_PROOF",
+    "entries": [
+        {
+            "acceptance_id": gate,
+            "result": "PASS",
+            "record_path": f"evidence/public/{GATE_INDEX[gate]}",
+            "record_sha256": record_hashes[GATE_INDEX[gate]],
+        }
+        for gate in sorted(GATE_INDEX)
+    ],
+}
+write_json(PUBLIC_ROOT / "acceptance-matrix.json", matrix)
+
+manifest_entries = []
+for path in sorted(PUBLIC_ROOT.glob("*")):
+    if path.is_file() and path.name != "evidence-manifest.sha256":
+        manifest_entries.append(f"{sha256_bytes(path.read_bytes())}  evidence/public/{path.name}")
+(PUBLIC_ROOT / "evidence-manifest.sha256").write_text("\n".join(manifest_entries) + "\n", encoding="utf-8")
+(PUBLIC_ROOT / "evidence-manifest.sha256").chmod(0o644)
+
+print(f"PASS: generated {len(public_records)} redacted records, ten-gate buyer index, and public manifest")

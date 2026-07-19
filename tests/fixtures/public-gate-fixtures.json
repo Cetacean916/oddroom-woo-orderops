@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "classification": "PUBLIC_ORIGINAL_SAFE_SYNTHETIC",
+  "fixtures": [
+    {"acceptance_id": "GATE-01", "products": ["simple", "variable"], "variation_count": 2, "coupon_count": 1},
+    {"acceptance_id": "GATE-02", "events": ["ORDER_CREATED", "PAYMENT_CONFIRMED", "ORDER_CANCELLED", "ORDER_REFUNDED"], "state_ranks": [10, 20, 30, 40], "delayed_lower_rank_result": "stale_ignored"},
+    {"acceptance_id": "GATE-03", "distinct_order_aliases": ["order-a", "order-b", "order-c"], "distinct_payload_hash_count": 3},
+    {"acceptance_id": "GATE-04", "concurrent_workers": 3, "manual_retry_during_claim": 1, "expected_deals": 1, "expected_slack_posts": 1},
+    {"acceptance_id": "GATE-05", "rejections": ["missing_signature", "mutated_body", "expired_timestamp", "resource_invalid", "oversized_chunked"], "expected_external_calls": 0},
+    {"acceptance_id": "GATE-06", "automatic_attempt_limit": 6, "retry_delays_seconds": [2, 5, 10, 20, 30], "ambiguous_result": "operator_wait"},
+    {"acceptance_id": "GATE-07", "first_result": "failed_before_post", "resume_phase": "slack_pending", "expected_total_slack_posts": 1},
+    {"acceptance_id": "GATE-08", "missing_event_repairs": 4, "schedule_only_repairs": 1, "second_scan_mutations": 0},
+    {"acceptance_id": "GATE-09", "viewports": [390, 768, 1440], "maximum_serious_or_critical": 0, "hpos_modes": ["disabled", "enabled"]},
+    {"acceptance_id": "GATE-10", "replacement_runtime": true, "expected_deals": 1, "expected_payment_slack_posts": 1, "duplicate_replay_additional_posts": 0}
+  ]
+}

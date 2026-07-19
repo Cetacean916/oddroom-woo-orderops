@@ -1,0 +1,254 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+from datetime import datetime
+import hashlib
+import json
+from pathlib import Path
+import re
+import stat
+import sys
+
+
+ROOT = Path(__file__).resolve().parent.parent
+RAW_ROOT = ROOT / "evidence/raw"
+PUBLIC_ROOT = ROOT / "evidence/public"
+COMMON_FIELDS = {
+    "schema_version", "acceptance_id", "run_id", "started_at", "finished_at",
+    "source_tree_sha256", "command_or_probe", "exit_code", "observations",
+    "artifact_hashes", "redaction_state",
+}
+PRE_PUBLIC_RAW = [
+    "e2e-normal-order.json", "e2e-variable-coupon-order.json",
+    "duplicate-suppression.json", "state-non-regression.json",
+    "hmac-rejection.json", "raw-byte-resource-bounds.json",
+    "outage-retry.json", "retry-exhaustion.json", "stale-lease-recovery.json",
+    "partial-failure-recovery.json", "operator-outcome-resolution.json",
+    "reconciliation-repair.json", "hpos-compatibility.json",
+    "product-quality.json", "restore-drill.json",
+]
+PRIMARY_GATES = {
+    "GATE-01": "e2e-normal-order.json",
+    "GATE-02": "state-non-regression.json",
+    "GATE-03": "e2e-variable-coupon-order.json",
+    "GATE-04": "duplicate-suppression.json",
+    "GATE-05": "hmac-rejection.json",
+    "GATE-06": "outage-retry.json",
+    "GATE-07": "partial-failure-recovery.json",
+    "GATE-08": "reconciliation-repair.json",
+    "GATE-09": "product-quality.json",
+    "GATE-10": "restore-drill.json",
+}
+
+
+def fail(message: str) -> None:
+    raise SystemExit(f"FAIL: {message}")
+
+
+def sha256_bytes(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def sha256_file(path: Path) -> str:
+    return sha256_bytes(path.read_bytes())
+
+
+def load_json(path: Path) -> dict:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        fail(f"cannot read {path}: {error}")
+    if not isinstance(value, dict):
+        fail(f"JSON root is not an object: {path}")
+    return value
+
+
+def parse_time(value: object, label: str) -> None:
+    if not isinstance(value, str):
+        fail(f"{label} is not a timestamp string")
+    try:
+        datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        fail(f"{label} is not RFC3339-compatible")
+
+
+def source_tree_sha256() -> str:
+    lines: list[str] = []
+    for path in sorted(ROOT.rglob("*")):
+        relative = path.relative_to(ROOT)
+        if not path.is_file() or path.is_symlink():
+            continue
+        if relative.parts[0] in {"evidence", "reports", "runtime", ".git"}:
+            continue
+        if "node_modules" in relative.parts or "__pycache__" in relative.parts or path.suffix == ".pyc":
+            continue
+        if relative.as_posix() == "release/public-build-manifest.json":
+            continue
+        mode = "0755" if path.stat().st_mode & stat.S_IXUSR else "0644"
+        lines.append(f"{relative.as_posix()}\t{mode}\t{sha256_file(path)}")
+    return sha256_bytes(("\n".join(lines) + "\n").encode("utf-8"))
+
+
+def parse_manifest(path: Path) -> dict[str, str]:
+    entries: dict[str, str] = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        match = re.fullmatch(r"([0-9a-f]{64})  ([a-zA-Z0-9._/-]+)", line)
+        if not match or match.group(2) in entries:
+            fail(f"invalid or duplicate manifest line in {path.name}")
+        entries[match.group(2)] = match.group(1)
+    return entries
+
+
+if len(sys.argv) != 2 or sys.argv[1] not in {"--pre-public", "--final"}:
+    fail("usage: scripts/validate-all <--pre-public|--final>")
+mode = sys.argv[1]
+
+if not RAW_ROOT.is_dir() or not PUBLIC_ROOT.is_dir():
+    fail("raw and public evidence roots are required")
+
+source_hash = source_tree_sha256()
+inventory = load_json(RAW_ROOT / "protected-artifact-inventory.json")
+artifacts = inventory.get("artifacts")
+if inventory.get("schema_version") != 1 or not isinstance(artifacts, dict) or not artifacts:
+    fail("protected artifact inventory is invalid")
+for alias, item in artifacts.items():
+    if not re.fullmatch(r"[a-z0-9_]+", alias) or not isinstance(item, dict):
+        fail(f"protected artifact alias is invalid: {alias}")
+    relative = item.get("path")
+    digest = item.get("sha256")
+    if not isinstance(relative, str) or not relative.startswith("artifacts/") or ".." in Path(relative).parts:
+        fail(f"protected artifact path is invalid: {alias}")
+    path = RAW_ROOT / relative
+    if not path.is_file() or sha256_file(path) != digest:
+        fail(f"protected artifact hash mismatch: {alias}")
+
+raw_records: dict[str, dict] = {}
+run_ids: set[str] = set()
+for name in PRE_PUBLIC_RAW:
+    path = RAW_ROOT / name
+    record = load_json(path)
+    missing = COMMON_FIELDS - record.keys()
+    if missing or record.get("redaction_state") != "RAW_PROTECTED":
+        fail(f"raw common schema failed: {name} {sorted(missing)}")
+    if record.get("exit_code") != 0 or record.get("observations", {}).get("result") != "PASS":
+        fail(f"raw record is not a direct PASS: {name}")
+    if record.get("source_tree_sha256") != source_hash:
+        fail(f"source-tree commitment mismatch: {name}")
+    parse_time(record.get("started_at"), f"{name}.started_at")
+    parse_time(record.get("finished_at"), f"{name}.finished_at")
+    run_id = record.get("run_id")
+    if not isinstance(run_id, str) or not run_id:
+        fail(f"raw run ID is missing: {name}")
+    run_ids.add(run_id)
+    artifact_hashes = record.get("artifact_hashes")
+    if not isinstance(artifact_hashes, dict) or not artifact_hashes:
+        fail(f"raw artifact hashes are missing: {name}")
+    for alias, digest in artifact_hashes.items():
+        if alias not in artifacts or artifacts[alias]["sha256"] != digest:
+            fail(f"raw artifact is not inventory-bound: {name}:{alias}")
+    raw_records[name] = record
+if len(run_ids) != 1:
+    fail("pre-public records do not share one protected acceptance run")
+
+checks = {
+    "e2e-normal-order.json": lambda o: o.get("simple_product_orders", 0) >= 1 and o.get("variable_product_orders", 0) >= 1 and o.get("coupon_orders", 0) >= 1,
+    "e2e-variable-coupon-order.json": lambda o: o.get("distinct_order_count") == 3 and o.get("distinct_payload_hash_count") == 3,
+    "state-non-regression.json": lambda o: o.get("event_type_count") == 4 and o.get("delayed_lower_rank_results") == 2 and o.get("delayed_payment_slack_calls") == 0,
+    "duplicate-suppression.json": lambda o: o.get("concurrent_workers") == 3 and o.get("manual_retry_conflicts") == 1 and o.get("deal_count") == 1 and o.get("slack_post_count") == 1,
+    "hmac-rejection.json": lambda o: o.get("rejected_case_count") == 3 and o.get("external_call_count") == 0,
+    "raw-byte-resource-bounds.json": lambda o: o.get("exact_byte_valid") is True and o.get("oversized_status") == 413 and o.get("resource_invalid_external_calls") == 0,
+    "outage-retry.json": lambda o: o.get("automatic_attempt_limit") == 6 and o.get("retry_delays_seconds") == [2, 5, 10, 20, 30] and o.get("payload_rebuilt") is False,
+    "retry-exhaustion.json": lambda o: o.get("terminal_automatic_attempts") == 6 and o.get("follow_up_actions") == 0,
+    "stale-lease-recovery.json": lambda o: o.get("second_sweep_mutations") == 0 and o.get("ambiguous_auto_actions") == 0,
+    "partial-failure-recovery.json": lambda o: o.get("first_phase") == "slack_pending" and o.get("final_slack_posts") == 1 and o.get("checkpoint_overwrites") == 0,
+    "operator-outcome-resolution.json": lambda o: o.get("decision_count") == 4 and o.get("unresolved_actions") == 0 and o.get("conflicting_decision_side_effects") == 0,
+    "reconciliation-repair.json": lambda o: o.get("missing_event_repairs") == 4 and o.get("schedule_only_repairs") == 1 and o.get("second_scan_mutations") == 0,
+    "hpos-compatibility.json": lambda o: o.get("hpos_disabled") == "PASS" and o.get("hpos_enabled") == "PASS" and o.get("action_scheduler_version_supported") is True,
+    "product-quality.json": lambda o: o.get("viewport_count") == 3 and o.get("serious_or_critical_violations") == 0 and o.get("page_overflow_failures") == 0,
+    "restore-drill.json": lambda o: o.get("active_runtime_after_restore") == "RESTORED" and o.get("new_deal_count") == 1 and o.get("payment_slack_posts") == 1 and o.get("duplicate_additional_slack_posts") == 0 and o.get("original_runtime_calls") == 0,
+}
+for name, predicate in checks.items():
+    if not predicate(raw_records[name]["observations"]):
+        fail(f"direct acceptance observation failed: {name}")
+
+raw_manifest = parse_manifest(RAW_ROOT / "evidence-manifest.sha256")
+expected_raw_manifest = {
+    path.relative_to(ROOT).as_posix(): sha256_file(path)
+    for path in RAW_ROOT.rglob("*")
+    if path.is_file() and path.name != "evidence-manifest.sha256"
+}
+if raw_manifest != expected_raw_manifest:
+    fail("protected raw manifest inventory or hashes differ")
+
+public_manifest = parse_manifest(PUBLIC_ROOT / "evidence-manifest.sha256")
+expected_public_manifest = {
+    path.relative_to(ROOT).as_posix(): sha256_file(path)
+    for path in PUBLIC_ROOT.glob("*")
+    if path.is_file() and path.name != "evidence-manifest.sha256"
+}
+if public_manifest != expected_public_manifest:
+    fail("public manifest inventory or hashes differ")
+
+public_hash_values = set(public_manifest.values()) | {sha256_file(PUBLIC_ROOT / "evidence-manifest.sha256")}
+for name, raw in raw_records.items():
+    if set(raw["artifact_hashes"].values()) & public_hash_values:
+        fail(f"backward edge from raw to derived public output: {name}")
+
+public_by_gate: dict[str, tuple[str, dict]] = {}
+for gate, raw_name in PRIMARY_GATES.items():
+    public_name = raw_name
+    public_path = PUBLIC_ROOT / public_name
+    public = load_json(public_path)
+    raw = raw_records[raw_name]
+    if public.get("redaction_state") != "PUBLIC_REDACTED":
+        fail(f"public redaction state failed: {public_name}")
+    transform = public.get("redaction_transform")
+    if not isinstance(transform, dict) or set(transform) != {"id", "version", "script_sha256"}:
+        fail(f"public transform metadata failed: {public_name}")
+    if public.get("source_acceptance_id") != raw["acceptance_id"] or public.get("source_record_sha256") != sha256_file(RAW_ROOT / raw_name):
+        fail(f"raw-to-public source commitment failed: {public_name}")
+    source_artifacts = public.get("source_artifact_hashes")
+    if not isinstance(source_artifacts, dict) or any(raw["artifact_hashes"].get(alias) != digest for alias, digest in source_artifacts.items()):
+        fail(f"public source artifact subset failed: {public_name}")
+    if public.get("source_tree_sha256") != source_hash or public.get("exit_code") != 0:
+        fail(f"public source/result commitment failed: {public_name}")
+    public_by_gate[gate] = (public_name, public)
+
+matrix = load_json(PUBLIC_ROOT / "acceptance-matrix.json")
+entries = matrix.get("entries")
+if matrix.get("redaction_state") != "PUBLIC_ORIGINAL_SAFE" or matrix.get("matrix_scope") != "PRE_PUBLIC_BUYER_PROOF" or not isinstance(entries, list):
+    fail("public buyer-proof matrix metadata failed")
+if [entry.get("acceptance_id") for entry in entries] != sorted(PRIMARY_GATES):
+    fail("public buyer-proof matrix must contain exactly GATE-01 through GATE-10")
+for entry in entries:
+    gate = entry["acceptance_id"]
+    public_name, _ = public_by_gate[gate]
+    if entry.get("result") != "PASS" or entry.get("record_path") != f"evidence/public/{public_name}" or entry.get("record_sha256") != sha256_file(PUBLIC_ROOT / public_name):
+        fail(f"public buyer-proof matrix link failed: {gate}")
+
+claims = (ROOT / "docs/CLAIMS-BOUNDARY.md").read_text(encoding="utf-8")
+case = (ROOT / "case-study/README.md").read_text(encoding="utf-8")
+for phrase in [
+    "Production load, scale, uptime", "Real payment", "Formal exactly-once",
+    "captured, still-valid signed request", "Slack accepted/response-lost window",
+    "unrelated external writers", "source-available dependency",
+]:
+    if phrase.lower() not in (claims + case).lower():
+        fail(f"required claim boundary is missing: {phrase}")
+
+if mode == "--final":
+    release = load_json(RAW_ROOT / "public-release.json")
+    final_matrix = load_json(RAW_ROOT / "acceptance-matrix.json")
+    for name, record in (("public-release.json", release), ("acceptance-matrix.json", final_matrix)):
+        if COMMON_FIELDS - record.keys() or record.get("redaction_state") != "RAW_PROTECTED" or record.get("source_tree_sha256") != source_hash or record.get("exit_code") != 0:
+            fail(f"final raw record schema/result failed: {name}")
+    if release.get("observations", {}).get("result") != "PASS" or release.get("observations", {}).get("identity_chain_exact") is not True:
+        fail("public release identity chain did not pass")
+    expected_ids = [f"GATE-{index:02d}" for index in range(1, 11)] + [f"REL-{index:03d}" for index in range(1, 9)] + [f"ACC-{index:03d}" for index in range(1, 19)]
+    final_entries = final_matrix.get("entries")
+    if not isinstance(final_entries, list) or [entry.get("acceptance_id") for entry in final_entries] != expected_ids or any(entry.get("result") != "PASS" for entry in final_entries):
+        fail("final acceptance matrix is incomplete or non-PASS")
+    if final_matrix.get("observations", {}).get("result") != "PASS" or final_matrix.get("observations", {}).get("final_pass") is not True:
+        fail("final matrix does not establish final pass")
+
+print(f"PASS: aggregate {mode[2:]} validation established {len(raw_records)} gate records and complete evidence lineage")

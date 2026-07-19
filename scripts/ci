@@ -5,9 +5,22 @@ project_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$project_root"
 
 python3 tests/test_public_builder.py
+python3 -B - <<'PY'
+from pathlib import Path
+
+for raw in (
+    "scripts/build-public-release", "scripts/generate-public-evidence",
+    "scripts/validate-all", "scripts/validate-public",
+    "tests/test_public_builder.py", "tests/test_vsl_contract.py",
+):
+    path = Path(raw)
+    compile(path.read_text(encoding="utf-8"), raw, "exec")
+print("PASS: Python source syntax checks")
+PY
 ./scripts/build-workflow --check
 python3 tests/test_vsl_contract.py
 jq -e . workflow/oddroom-orderops-vsl.json >/dev/null
+node --check tests/public_case_quality.mjs
 bash -n scripts/ci scripts/queue-runner scripts/runtime-materialize scripts/runtime-import-credentials scripts/runtime-wp-install
 
 PF07_DB_PASSWORD=x \

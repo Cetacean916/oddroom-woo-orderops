@@ -1,0 +1,30 @@
+{
+  "schema_version": "1",
+  "acceptance_id": "GATE-03",
+  "run_id": "PF07-ACCEPTANCE-RUN",
+  "started_at": "2026-07-18T20:28:41.834109Z",
+  "finished_at": "2026-07-18T20:28:41.834109Z",
+  "source_tree_sha256": "5cdb515367fc68a03dfc475449f90e92c604037802b708eacb74542423c6972d",
+  "command_or_probe": "recorded redaction of protected acceptance observation",
+  "exit_code": 0,
+  "observations": {
+    "result": "PASS",
+    "distinct_order_count": 3,
+    "distinct_customer_alias_count": 3,
+    "distinct_product_input_count": 3,
+    "distinct_payload_hash_count": 3,
+    "fixed_workflow_fixture_used": false
+  },
+  "artifact_hashes": {},
+  "redaction_state": "PUBLIC_REDACTED",
+  "redaction_transform": {
+    "id": "pf07-public-evidence-redaction",
+    "version": "1",
+    "script_sha256": "79e626c47a9d60bcc12ec333c311eb945ffb997dd671ce186574979da7504049"
+  },
+  "source_acceptance_id": "GATE-03",
+  "source_record_sha256": "238249fbe56b5d0df12bcc7e93d94ad6d8f1c75422fe0467fb6b1801365bf0f5",
+  "source_artifact_hashes": {
+    "order_variety_trace": "d4cc054cd799d2dab589cdd8b8680bf768f006d35d70773fb0fd065e3c1ba4a6"
+  }
+}

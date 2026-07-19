@@ -1,0 +1,80 @@
+{
+  "schema_version": "1",
+  "acceptance_id": "ACCEPTANCE-MATRIX",
+  "run_id": "PF07-ACCEPTANCE-RUN",
+  "started_at": "2026-07-18T20:28:41.834109Z",
+  "finished_at": "2026-07-18T23:16:09.934847Z",
+  "source_tree_sha256": "5cdb515367fc68a03dfc475449f90e92c604037802b708eacb74542423c6972d",
+  "command_or_probe": "pre-public buyer-proof index over generated public records",
+  "exit_code": 0,
+  "observations": {
+    "result": "PASS",
+    "gate_count": 10,
+    "final_pass_claimed": false
+  },
+  "artifact_hashes": {},
+  "redaction_state": "PUBLIC_ORIGINAL_SAFE",
+  "matrix_scope": "PRE_PUBLIC_BUYER_PROOF",
+  "entries": [
+    {
+      "acceptance_id": "GATE-01",
+      "result": "PASS",
+      "record_path": "evidence/public/e2e-normal-order.json",
+      "record_sha256": "7bc785dbfef4feae81d9d1d6f08541edb03fd337fb76e8032627fc10155d8c3b"
+    },
+    {
+      "acceptance_id": "GATE-02",
+      "result": "PASS",
+      "record_path": "evidence/public/state-non-regression.json",
+      "record_sha256": "fdd03f0afcd4797bbdc0cecdfe9eb6ab7ba129cd1daad22284bad0bccf358520"
+    },
+    {
+      "acceptance_id": "GATE-03",
+      "result": "PASS",
+      "record_path": "evidence/public/e2e-variable-coupon-order.json",
+      "record_sha256": "065962a24629cd1a47ec0ea2c6885461f53601ba0140fea641b8bb13c47bd0b7"
+    },
+    {
+      "acceptance_id": "GATE-04",
+      "result": "PASS",
+      "record_path": "evidence/public/duplicate-suppression.json",
+      "record_sha256": "b2e24b0215a3d8bf212e441f76f311096202b7d1b04dc0c089a7cecfe41fea52"
+    },
+    {
+      "acceptance_id": "GATE-05",
+      "result": "PASS",
+      "record_path": "evidence/public/hmac-rejection.json",
+      "record_sha256": "263932a58443b9f1185973e7e41b8a95481c2bd6b18b6e598eaf710428500d2a"
+    },
+    {
+      "acceptance_id": "GATE-06",
+      "result": "PASS",
+      "record_path": "evidence/public/outage-retry.json",
+      "record_sha256": "07e6c1e77d846ea0ae6772ae51a46172b2579d97282a915ea237f1f8b64cf4c7"
+    },
+    {
+      "acceptance_id": "GATE-07",
+      "result": "PASS",
+      "record_path": "evidence/public/partial-failure-recovery.json",
+      "record_sha256": "8ccfcbd018a4dafb533138923ca757ea3ebe64dd4474e3c50b82444304da6d0c"
+    },
+    {
+      "acceptance_id": "GATE-08",
+      "result": "PASS",
+      "record_path": "evidence/public/reconciliation-repair.json",
+      "record_sha256": "18f89fa4cc3c6967a220d4fb543c6000b89f39fcc093f386d132422f9cf4e28e"
+    },
+    {
+      "acceptance_id": "GATE-09",
+      "result": "PASS",
+      "record_path": "evidence/public/product-quality.json",
+      "record_sha256": "6871ef8596b81fe8667ef00e53c78511aa7b6f622e3abafbf12c9519f491d58d"
+    },
+    {
+      "acceptance_id": "GATE-10",
+      "result": "PASS",
+      "record_path": "evidence/public/restore-drill.json",
+      "record_sha256": "2a6cbb394390a03ac8bc411f47c7f991416feec76423e1f7c9e969accaaf3637"
+    }
+  ]
+}

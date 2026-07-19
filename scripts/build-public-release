@@ -40,6 +40,19 @@ if len(paths) != len(set(paths)):
 if "release/public-allowlist.json" not in paths or "scripts/build-public-release" not in paths:
     fail("allowlist must include itself and the builder")
 
+forbidden_roots = ("evidence/raw", "runtime", "backup", "backups", "credentials", ".git")
+forbidden_exact = {".env", "reports/FINAL-REPORT.md"}
+allowed_suffixes = {
+    ".conf", ".css", ".example", ".jpg", ".js", ".json", ".md", ".mjs", ".php",
+    ".py", ".sha256", ".svg", ".txt", ".woff2", ".yaml", ".yml",
+}
+allowed_names = {
+    ".env.example", ".gitignore", "LICENSE", "ci", "build-public-release",
+    "build-workflow", "generate-public-evidence", "queue-runner",
+    "runtime-import-credentials", "runtime-materialize", "runtime-wp-install",
+    "validate-all", "validate-public", "validate-ui",
+}
+
 copied: list[dict[str, object]] = []
 for raw in paths:
     if not isinstance(raw, str) or raw == "":
@@ -52,6 +65,10 @@ for raw in paths:
     raw_parts = raw.split("/")
     if pure.is_absolute() or any(part in ("", ".", "..") for part in raw_parts):
         fail(f"unsafe allowlist path: {raw}")
+    if raw in forbidden_exact or any(raw == root or raw.startswith(root + "/") for root in forbidden_roots):
+        fail(f"protected path cannot be allowlisted: {raw}")
+    if pure.name not in allowed_names and pure.suffix.lower() not in allowed_suffixes:
+        fail(f"unsupported public file type: {raw}")
     source = source_root.joinpath(*pure.parts)
     cursor = source_root
     for part in pure.parts:
