@@ -1,14 +1,16 @@
 @font-face {
-  font-family: "Offset Sans";
-  src: url("../fonts/NotoSansKR-Regular.woff2") format("woff2");
-  font-weight: 400;
+  font-family: "Offset Grotesk";
+  src: url("../fonts/PretendardVariable.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 45 920;
   font-display: swap;
 }
 
 @font-face {
-  font-family: "Offset Sans";
-  src: url("../fonts/NotoSansKR-Bold.woff2") format("woff2");
-  font-weight: 700;
+  font-family: "Offset Editorial";
+  src: url("../fonts/NotoSerifKR-Variable-PF07Subset.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 200 900;
   font-display: swap;
 }
 
@@ -35,10 +37,23 @@ body:not(.wp-admin) {
   margin: 0;
   background: var(--offset-paper);
   color: var(--offset-ink);
-  font-family: "Offset Sans", Arial, sans-serif;
+  font-family: "Offset Grotesk", "Apple SD Gothic Neo", system-ui, sans-serif;
   font-size: 16px;
   line-height: 1.6;
   text-rendering: optimizeLegibility;
+}
+
+.oddroom-hero h1,
+.oddroom-manifesto h2,
+.oddroom-section > header h2,
+.oddroom-story-grid h2,
+.oddroom-flow > header h2,
+.oddroom-flow h3,
+.oddroom-cta h2,
+.oddroom-commerce-title strong,
+body:not(.wp-admin) .product_title {
+  font-family: "Offset Editorial", "Noto Serif KR", serif;
+  letter-spacing: -.025em;
 }
 
 body:not(.wp-admin) *,
@@ -300,7 +315,7 @@ body:not(.wp-admin) .wp-block-button__link {
   background: var(--offset-ink) !important;
   box-shadow: none !important;
   color: var(--offset-white) !important;
-  font-family: "Offset Sans", Arial, sans-serif !important;
+  font-family: "Offset Grotesk", "Apple SD Gothic Neo", system-ui, sans-serif !important;
   font-size: 12px !important;
   font-weight: 700 !important;
   letter-spacing: .04em;
@@ -928,7 +943,7 @@ body:not(.wp-admin) .woocommerce ul.products li.product .woocommerce-loop-produc
   margin: 0 0 7px !important;
   padding: 0 !important;
   color: var(--offset-ink);
-  font-family: "Offset Sans", Arial, sans-serif;
+  font-family: "Offset Grotesk", "Apple SD Gothic Neo", system-ui, sans-serif;
   font-size: clamp(20px, 2vw, 28px) !important;
   font-weight: 700;
   letter-spacing: -.035em;

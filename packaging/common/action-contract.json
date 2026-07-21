@@ -67,7 +67,7 @@
   "step_060_branches": [
     "clean-bootstrap",
     "rerun-idempotence",
-    "controlled-pre-release-update",
+    "controlled-package-update",
     "authenticated-encrypted-backup",
     "quiesced-one-writer-restore",
     "reset-demo-idempotence",

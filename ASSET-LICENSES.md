@@ -12,15 +12,38 @@ OFFSET brand composition and newly authored project graphics remain owner-contro
 - `plugin/oddroom-orderops/assets/fonts/NotoSansKR-Regular.woff2`
   - Source: <https://fonts.google.com/noto/specimen/Noto+Sans+KR>
   - License: SIL Open Font License 1.1
-  - Role: Korean body and interface text
+  - Role: retained licensed fallback asset; not selected by the current UI
   - SHA-256: `1583b2052998c1e3133c742dae17300ba17de41a0ae46a313a281948ce5e3ab7`
 - `plugin/oddroom-orderops/assets/fonts/NotoSansKR-Bold.woff2`
   - Source: <https://fonts.google.com/noto/specimen/Noto+Sans+KR>
   - License: SIL Open Font License 1.1
-  - Role: Korean interface emphasis
+  - Role: retained licensed fallback asset; not selected by the current UI
   - SHA-256: `809c61dfb3cfec6af6cfabe4d51e14e57bf86452359ea97e71e64c8821efed4d`
+- `plugin/oddroom-orderops/assets/fonts/PretendardVariable.woff2`
+  - Source: <https://github.com/orioncactus/pretendard/blob/main/packages/pretendard/dist/web/variable/woff2/PretendardVariable.woff2>
+  - License: SIL Open Font License 1.1
+  - Role: selected `Offset Grotesk` body, commerce-control, and operator-interface family
+  - Upstream form: unmodified variable WOFF2
+  - SHA-256: `9599f12fd42fc0bce1cd50b47a0c022e108d7aa64dd0d1bb0ed44f3282d900b4`
+- `launcher/ui/fonts/PretendardVariable.woff2`
+  - Source and license: same unmodified Pretendard Variable file above
+  - Role: selected `Offset Grotesk` family in the package-owned graphical hub
+  - SHA-256: `9599f12fd42fc0bce1cd50b47a0c022e108d7aa64dd0d1bb0ed44f3282d900b4`
+- `plugin/oddroom-orderops/assets/fonts/NotoSerifKR-Variable-PF07Subset.woff2`
+  - Source: <https://github.com/google/fonts/blob/main/ofl/notoserifkr/NotoSerifKR%5Bwght%5D.ttf>
+  - License: SIL Open Font License 1.1
+  - Role: selected `Offset Editorial` image-led headline and product-title family
+  - Transformation: PF07 text-corpus and punctuation subset, WOFF2 conversion with fonttools 4.63.0; variable weight axis retained
+  - Upstream TTF SHA-256: `11f8d5de6f1b79195efba3828aaa2ec95c1178f5ae976fb23c8d53250a9938f3`
+  - Final subset SHA-256: `e5c26900eed5d9b3a6ddfd2979a64637ecd5671884e3af5b6f764459383605e3`
+- `plugin/oddroom-orderops/assets/fonts/Pretendard-OFL.txt`
+  - Role: bundled Pretendard OFL and copyright notice
+  - SHA-256: `82e9c8a4b203261f10ddba1296422d64914ff3d4b7bd8a12896d03f0f088d70a`
+- `plugin/oddroom-orderops/assets/fonts/NotoSerifKR-OFL.txt`
+  - Role: bundled Noto Serif KR OFL and copyright notice
+  - SHA-256: `5e0da210fb04058a8c0087985d2d456b931c2579811a49655721d3cf0c36b6d6`
 
-The bundled fonts retain their OFL terms. Reserved Font Name and redistribution conditions remain those of their upstream OFL packages.
+The bundled fonts retain their OFL terms. Reserved Font Name and redistribution conditions remain those of their upstream OFL packages. The selected Noto Serif KR file is a glyph subset and WOFF2 transformation; it remains under the upstream OFL.
 
 ## CC0 image
 

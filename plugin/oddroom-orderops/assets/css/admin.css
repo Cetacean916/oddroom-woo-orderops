@@ -1,3 +1,11 @@
+@font-face {
+  font-family: "Offset Grotesk";
+  src: url("../fonts/PretendardVariable.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 45 920;
+  font-display: swap;
+}
+
 :root {
   --ops-canvas: #f5f6f3;
   --ops-surface: #fff;
@@ -25,7 +33,7 @@
   max-width: 1540px;
   margin: 0 20px 80px 0;
   color: var(--ops-ink);
-  font-family: Inter, "Noto Sans KR", "Apple SD Gothic Neo", system-ui, sans-serif;
+  font-family: "Offset Grotesk", "Apple SD Gothic Neo", system-ui, sans-serif;
   line-height: 1.55;
 }
 

@@ -1,8 +1,8 @@
 #include <windows.h>
 
 1 VERSIONINFO
-FILEVERSION 1,0,0,0
-PRODUCTVERSION 1,0,0,0
+FILEVERSION 1,0,1,0
+PRODUCTVERSION 1,0,1,0
 FILEFLAGSMASK 0x3fL
 FILEFLAGS 0x0L
 FILEOS VOS_NT_WINDOWS32
@@ -15,12 +15,12 @@ BEGIN
     BEGIN
       VALUE "CompanyName", "OFFSET\0"
       VALUE "FileDescription", "OFFSET OrderOps graphical package launcher\0"
-      VALUE "FileVersion", "1.0.0\0"
+      VALUE "FileVersion", "1.0.1\0"
       VALUE "InternalName", "PF07-Launcher\0"
       VALUE "LegalCopyright", "Copyright (c) 2026 OFFSET\0"
       VALUE "OriginalFilename", "PF07-Launcher.exe\0"
       VALUE "ProductName", "OFFSET OrderOps\0"
-      VALUE "ProductVersion", "1.0.0\0"
+      VALUE "ProductVersion", "1.0.1\0"
     END
   END
   BLOCK "VarFileInfo"

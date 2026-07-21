@@ -11,6 +11,7 @@ This document records how the prepared PF07 reference corpus is applied to the d
 | Product-detail references | Product identity and price lead the page; gallery, variation choice, quantity, and purchase action remain visually grouped without decorative dashboard cards | `plugin/oddroom-orderops/includes/class-oddroom-storefront.php`, WooCommerce templates styled by `storefront.css` |
 | Operations-console references | Dense operator information, left-aligned actions, explicit state labels, flat table borders, and an orange action accent; no neon glow, gradients, floating glass cards, or generic KPI-dashboard composition | `plugin/oddroom-orderops/includes/class-oddroom-admin.php`, `plugin/oddroom-orderops/assets/css/admin.css` |
 | Desktop runtime/control references | Persistent left rail, numbered operating sequence, compact status band, direct store/admin targets, and recovery actions in one flat control surface | `launcher/ui/index.ko.html`, `launcher/ui/index.en.html`, `launcher/ui/app.css` |
+| Reference-led typography | Image-led headlines and product identity use the restrained `Offset Editorial` serif; body, purchase controls, operator data, and the runtime hub use the precise `Offset Grotesk` variable family; machine IDs remain monospace | `plugin/oddroom-orderops/assets/css/storefront.css`, `plugin/oddroom-orderops/assets/css/admin.css`, `launcher/ui/app.css` |
 | Shared brand system | `OFFSET / OBJECTS / ORDER SYSTEM`, paper/ink base, rust action accent, olive support accent, squared offset-block mark, and one typographic hierarchy across store/admin/hub | `plugin/oddroom-orderops/assets/images/brand/`, `plugin/oddroom-orderops/assets/images/favicon.svg` |
 
 ## Selected tokens
@@ -19,7 +20,9 @@ This document records how the prepared PF07 reference corpus is applied to the d
 - Ink: `#141412` / `#171714`
 - Rust action accent: `#a43f22`
 - Olive support accent: `#475448` / `#667045`
-- Interface type: bundled Noto Sans KR regular and bold as `Offset Sans`
+- Editorial type: the PF07 text-corpus subset of Noto Serif KR Variable as `Offset Editorial`
+- Interface type: unmodified Pretendard Variable as `Offset Grotesk`
+- Machine type: system monospace for IDs, counters, modes, and evidence tokens only
 - Shape language: square rules and offset rectangles; rounded components appear only where the source product or native control requires them
 
 ## Public image implementation

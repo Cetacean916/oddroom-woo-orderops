@@ -1,10 +1,10 @@
 {
   "schema": "pf07.package-allowlist.v1",
   "artifact_id": "pf07-linux-x86_64",
-  "package_version": "1.0.0",
+  "package_version": "1.0.1",
   "platform": "linux",
   "architecture": "x86_64",
-  "root_name": "PF07-OrderOps-1.0.0-linux-x86_64",
+  "root_name": "PF07-OrderOps-1.0.1-linux-x86_64",
   "classification": "PUBLIC_DISTRIBUTION",
   "tested_boundary": "ACTUAL_LINUX_LOCAL_EXECUTION_REQUIRED_ON_CANONICAL_CI_BYTES_IN_STEP_090",
   "files": [
@@ -12,7 +12,7 @@
       "source": "ASSET-LICENSES.md",
       "target": "ASSET-LICENSES.md",
       "mode": "0644",
-      "source_sha256": "2cdea8c3bf209329d57eea7cb20fcfdc5619ee5b05f93c96da5793359ff7a063"
+      "source_sha256": "b6d083931a2bde94d5f5490ce6a8b1a5261699dcc96d072b02ff15a0c16137b8"
     },
     {
       "source": "LICENSE",
@@ -55,7 +55,7 @@
       "source": "THIRD_PARTY_NOTICES.md",
       "target": "THIRD_PARTY_NOTICES.md",
       "mode": "0644",
-      "source_sha256": "f3c75d12dfb400855438d0131ff77ee67885c2cf95a339d61db174225507d451"
+      "source_sha256": "23f9661a88b9d39fdea58ad7d23be1261a76c742f5b4b1f98294ba0ae163b9b8"
     },
     {
       "source": "launcher/bin/pf07",
@@ -73,7 +73,7 @@
       "source": "launcher/pf07_launcher/__init__.py",
       "target": "launcher/pf07_launcher/__init__.py",
       "mode": "0644",
-      "source_sha256": "295e4e8ff3caa94b8078f5b6bab8705fdefe60021b7a717fd7afcb7095191540"
+      "source_sha256": "834b43092d49df4f88cf2bdd018afc9e2eaaa7e4dee4d6d826dde132d5237551"
     },
     {
       "source": "launcher/pf07_launcher/action_contract.py",
@@ -91,13 +91,13 @@
       "source": "launcher/pf07_launcher/core.py",
       "target": "launcher/pf07_launcher/core.py",
       "mode": "0644",
-      "source_sha256": "27f7fe55c3c01d343691688f6fcec0342b59b942cc5bca1fda433cd1b2a5c5aa"
+      "source_sha256": "e476f1b518876e7c11f19bf260c7ddf7fe2c66cb6bccd123da670af7d5b10ee3"
     },
     {
       "source": "launcher/pf07_launcher/hub.py",
       "target": "launcher/pf07_launcher/hub.py",
       "mode": "0644",
-      "source_sha256": "3fec62af4da4ff939d308e8ffa874e01e5b26c6db3091172bb092ca2c6dcea85"
+      "source_sha256": "3a20f6d188fd30d97af8ce67baf4260af83af6d1db06175fd2b4de458a72449e"
     },
     {
       "source": "launcher/pf07_launcher/tunnel_proxy.py",
@@ -109,7 +109,7 @@
       "source": "launcher/ui/app.css",
       "target": "launcher/ui/app.css",
       "mode": "0644",
-      "source_sha256": "ac3492d1b3b5772220f1e5b1270ddaee4eff2e69e258fdf02fa7265bc74e6b1b"
+      "source_sha256": "db5278e098ec53a9eb2579a51198d5c7cb212b88c009816ce8371d1eb90d3e06"
     },
     {
       "source": "launcher/ui/app.js",
@@ -118,16 +118,22 @@
       "source_sha256": "4e15a15fdff9c5349e8c7e1fedf8ebe117197419b4cc5460891ea42fae194f1a"
     },
     {
+      "source": "launcher/ui/fonts/PretendardVariable.woff2",
+      "target": "launcher/ui/fonts/PretendardVariable.woff2",
+      "mode": "0644",
+      "source_sha256": "9599f12fd42fc0bce1cd50b47a0c022e108d7aa64dd0d1bb0ed44f3282d900b4"
+    },
+    {
       "source": "launcher/ui/index.en.html",
       "target": "launcher/ui/index.en.html",
       "mode": "0644",
-      "source_sha256": "0e405784b0c62d0203447d67e00978a193792c73b32bfb44ec69f89d97271e87"
+      "source_sha256": "cd8fb9babc3a2667d9e86c76be15f8e1fa8961a4eb020c568cf84fdd3a4c53f6"
     },
     {
       "source": "launcher/ui/index.ko.html",
       "target": "launcher/ui/index.ko.html",
       "mode": "0644",
-      "source_sha256": "e9733a37694532d6c64b78929ba237b01099afc66cdb8ad72e1ae1914a756485"
+      "source_sha256": "e53fbf4164a29a4e753fd09ad662f259ea9dbbc49eaf6fe6eba07b0f779b013d"
     },
     {
       "source": "packaging/common/PACKAGE-README.en.md",
@@ -145,13 +151,13 @@
       "source": "packaging/common/action-contract.json",
       "target": "packaging/common/action-contract.json",
       "mode": "0644",
-      "source_sha256": "0dbd38c329c31ef9b008ba9daf3c2e8ecc0f93be3a6706cc00dc3de67e0607ca"
+      "source_sha256": "48fa8aa9586ce5f4afcc89a85fdf3b430d175be57be3706a00f75fc1967842d5"
     },
     {
       "source": "packaging/common/bootstrap-manifest.json",
       "target": "packaging/common/bootstrap-manifest.json",
       "mode": "0644",
-      "source_sha256": "301b1da8d67bd9e5973c4ec1c28fa3b30028cb3492e6644d0de365dd53a48777"
+      "source_sha256": "2a3e9e9529e703900d997e93d61217fea4be35a5a155f1e2c0e8763a6b416391"
     },
     {
       "source": "packaging/common/compose.yaml",
@@ -163,7 +169,7 @@
       "source": "packaging/common/distribution-content-bindings.json",
       "target": "packaging/common/distribution-content-bindings.json",
       "mode": "0644",
-      "source_sha256": "9071e06b9677f8fbce945a71f5fe9880443430ec392226ee5114b13b83f200fe"
+      "source_sha256": "bc278f484333408d84faf3def169145a698d772ea3fabccc5364e00cc576b807"
     },
     {
       "source": "packaging/common/n8n-task-runners.json",
@@ -235,13 +241,13 @@
       "source": "plugin/oddroom-orderops/assets/css/admin.css",
       "target": "payload/oddroom-orderops/assets/css/admin.css",
       "mode": "0644",
-      "source_sha256": "1ce21c60fa70419f94598ecd1fe2989306b484f74172453d2ed65c961621382e"
+      "source_sha256": "e5724822d0c32e1d98db8a499f62be1b125b22a2b9272664618c235a6d7f3260"
     },
     {
       "source": "plugin/oddroom-orderops/assets/css/storefront.css",
       "target": "payload/oddroom-orderops/assets/css/storefront.css",
       "mode": "0644",
-      "source_sha256": "0f21c9185a74ecaedd3863e82abd4b3d9c006ad6cec8af5846c1f449ccf6f2ec"
+      "source_sha256": "53749ab4954c17396adb5c55ed6032e298a12411cb66a56708fb00137d341324"
     },
     {
       "source": "plugin/oddroom-orderops/assets/fonts/DoHyeon-Regular.woff2",
@@ -260,6 +266,30 @@
       "target": "payload/oddroom-orderops/assets/fonts/NotoSansKR-Regular.woff2",
       "mode": "0644",
       "source_sha256": "1583b2052998c1e3133c742dae17300ba17de41a0ae46a313a281948ce5e3ab7"
+    },
+    {
+      "source": "plugin/oddroom-orderops/assets/fonts/NotoSerifKR-OFL.txt",
+      "target": "payload/oddroom-orderops/assets/fonts/NotoSerifKR-OFL.txt",
+      "mode": "0644",
+      "source_sha256": "5e0da210fb04058a8c0087985d2d456b931c2579811a49655721d3cf0c36b6d6"
+    },
+    {
+      "source": "plugin/oddroom-orderops/assets/fonts/NotoSerifKR-Variable-PF07Subset.woff2",
+      "target": "payload/oddroom-orderops/assets/fonts/NotoSerifKR-Variable-PF07Subset.woff2",
+      "mode": "0644",
+      "source_sha256": "e5c26900eed5d9b3a6ddfd2979a64637ecd5671884e3af5b6f764459383605e3"
+    },
+    {
+      "source": "plugin/oddroom-orderops/assets/fonts/Pretendard-OFL.txt",
+      "target": "payload/oddroom-orderops/assets/fonts/Pretendard-OFL.txt",
+      "mode": "0644",
+      "source_sha256": "82e9c8a4b203261f10ddba1296422d64914ff3d4b7bd8a12896d03f0f088d70a"
+    },
+    {
+      "source": "plugin/oddroom-orderops/assets/fonts/PretendardVariable.woff2",
+      "target": "payload/oddroom-orderops/assets/fonts/PretendardVariable.woff2",
+      "mode": "0644",
+      "source_sha256": "9599f12fd42fc0bce1cd50b47a0c022e108d7aa64dd0d1bb0ed44f3282d900b4"
     },
     {
       "source": "plugin/oddroom-orderops/assets/images/brand/logo-dark.svg",

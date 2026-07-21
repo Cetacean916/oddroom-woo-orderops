@@ -1,3 +1,11 @@
+@font-face {
+  font-family: "Offset Grotesk";
+  src: url("fonts/PretendardVariable.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 45 920;
+  font-display: swap;
+}
+
 :root {
   color-scheme: light;
   --paper: #f1eee6;
@@ -7,6 +15,7 @@
   --line: #d0ccc1;
   --line-strong: #9f9b90;
   --orange: #a43f22;
+  --orange-on-dark: #ff9a78;
   --orange-soft: #f3dfd3;
   --olive: #66714a;
   --olive-soft: #e3e5d8;
@@ -25,7 +34,7 @@ body {
   margin: 0;
   background: var(--paper);
   color: var(--ink);
-  font-family: Inter, "Noto Sans KR", "Apple SD Gothic Neo", system-ui, sans-serif;
+  font-family: "Offset Grotesk", "Apple SD Gothic Neo", system-ui, sans-serif;
   line-height: 1.55;
   text-rendering: optimizeLegibility;
 }
@@ -124,7 +133,7 @@ main {
 }
 
 .rail-nav a span {
-  color: var(--orange);
+  color: var(--orange-on-dark);
   font: 10px ui-monospace, SFMono-Regular, Consolas, monospace;
 }
 
@@ -284,6 +293,8 @@ h1 span { color: var(--olive); }
   line-height: 1.05;
   letter-spacing: -.05em;
 }
+
+.status-heading .eyebrow { color: var(--orange-on-dark); }
 
 .badge {
   padding: 6px 8px;
@@ -798,13 +809,19 @@ footer p { margin: 0; }
     margin: 0 -20px -18px;
     padding: 0 20px;
     border-top: 1px solid #383934;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow-x: visible;
   }
 
   .rail-nav a {
-    min-width: max-content;
-    padding: 12px 13px;
+    min-width: 0;
+    padding: 12px 8px;
     font-size: 10px;
   }
+
+  .rail-nav a:nth-child(odd) { border-left: 0; }
+  .rail-nav a:nth-child(n + 3) { border-top: 1px solid #383934; }
 
   .hero { padding: 52px 20px 46px; gap: 42px; }
   h1 { font-size: clamp(48px, 15.5vw, 68px); }

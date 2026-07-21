@@ -32,6 +32,8 @@ from .action_contract import PrerequisiteFacts, RuntimeFacts, classify_prerequis
 
 ADMIN_USER = "pf07-operator"
 ADMIN_EMAIL = "pf07-admin@example.com"
+PACKAGE_VERSION = "1.0.1"
+CONTROLLED_UPDATE_PREDECESSOR_VERSION = "1.0.0"
 DEFAULT_WORDPRESS_PORT = 19081
 STATE_DIR_NAME = ".pf07"
 UPDATE_FENCE_NAME = "UPDATE-FENCE.json"
@@ -1339,7 +1341,7 @@ def diagnostics() -> dict[str, Any]:
                 compose_ps = _alias_package_paths(output[-2000:])
     return {
         "schema": "pf07.diagnostics.v1",
-        "package_version": "1.0.0",
+        "package_version": PACKAGE_VERSION,
         "platform": {"system": platform.system(), "release": platform.release(), "machine": platform.machine()},
         "prerequisite": prerequisite,
         "runtime": runtime_status,
@@ -1917,7 +1919,7 @@ def _encrypt_backup(plaintext: Path, output: Path, passphrase: str) -> dict[str,
     _openssl_ctr(plaintext, ciphertext, encryption_key, iv, decrypt=False)
     header = {
         "schema": "pf07.authenticated-backup-envelope.v1",
-        "package_version": "1.0.0",
+        "package_version": PACKAGE_VERSION,
         "kdf": "PBKDF2-HMAC-SHA256",
         "kdf_iterations": BACKUP_KDF_ITERATIONS,
         "salt_hex": salt.hex(),
@@ -2227,7 +2229,7 @@ def _project_service_container_count(values: dict[str, str], service: str) -> in
 
 
 def controlled_update(predecessor_name: str, confirmation: str) -> dict[str, Any]:
-    """Move one running pre-release state to this exact reviewed package without a second writer."""
+    """Move one running predecessor state to this exact reviewed package without a second writer."""
     if confirmation != "UPDATE PF07":
         raise LauncherError("Type UPDATE PF07 exactly to confirm the controlled package update.")
     _docker_preflight({})
@@ -2241,8 +2243,13 @@ def controlled_update(predecessor_name: str, confirmation: str) -> dict[str, Any
     predecessor_identity = _distribution_identity_at(predecessor_root)
     if current_identity["artifact_id"] != predecessor_identity["artifact_id"]:
         raise LauncherError("The predecessor and successor platform artifact IDs do not match.")
-    if current_identity["package_version"] != predecessor_identity["package_version"]:
-        raise LauncherError("This controlled update supports only the reviewed 1.0.0 pre-release lineage.")
+    expected_update = (CONTROLLED_UPDATE_PREDECESSOR_VERSION, PACKAGE_VERSION)
+    observed_update = (predecessor_identity["package_version"], current_identity["package_version"])
+    if observed_update != expected_update:
+        raise LauncherError(
+            "This controlled update requires the reviewed "
+            f"{CONTROLLED_UPDATE_PREDECESSOR_VERSION} predecessor and {PACKAGE_VERSION} successor."
+        )
     if current_identity["build_id"] == predecessor_identity["build_id"]:
         raise LauncherError("The selected predecessor already has this build identity.")
 
@@ -2324,7 +2331,7 @@ def controlled_update(predecessor_name: str, confirmation: str) -> dict[str, Any
             "from_build_id": predecessor_identity["build_id"],
             "to_build_id": current_identity["build_id"],
             "package_version": current_identity["package_version"],
-            "migration_id": "controlled-pre-release-content-rebind-v1",
+            "migration_id": "controlled-1.0.0-to-1.0.1-v1",
             "manifest_migrations": [
                 "oddroom-orderops-schema-1.1.0",
                 "package-config-v1",
@@ -2446,7 +2453,7 @@ def backup(requested: str | None, passphrase: str) -> dict[str, Any]:
                 manifest = {
                     "schema": "pf07.package-local-backup.v1",
                     "classification": "PACKAGE_LOCAL_BACKUP",
-                    "package_version": "1.0.0",
+                    "package_version": PACKAGE_VERSION,
                     "compose_project_hash": hashlib.sha256(values["PF07_COMPOSE_PROJECT"].encode()).hexdigest(),
                     "shop_instance_id_hash": hashlib.sha256(values["ODDROOM_SHOP_INSTANCE_ID"].encode()).hexdigest(),
                     "volume_schema": "1",
@@ -2516,8 +2523,8 @@ def restore(archive_name: str, passphrase: str, confirmation: str) -> dict[str, 
         extracted.mkdir(mode=0o700)
         _safe_extract_backup(plaintext, extracted)
         manifest = json.loads((extracted / "BACKUP-MANIFEST.json").read_text(encoding="utf-8"))
-        if manifest.get("schema") != "pf07.package-local-backup.v1" or manifest.get("package_version") != "1.0.0":
-            raise LauncherError("The authenticated backup payload is incompatible with PF07 1.0.0.")
+        if manifest.get("schema") != "pf07.package-local-backup.v1" or manifest.get("package_version") != PACKAGE_VERSION:
+            raise LauncherError(f"The authenticated backup payload is incompatible with PF07 {PACKAGE_VERSION}.")
         for row in manifest.get("state_files", []):
             target = extracted / safe_relative_backup_path(str(row["path"]))
             if not target.is_file() or _sha256_file(target) != row["sha256"]:

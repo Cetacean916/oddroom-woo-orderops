@@ -211,7 +211,8 @@ for (const width of viewports) {
         keyboard_inoperable_control_count: keyboardInoperableControls,
         unresolved_skeleton_count: document.querySelectorAll('.wc-block-components-skeleton__element,.wc-block-components-skeleton--checkout-payment').length,
         required_font_load_failures: [
-          document.fonts?.check('16px "OddRoom Sans"') === false,
+          document.fonts?.check('16px "Offset Grotesk"') === false,
+          document.fonts?.check('32px "Offset Editorial"') === false,
         ].filter(Boolean).length,
         forbidden_copy: internalCopyPattern.test(bodyText),
       };

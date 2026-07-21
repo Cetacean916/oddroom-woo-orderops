@@ -116,6 +116,9 @@ class HubHandler(BaseHTTPRequestHandler):
         if path == "/app.js":
             self._bytes((self.server.ui_root / "app.js").read_bytes(), "text/javascript; charset=utf-8")
             return
+        if path == "/fonts/PretendardVariable.woff2":
+            self._bytes((self.server.ui_root / "fonts" / "PretendardVariable.woff2").read_bytes(), "font/woff2")
+            return
         if path == "/brand-symbol.svg":
             symbol = package_root() / "payload" / "oddroom-orderops" / "assets" / "images" / "brand" / "symbol.svg"
             self._bytes(symbol.read_bytes(), "image/svg+xml")

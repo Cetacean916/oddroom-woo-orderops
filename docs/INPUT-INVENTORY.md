@@ -11,7 +11,9 @@
 
 ## Licensed files retained in the package
 
-- `assets/fonts/NotoSansKR-Regular.woff2` and `NotoSansKR-Bold.woff2` — selected OFFSET interface family, SIL OFL 1.1.
+- `assets/fonts/PretendardVariable.woff2` — selected `Offset Grotesk` interface family, SIL OFL 1.1.
+- `assets/fonts/NotoSerifKR-Variable-PF07Subset.woff2` — selected `Offset Editorial` display family, PF07 glyph subset under SIL OFL 1.1.
+- `assets/fonts/NotoSansKR-Regular.woff2` and `NotoSansKR-Bold.woff2` — retained licensed fallback assets, not selected by the current UI, SIL OFL 1.1.
 - `assets/fonts/DoHyeon-Regular.woff2` — retained licensed fallback asset, not selected by the current UI, SIL OFL 1.1.
 - `assets/images/shopping-bags-commons.jpg` — retained CC0 compatibility image, not selected by the current image-led pages.
 

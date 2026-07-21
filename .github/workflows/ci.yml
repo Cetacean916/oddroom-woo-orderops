@@ -19,7 +19,7 @@ jobs:
           sudo apt-get install --yes --no-install-recommends gcc-mingw-w64-x86-64 binutils-mingw-w64-x86-64 llvm
       - name: Run public-safe checks
         run: ./scripts/ci
-      - name: Build and validate canonical 1.0.0 packages
+      - name: Build and validate canonical 1.0.1 packages
         run: |
           output="$RUNNER_TEMP/pf07-canonical"
           verification="$RUNNER_TEMP/pf07-clean-extraction"
@@ -30,18 +30,18 @@ jobs:
             --pwsh "$(command -v pwsh)" \
             --output "$output/PF07-PLATFORM-VALIDATION.json"
           (cd "$output" && sha256sum --check --quiet SHA256SUMS.txt)
-          jq -e '.artifact_count == 5 and .release_tag == "pf07-v1.0.0"' "$output/ARTIFACT-MANIFEST.json" >/dev/null
+          jq -e '.artifact_count == 5 and .release_tag == "pf07-v1.0.1"' "$output/ARTIFACT-MANIFEST.json" >/dev/null
           jq -e '.status == "PASS"' "$output/PF07-PLATFORM-VALIDATION.json" >/dev/null
       - name: Upload canonical package outputs
         uses: actions/upload-artifact@v4
         with:
-          name: pf07-canonical-packages-1.0.0
+          name: pf07-canonical-packages-1.0.1
           path: |
-            ${{ runner.temp }}/pf07-canonical/pf07-windows-x64-1.0.0.zip
-            ${{ runner.temp }}/pf07-canonical/pf07-windows-kvm-test-kit-1.0.0.zip
-            ${{ runner.temp }}/pf07-canonical/pf07-macos-universal-1.0.0.zip
-            ${{ runner.temp }}/pf07-canonical/pf07-linux-x86_64-1.0.0.tar.gz
-            ${{ runner.temp }}/pf07-canonical/pf07-linux-server-1.0.0.tar.gz
+            ${{ runner.temp }}/pf07-canonical/pf07-windows-x64-1.0.1.zip
+            ${{ runner.temp }}/pf07-canonical/pf07-windows-kvm-test-kit-1.0.1.zip
+            ${{ runner.temp }}/pf07-canonical/pf07-macos-universal-1.0.1.zip
+            ${{ runner.temp }}/pf07-canonical/pf07-linux-x86_64-1.0.1.tar.gz
+            ${{ runner.temp }}/pf07-canonical/pf07-linux-server-1.0.1.tar.gz
             ${{ runner.temp }}/pf07-canonical/ARTIFACT-MANIFEST.json
             ${{ runner.temp }}/pf07-canonical/PF07-RELEASE-INPUT.json
             ${{ runner.temp }}/pf07-canonical/PF07-PLATFORM-VALIDATION.json

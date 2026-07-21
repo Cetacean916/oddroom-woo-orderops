@@ -364,9 +364,12 @@ require("Product proof surface" not in STOREFRONT and "Synthetic catalog" not in
         and "$product->set_category_ids([$categoryId])" in STOREFRONT,
         "buyer storefront still exposes validation copy or lacks stable product identity")
 require('.oddroom-hero h1' in STOREFRONT_CSS
-        and 'font-family: "Offset Sans", Arial, sans-serif;' in STOREFRONT_CSS
+        and 'font-family: "Offset Grotesk";' in STOREFRONT_CSS
+        and 'font-family: "Offset Editorial";' in STOREFRONT_CSS
+        and 'font-family: "Offset Grotesk", "Apple SD Gothic Neo", system-ui, sans-serif;' in STOREFRONT_CSS
+        and 'font-family: "Offset Editorial", "Noto Serif KR", serif;' in STOREFRONT_CSS
         and '--offset-line: #d8d6cf;' in STOREFRONT_CSS,
-        "buyer storefront typography or restrained design token is absent")
+        "buyer storefront reference-led typography or restrained design token is absent")
 require("normalizeMoney((string) $item->get_total())" in REPOSITORY
         and "normalizeMoney((string) $order->get_total())" in REPOSITORY
         and "toMinorUnits" in EVENTS and "toMinorUnits" in RECONCILIATION

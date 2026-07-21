@@ -73,7 +73,7 @@ During an authorized on-demand acceptance window, the foreground queue process i
 ./scripts/queue-runner --loop
 ```
 
-To regenerate the two public execution videos from the real protected runtime, first start a private X display and then run the recorder. The recorder verifies the public HTTPS storefront, performs two real no-funds checkouts through the loopback WordPress origin, types the checkout input visibly, and records the live administrator row transitions. It opens a captured terminal for the actual foreground queue command and for the actual n8n stop/start commands, so the result is a continuous execution walkthrough rather than narrated static screens. It refuses to overwrite an existing output directory:
+To regenerate the two public execution videos from an already bootstrapped final Linux package, first start a private X display and then run the recorder. The recorder verifies the package build identity and local storefront, performs real no-funds synthetic checkouts, types checkout input visibly, and records the live administrator row transitions. It opens a captured terminal for the actual final-package worker commands and uses the package hub for the bounded terminal-failure scenario, so the result is a continuous execution walkthrough rather than narrated static screens. It refuses to overwrite any accepted-looking output file:
 
 ```bash
 Xvfb :99 -screen 0 1280x720x24 -nolisten tcp &
@@ -81,17 +81,13 @@ xvfb_pid=$!
 trap 'kill "$xvfb_pid"' EXIT
 
 DISPLAY=:99 \
-PF07_BASE_URL=<AUTHORIZED_PUBLIC_HTTPS_STOREFRONT> \
-PF07_RECORDING_BASE_URL=http://127.0.0.1:<LOOPBACK_WORDPRESS_PORT> \
-PF07_ADMIN_BASE_URL=http://127.0.0.1:<LOOPBACK_WORDPRESS_PORT> \
-PF07_ADMIN_USER=<SYNTHETIC_ADMIN_ALIAS> \
-PF07_ADMIN_PASSWORD_FILE=<PROTECTED_SECRET_FILE> \
-PF07_RUNTIME_ROOT=<PROTECTED_RUNTIME_ROOT> \
-PF07_COMPOSE_PROJECT=<PROTECTED_COMPOSE_PROJECT> \
+PF07_PACKAGE_ROOT=<BOOTSTRAPPED_FINAL_LINUX_PACKAGE_ROOT> \
+PF07_HUB_PORT=<UNUSED_LOOPBACK_PORT> \
+PF07_SCRATCH_ROOT=<PRIVATE_SCRATCH_ROOT> \
 node scripts/record-public-media.mjs <NEW_OUTPUT_DIRECTORY>
 ```
 
-`PF07_XTERM_PATH` may point to a maintained xterm executable when it is not available at `/usr/bin/xterm` or the documented user-local install. The output must contain `demo-video.mp4`, `recovery-clip.mp4`, `video-poster.png`, and `execution-proof.json`. The showcase validator independently re-decodes both videos, recomputes their hashes and sampled-frame dynamics, re-extracts every committed event frame, OCR-checks checkout, the visible worker/runtime-control terminals, and `pending → retry_wait → completed` states, and regenerates the poster from its source frame.
+`PF07_TERMINAL_PATH` may point to a maintained graphical terminal when it is not available at `/usr/bin/xfce4-terminal`. The output must contain `demo-video.mp4`, `recovery-clip.mp4`, `video-poster.png`, and `execution-proof.json`. The showcase validator independently re-decodes both videos, recomputes their hashes and sampled-frame dynamics, re-extracts every committed event frame, OCR-checks checkout and the visible final-package worker terminals, verifies the `pending → failed → manual retry → recovered` sequence, and regenerates the poster from its source frame.
 
 The first public detail still is rebuilt from the exact committed `LIVE_STOREFRONT`, `PRODUCT_SELECTED`, and `CHECKOUT_INPUT` frames rather than a separate mock or an old screenshot:
 

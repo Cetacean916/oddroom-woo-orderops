@@ -4,8 +4,8 @@
   "plugin_version": "0.2.0",
   "plugin_schema_version": "1.1.0",
   "payload_schema_version": "1",
-  "file_count": 80,
-  "content_set_sha256": "9e493d24d186b68d123971adcf9256729d1ba3b79245cfd9039ae252d71af133",
+  "file_count": 85,
+  "content_set_sha256": "d1075056a0814ba5aa5a6d7a10dcdabf8f59f628abadf51e62ed816e129317de",
   "files": [
     {
       "source": "launcher/bin/pf07",
@@ -22,7 +22,7 @@
     {
       "source": "launcher/pf07_launcher/__init__.py",
       "package_path": "launcher/pf07_launcher/__init__.py",
-      "sha256": "295e4e8ff3caa94b8078f5b6bab8705fdefe60021b7a717fd7afcb7095191540",
+      "sha256": "834b43092d49df4f88cf2bdd018afc9e2eaaa7e4dee4d6d826dde132d5237551",
       "bytes": 87
     },
     {
@@ -40,14 +40,14 @@
     {
       "source": "launcher/pf07_launcher/core.py",
       "package_path": "launcher/pf07_launcher/core.py",
-      "sha256": "27f7fe55c3c01d343691688f6fcec0342b59b942cc5bca1fda433cd1b2a5c5aa",
-      "bytes": 114212
+      "sha256": "e476f1b518876e7c11f19bf260c7ddf7fe2c66cb6bccd123da670af7d5b10ee3",
+      "bytes": 114546
     },
     {
       "source": "launcher/pf07_launcher/hub.py",
       "package_path": "launcher/pf07_launcher/hub.py",
-      "sha256": "3fec62af4da4ff939d308e8ffa874e01e5b26c6db3091172bb092ca2c6dcea85",
-      "bytes": 10881
+      "sha256": "3a20f6d188fd30d97af8ce67baf4260af83af6d1db06175fd2b4de458a72449e",
+      "bytes": 11067
     },
     {
       "source": "launcher/pf07_launcher/tunnel_proxy.py",
@@ -58,8 +58,8 @@
     {
       "source": "launcher/ui/app.css",
       "package_path": "launcher/ui/app.css",
-      "sha256": "ac3492d1b3b5772220f1e5b1270ddaee4eff2e69e258fdf02fa7265bc74e6b1b",
-      "bytes": 16323
+      "sha256": "db5278e098ec53a9eb2579a51198d5c7cb212b88c009816ce8371d1eb90d3e06",
+      "bytes": 16796
     },
     {
       "source": "launcher/ui/app.js",
@@ -68,22 +68,28 @@
       "bytes": 23318
     },
     {
+      "source": "launcher/ui/fonts/PretendardVariable.woff2",
+      "package_path": "launcher/ui/fonts/PretendardVariable.woff2",
+      "sha256": "9599f12fd42fc0bce1cd50b47a0c022e108d7aa64dd0d1bb0ed44f3282d900b4",
+      "bytes": 2057688
+    },
+    {
       "source": "launcher/ui/index.en.html",
       "package_path": "launcher/ui/index.en.html",
-      "sha256": "0e405784b0c62d0203447d67e00978a193792c73b32bfb44ec69f89d97271e87",
-      "bytes": 15693
+      "sha256": "cd8fb9babc3a2667d9e86c76be15f8e1fa8961a4eb020c568cf84fdd3a4c53f6",
+      "bytes": 15697
     },
     {
       "source": "launcher/ui/index.ko.html",
       "package_path": "launcher/ui/index.ko.html",
-      "sha256": "e9733a37694532d6c64b78929ba237b01099afc66cdb8ad72e1ae1914a756485",
-      "bytes": 16170
+      "sha256": "e53fbf4164a29a4e753fd09ad662f259ea9dbbc49eaf6fe6eba07b0f779b013d",
+      "bytes": 16172
     },
     {
       "source": "packaging/common/action-contract.json",
       "package_path": "packaging/common/action-contract.json",
-      "sha256": "0dbd38c329c31ef9b008ba9daf3c2e8ecc0f93be3a6706cc00dc3de67e0607ca",
-      "bytes": 2333
+      "sha256": "48fa8aa9586ce5f4afcc89a85fdf3b430d175be57be3706a00f75fc1967842d5",
+      "bytes": 2329
     },
     {
       "source": "packaging/common/compose.yaml",
@@ -160,14 +166,14 @@
     {
       "source": "plugin/oddroom-orderops/assets/css/admin.css",
       "package_path": "payload/oddroom-orderops/assets/css/admin.css",
-      "sha256": "1ce21c60fa70419f94598ecd1fe2989306b484f74172453d2ed65c961621382e",
-      "bytes": 16481
+      "sha256": "e5724822d0c32e1d98db8a499f62be1b125b22a2b9272664618c235a6d7f3260",
+      "bytes": 16657
     },
     {
       "source": "plugin/oddroom-orderops/assets/css/storefront.css",
       "package_path": "payload/oddroom-orderops/assets/css/storefront.css",
-      "sha256": "0f21c9185a74ecaedd3863e82abd4b3d9c006ad6cec8af5846c1f449ccf6f2ec",
-      "bytes": 36880
+      "sha256": "53749ab4954c17396adb5c55ed6032e298a12411cb66a56708fb00137d341324",
+      "bytes": 37360
     },
     {
       "source": "plugin/oddroom-orderops/assets/fonts/DoHyeon-Regular.woff2",
@@ -186,6 +192,30 @@
       "package_path": "payload/oddroom-orderops/assets/fonts/NotoSansKR-Regular.woff2",
       "sha256": "1583b2052998c1e3133c742dae17300ba17de41a0ae46a313a281948ce5e3ab7",
       "bytes": 54960
+    },
+    {
+      "source": "plugin/oddroom-orderops/assets/fonts/NotoSerifKR-OFL.txt",
+      "package_path": "payload/oddroom-orderops/assets/fonts/NotoSerifKR-OFL.txt",
+      "sha256": "5e0da210fb04058a8c0087985d2d456b931c2579811a49655721d3cf0c36b6d6",
+      "bytes": 4350
+    },
+    {
+      "source": "plugin/oddroom-orderops/assets/fonts/NotoSerifKR-Variable-PF07Subset.woff2",
+      "package_path": "payload/oddroom-orderops/assets/fonts/NotoSerifKR-Variable-PF07Subset.woff2",
+      "sha256": "e5c26900eed5d9b3a6ddfd2979a64637ecd5671884e3af5b6f764459383605e3",
+      "bytes": 238496
+    },
+    {
+      "source": "plugin/oddroom-orderops/assets/fonts/Pretendard-OFL.txt",
+      "package_path": "payload/oddroom-orderops/assets/fonts/Pretendard-OFL.txt",
+      "sha256": "82e9c8a4b203261f10ddba1296422d64914ff3d4b7bd8a12896d03f0f088d70a",
+      "bytes": 4816
+    },
+    {
+      "source": "plugin/oddroom-orderops/assets/fonts/PretendardVariable.woff2",
+      "package_path": "payload/oddroom-orderops/assets/fonts/PretendardVariable.woff2",
+      "sha256": "9599f12fd42fc0bce1cd50b47a0c022e108d7aa64dd0d1bb0ed44f3282d900b4",
+      "bytes": 2057688
     },
     {
       "source": "plugin/oddroom-orderops/assets/images/brand/logo-dark.svg",
