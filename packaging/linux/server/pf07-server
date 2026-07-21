@@ -3,11 +3,12 @@ set -eu
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 package_root=$(CDPATH= cd -- "$script_dir/.." && pwd)
 export PYTHONPATH="$package_root/launcher${PYTHONPATH:+:$PYTHONPATH}"
+export PYTHONDONTWRITEBYTECODE=1
 command=${1:-status}
 shift || true
 case "$command" in
   preflight|start|status|stop|restart|recover|diagnostics|evidence-export|backup|restore|update|tunnel-on|tunnel-status|tunnel-off|open-tunnel-store|open-tunnel-admin|uninstall)
-    exec python3 -m pf07_launcher.cli "$command" "$@"
+    exec python3 -B -m pf07_launcher.cli "$command" "$@"
     ;;
   *)
     printf '%s\n' 'usage: pf07-server {preflight|start|status|stop|restart|recover|diagnostics|evidence-export|backup|restore|update|tunnel-on|tunnel-status|tunnel-off|open-tunnel-store|open-tunnel-admin|uninstall}' >&2

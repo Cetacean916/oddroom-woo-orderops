@@ -20,7 +20,7 @@ if ! "${compose[@]}" --profile tools run --rm wpcli core is-installed >/dev/null
   admin_password=$(tr -d '\r\n' < "$project_root/runtime/secrets/wordpress_admin_password")
   "${compose[@]}" --profile tools run --rm -T wpcli core install \
     --url=http://127.0.0.1:18081 \
-    --title='OddRoom OrderOps Staging' \
+    --title='OFFSET Order System' \
     --admin_user=oddroom-operator \
     --admin_email=pf07-admin@example.com \
     --admin_password="$admin_password" \

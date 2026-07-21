@@ -43,7 +43,7 @@ def _emit(value: Any) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(prog="pf07", description="OddRoom OrderOps package launcher")
+    parser = argparse.ArgumentParser(prog="pf07", description="OFFSET OrderOps package launcher")
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     subparsers = parser.add_subparsers(dest="command", required=True)
     for command, help_text in (

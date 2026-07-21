@@ -1,4 +1,4 @@
-# OddRoom OrderOps · Linux local
+# OFFSET OrderOps · Linux local
 
 Extract the complete `tar.gz` into a new folder; spaces and Korean characters are supported. Run `PF07-Launcher` from the file manager, or trust and open `PF07-OrderOps.desktop`. The launcher checks Python 3.10+, Docker Engine, and the Compose plugin and opens the official installation guide when one is missing. Reopen it after installation to resume the same package-local prerequisite state.
 

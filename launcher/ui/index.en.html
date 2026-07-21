@@ -5,14 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="pf07-session-token" content="__PF07_SESSION_TOKEN__">
   <meta name="pf07-locale" content="en_US">
-  <title>OddRoom OrderOps · Launch Hub</title>
+  <title>OFFSET / PF07 · Runtime Hub</title>
   <link rel="icon" href="/brand-symbol.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/app.css">
 </head>
 <body>
   <main>
     <header class="masthead">
-      <a class="brand" href="#top" aria-label="OddRoom OrderOps launch hub home"><img src="/brand-symbol.svg" width="30" height="30" alt="">ODDROOM <span>/ ORDEROPS</span></a>
+      <div class="rail-brand">
+        <a class="brand" href="#top" aria-label="PF07 runtime hub home"><span class="brand-chip" aria-hidden="true"></span>OFFSET <span>/ PF07</span></a>
+        <p>ORDEROPS RUNTIME<br>PACKAGE 1.0.1</p>
+      </div>
+      <nav class="rail-nav" aria-label="Hub sections">
+        <a href="#top"><span>01</span>Runtime status</a>
+        <a href="#access"><span>02</span>Access and mode</a>
+        <a href="#recovery-panel"><span>03</span>State and recovery</a>
+        <a href="#operations-panel"><span>04</span>Package lifecycle</a>
+      </nav>
       <div class="masthead-tools">
         <label for="language-select">Language</label>
         <select id="language-select" aria-label="Display language"><option value="ko_KR">Korean</option><option value="en_US" selected>English</option></select>
@@ -22,10 +31,10 @@
 
     <section id="top" class="hero" aria-labelledby="hub-title">
       <div class="hero-copy">
-        <p class="eyebrow">PACKAGE-OWNED LAUNCH HUB</p>
-        <h1 id="hub-title">One hub for<br><span>store and recovery.</span></h1>
+        <p class="eyebrow">PF07 / LOCAL CONTROL SURFACE / 01</p>
+        <h1 id="hub-title">Run the system.<br><span>See every state.</span></h1>
         <p id="mode-description" class="lede">
-          Start an isolated demo without service credentials. It uses synthetic orders only and never contacts real payment, external CRM, or Slack services.
+          Control the store, order automation, delivery state, and failure recovery in one package runtime. The current mode uses synthetic orders only and does not contact payments or external recipients.
         </p>
         <div class="actions primary-actions">
           <button id="start-button" class="button button-primary" type="button">Start runtime</button>
@@ -37,7 +46,7 @@
       <aside class="status-card" aria-labelledby="status-title">
         <div class="status-heading">
           <div>
-            <p class="eyebrow">LOCAL RUNTIME</p>
+            <p class="eyebrow">LIVE SYSTEM READOUT</p>
             <h2 id="status-title">Runtime status</h2>
           </div>
           <span id="status-badge" class="badge badge-idle">Checking</span>
@@ -58,7 +67,7 @@
       </aside>
     </section>
 
-    <section class="control-grid" aria-label="Operations">
+    <section id="access" class="control-grid" aria-label="Operations">
       <article>
         <p class="step">01</p>
         <h2>Start and mode</h2>
@@ -193,7 +202,7 @@
           <p class="form-note">If current state exists, PF07 first creates an external pre-restore backup with the same passphrase, stops the old writer, and replaces only exact PF07 volumes.</p>
         </form>
         <form id="update-form" class="control-form">
-          <h3>Controlled pre-release update</h3>
+          <h3>Controlled 1.0.0 → 1.0.1 update</h3>
           <label for="update-predecessor">Absolute path to the predecessor PF07 extraction</label>
           <input id="update-predecessor" type="text" autocomplete="off" required>
           <label for="update-confirmation">Confirmation phrase</label>
@@ -233,7 +242,7 @@
     </section>
 
     <footer>
-      <p>OddRoom OrderOps · Quiet Utility</p>
+      <p>OFFSET · OBJECTS / ORDER SYSTEM</p>
       <p>Synthetic data only · no real payment · loopback access only</p>
     </footer>
   </main>

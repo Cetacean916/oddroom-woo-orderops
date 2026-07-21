@@ -1,6 +1,6 @@
-# OddRoom Woo OrderOps
+# OFFSET OrderOps · PF07
 
-OddRoom Woo OrderOps is a recoverable WooCommerce order-operations integration. A custom WordPress plugin captures immutable order events, serializes delivery per order, and sends signed requests through a dedicated n8n adapter to HubSpot and Slack.
+OFFSET OrderOps is a recoverable WooCommerce order-operations integration presented through the OFFSET objects-and-order-system visual identity. A custom WordPress plugin captures immutable order events, serializes delivery per order, and sends signed requests through a dedicated n8n adapter to HubSpot and Slack. The historical `oddroom-orderops` code namespace remains only as a compatibility identifier.
 
 This repository is built from a separate non-Git implementation source by a deny-by-default public builder. It contains synthetic fixtures and public-safe evidence only. Protected raw evidence, credentials, runtime state, backups, and owner-machine paths are excluded.
 
@@ -21,7 +21,7 @@ The protected acceptance run exercised the complete four-event path and its reco
 - Seven-day, 50-order reconciliation derives expected events only from WooCommerce fact times. Controlled insert and schedule suppression fixtures were repaired on the first scan and became no-ops on the second.
 - Staging-only fault controls are tied to the protected run, expire by database UTC within 30 minutes, and can be disabled together by the protected end-run transaction.
 - The administrator surface provides deterministic filters, sorting, 50-row pagination, contained table overflow, masked identifiers, protected reveal/actions, and passed an isolated 500-row usability observation.
-- The OddRoom storefront includes a branded home, shop, simple product, two-variation product, coupon, cart, checkout, and account surface. Staging is `noindex`; outbound mail is captured; checkout exposes only a relabelled no-funds synthetic method.
+- The OFFSET storefront includes a branded home, shop, simple product, two-variation product, coupon, cart, checkout, and account surface. Staging is `noindex`; outbound mail is captured; checkout exposes only a relabelled no-funds synthetic method.
 - Playwright 1.61.1 and axe-core 4.12.1 passed 18 full-document storefront observations and three scoped administrator observations across 390, 768, and 1440 CSS pixels with zero serious/critical violations, page overflow, broken assets, clipped actions, or console errors.
 - An authenticated on-demand HTTPS route exposed only the storefront and the exact signed webhook. WordPress administration and the n8n editor remained private; a 262145-byte chunked request was rejected at ingress before workflow execution.
 - Dependency, activation, HPOS-off/on, migration, data-preserving uninstall, opt-in removal, and every required Action Scheduler failure branch were exercised in an isolated compatibility runtime.
@@ -73,7 +73,7 @@ During an authorized on-demand acceptance window, the foreground queue process i
 ./scripts/queue-runner --loop
 ```
 
-To regenerate the two public execution videos from the real protected runtime, first start a private X display and then run the recorder. The recorder verifies the public HTTPS storefront, performs two real no-funds checkouts through the loopback WordPress origin, types the checkout input visibly, and records the live administrator row transitions. It opens a captured terminal for the actual foreground queue command and for the actual n8n stop/start commands, so the result is a continuous execution walkthrough rather than narrated static screens. It refuses to overwrite an existing output directory:
+To regenerate the two public execution videos from an already bootstrapped final Linux package, first start a private X display and then run the recorder. The recorder verifies the package build identity and local storefront, performs real no-funds synthetic checkouts, types checkout input visibly, and records the live administrator row transitions. It opens a captured terminal for the actual final-package worker commands and uses the package hub for the bounded terminal-failure scenario, so the result is a continuous execution walkthrough rather than narrated static screens. It refuses to overwrite any accepted-looking output file:
 
 ```bash
 Xvfb :99 -screen 0 1280x720x24 -nolisten tcp &
@@ -81,17 +81,13 @@ xvfb_pid=$!
 trap 'kill "$xvfb_pid"' EXIT
 
 DISPLAY=:99 \
-PF07_BASE_URL=<AUTHORIZED_PUBLIC_HTTPS_STOREFRONT> \
-PF07_RECORDING_BASE_URL=http://127.0.0.1:<LOOPBACK_WORDPRESS_PORT> \
-PF07_ADMIN_BASE_URL=http://127.0.0.1:<LOOPBACK_WORDPRESS_PORT> \
-PF07_ADMIN_USER=<SYNTHETIC_ADMIN_ALIAS> \
-PF07_ADMIN_PASSWORD_FILE=<PROTECTED_SECRET_FILE> \
-PF07_RUNTIME_ROOT=<PROTECTED_RUNTIME_ROOT> \
-PF07_COMPOSE_PROJECT=<PROTECTED_COMPOSE_PROJECT> \
+PF07_PACKAGE_ROOT=<BOOTSTRAPPED_FINAL_LINUX_PACKAGE_ROOT> \
+PF07_HUB_PORT=<UNUSED_LOOPBACK_PORT> \
+PF07_SCRATCH_ROOT=<PRIVATE_SCRATCH_ROOT> \
 node scripts/record-public-media.mjs <NEW_OUTPUT_DIRECTORY>
 ```
 
-`PF07_XTERM_PATH` may point to a maintained xterm executable when it is not available at `/usr/bin/xterm` or the documented user-local install. The output must contain `demo-video.mp4`, `recovery-clip.mp4`, `video-poster.png`, and `execution-proof.json`. The showcase validator independently re-decodes both videos, recomputes their hashes and sampled-frame dynamics, re-extracts every committed event frame, OCR-checks checkout, the visible worker/runtime-control terminals, and `pending → retry_wait → completed` states, and regenerates the poster from its source frame.
+`PF07_TERMINAL_PATH` may point to a maintained graphical terminal when it is not available at `/usr/bin/xfce4-terminal`. The output must contain `demo-video.mp4`, `recovery-clip.mp4`, `video-poster.png`, and `execution-proof.json`. The showcase validator independently re-decodes both videos, recomputes their hashes and sampled-frame dynamics, re-extracts every committed event frame, OCR-checks checkout and the visible final-package worker terminals, verifies the `pending → failed → manual retry → recovered` sequence, and regenerates the poster from its source frame.
 
 The first public detail still is rebuilt from the exact committed `LIVE_STOREFRONT`, `PRODUCT_SELECTED`, and `CHECKOUT_INPUT` frames rather than a separate mock or an old screenshot:
 

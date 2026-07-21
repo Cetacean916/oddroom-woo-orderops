@@ -12,6 +12,7 @@ python3 tests/test_backup_envelope.py
 python3 tests/test_collect_evidence.py
 python3 tests/test_launcher_action_contract.py
 python3 tests/test_package_state_boundaries.py
+python3 tests/test_asset_license_coverage.py
 python3 -B - <<'PY'
 from pathlib import Path
 
@@ -19,7 +20,7 @@ for raw in (
     "fixtures/run", "scripts/build-platform-packages", "scripts/build-public-release", "scripts/collect-evidence",
     "scripts/acceptance_semantics.py", "scripts/derive-gate06-linked-evidence", "scripts/derive-successor-vsl", "scripts/evidence_contract.py", "scripts/generate-public-evidence", "scripts/pf07_probe_runtime.py", "scripts/probe-clean-restore", "scripts/probe-core-acceptance", "scripts/probe-gate06", "scripts/probe-gate06-lease", "scripts/probe-gate06-operator", "scripts/probe-gate09-compatibility", "scripts/probe-gate09-product-quality",
     "scripts/refinement_evidence_paths.py", "scripts/validate-all", "scripts/validate-platform-packages", "scripts/validate-public",
-    "tests/test_acceptance_semantics.py", "tests/test_backup_envelope.py", "tests/test_collect_evidence.py", "tests/test_evidence_contract.py", "tests/test_launcher_action_contract.py", "tests/test_package_state_boundaries.py", "tests/test_public_builder.py", "tests/test_vsl_contract.py",
+    "tests/test_acceptance_semantics.py", "tests/test_asset_license_coverage.py", "tests/test_backup_envelope.py", "tests/test_collect_evidence.py", "tests/test_evidence_contract.py", "tests/test_launcher_action_contract.py", "tests/test_package_state_boundaries.py", "tests/test_public_builder.py", "tests/test_vsl_contract.py",
 ):
     path = Path(raw)
     compile(path.read_text(encoding="utf-8"), raw, "exec")

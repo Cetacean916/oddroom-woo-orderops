@@ -6,11 +6,11 @@ package_root=$(CDPATH= cd -- "$script_dir/../../.." && pwd)
 resume_path="$package_root/.pf07/prerequisite-resume.json"
 
 show_dialog() {
-  /usr/bin/osascript -e "display dialog \"$1\" with title \"OddRoom OrderOps\" buttons {\"OK\"} default button \"OK\" with icon caution" >/dev/null
+  /usr/bin/osascript -e "display dialog \"$1\" with title \"OFFSET OrderOps\" buttons {\"OK\"} default button \"OK\" with icon caution" >/dev/null
 }
 
 offer_url() {
-  answer=$(/usr/bin/osascript -e "display dialog \"$1\" with title \"OddRoom OrderOps\" buttons {\"Later\", \"Open official page\"} default button \"Open official page\" with icon caution" -e 'button returned of result')
+  answer=$(/usr/bin/osascript -e "display dialog \"$1\" with title \"OFFSET OrderOps\" buttons {\"Later\", \"Open official page\"} default button \"Open official page\" with icon caution" -e 'button returned of result')
   if [ "$answer" = "Open official page" ]; then
     /usr/bin/open "$2"
   fi
@@ -29,11 +29,12 @@ if ! command -v python3 >/dev/null 2>&1; then
 fi
 
 export PYTHONPATH="$package_root/launcher${PYTHONPATH:+:$PYTHONPATH}"
-preflight=$(python3 -m pf07_launcher.cli preflight 2>&1) || {
+export PYTHONDONTWRITEBYTECODE=1
+preflight=$(python3 -B -m pf07_launcher.cli preflight 2>&1) || {
   show_dialog "$preflight"
   exit 21
 }
-state=$(printf '%s' "$preflight" | python3 -c 'import json,sys; print(json.load(sys.stdin)["state"])')
+state=$(printf '%s' "$preflight" | python3 -B -c 'import json,sys; print(json.load(sys.stdin)["state"])')
 if [ "$state" != "READY" ]; then
   mkdir -p "$package_root/.pf07"
   printf '{"schema":"pf07.prerequisite-resume.v1","state":"%s","next_action":"Hub"}\n' "$state" > "$resume_path"
@@ -41,4 +42,4 @@ if [ "$state" != "READY" ]; then
   exit 22
 fi
 rm -f "$resume_path"
-exec python3 -m pf07_launcher.hub
+exec python3 -B -m pf07_launcher.hub

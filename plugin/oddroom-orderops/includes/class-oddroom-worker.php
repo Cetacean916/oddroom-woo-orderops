@@ -93,7 +93,7 @@ final class OddRoom_Worker
                 'body' => $body,
                 'data_format' => 'body',
                 'limit_response_size' => OddRoom_Canonical_Payload::MAX_BODY_BYTES,
-                'user-agent' => 'OddRoom-OrderOps/0.2.0',
+                'user-agent' => 'OFFSET-OrderOps/0.2.0',
             ]);
 
             self::pauseForCrashFixture($claimed, OddRoom_Faults::PAUSE_AFTER_RESPONSE);

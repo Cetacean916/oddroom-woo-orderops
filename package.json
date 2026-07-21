@@ -2,7 +2,7 @@
   "name": "oddroom-woo-orderops",
   "version": "0.2.0",
   "private": true,
-  "description": "Deterministic browser and accessibility validation for the OddRoom OrderOps staging storefront.",
+  "description": "Deterministic browser and accessibility validation for the OFFSET OrderOps staging storefront.",
   "scripts": {
     "validate:ui": "node tests/ui_quality.mjs"
   },

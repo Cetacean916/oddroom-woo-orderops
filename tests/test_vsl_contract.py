@@ -359,14 +359,17 @@ require("pre_wp_mail" in PLUGIN and "woocommerce_available_payment_gateways" in 
 require("Product proof surface" not in STOREFRONT and "Synthetic catalog" not in STOREFRONT
         and "Offset Dock · 오프셋 데스크 독" in STOREFRONT
         and "Foldline Tech Case · 폴드라인 테크 케이스" in STOREFRONT
-        and "$product->set_slug('oddroom-drop-kit')" in STOREFRONT
-        and "$product->set_slug('oddroom-campaign-pack')" in STOREFRONT
+        and "$product->set_slug('offset-dock')" in STOREFRONT
+        and "$product->set_slug('foldline-tech-case')" in STOREFRONT
         and "$product->set_category_ids([$categoryId])" in STOREFRONT,
         "buyer storefront still exposes validation copy or lacks stable product identity")
 require('.oddroom-hero h1' in STOREFRONT_CSS
-        and 'font-family: "OddRoom Sans", system-ui, sans-serif;' in STOREFRONT_CSS
-        and '--odd-border: 1px solid var(--odd-line);' in STOREFRONT_CSS,
-        "buyer storefront typography or restrained design token is absent")
+        and 'font-family: "Offset Grotesk";' in STOREFRONT_CSS
+        and 'font-family: "Offset Editorial";' in STOREFRONT_CSS
+        and 'font-family: "Offset Grotesk", "Apple SD Gothic Neo", system-ui, sans-serif;' in STOREFRONT_CSS
+        and 'font-family: "Offset Editorial", "Noto Serif KR", serif;' in STOREFRONT_CSS
+        and '--offset-line: #d8d6cf;' in STOREFRONT_CSS,
+        "buyer storefront reference-led typography or restrained design token is absent")
 require("normalizeMoney((string) $item->get_total())" in REPOSITORY
         and "normalizeMoney((string) $order->get_total())" in REPOSITORY
         and "toMinorUnits" in EVENTS and "toMinorUnits" in RECONCILIATION

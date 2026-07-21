@@ -5,14 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="pf07-session-token" content="__PF07_SESSION_TOKEN__">
   <meta name="pf07-locale" content="ko_KR">
-  <title>OddRoom OrderOps · Launch Hub</title>
+  <title>OFFSET / PF07 · Runtime Hub</title>
   <link rel="icon" href="/brand-symbol.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/app.css">
 </head>
 <body>
   <main>
     <header class="masthead">
-      <a class="brand" href="#top" aria-label="OddRoom OrderOps 실행 허브 홈"><img src="/brand-symbol.svg" width="30" height="30" alt="">ODDROOM <span>/ ORDEROPS</span></a>
+      <div class="rail-brand">
+        <a class="brand" href="#top" aria-label="PF07 실행 허브 홈"><span class="brand-chip" aria-hidden="true"></span>OFFSET <span>/ PF07</span></a>
+        <p>ORDEROPS RUNTIME<br>PACKAGE 1.0.1</p>
+      </div>
+      <nav class="rail-nav" aria-label="허브 섹션">
+        <a href="#top"><span>01</span>런타임 상태</a>
+        <a href="#access"><span>02</span>접근과 모드</a>
+        <a href="#recovery-panel"><span>03</span>상태와 복구</a>
+        <a href="#operations-panel"><span>04</span>패키지 수명주기</a>
+      </nav>
       <div class="masthead-tools">
         <label for="language-select">표시 언어</label>
         <select id="language-select" aria-label="표시 언어"><option value="ko_KR" selected>한국어</option><option value="en_US">English</option></select>
@@ -22,9 +31,9 @@
 
     <section id="top" class="hero" aria-labelledby="hub-title">
       <div class="hero-copy">
-        <p class="eyebrow">PACKAGE-OWNED LAUNCH HUB</p>
-        <h1 id="hub-title">하나의 허브에서<br><span>상점과 복구를.</span></h1>
-        <p id="mode-description" class="lede">자격 증명 없이 시작하는 격리 데모입니다. 합성 주문만 사용하며 실제 결제, 외부 CRM, Slack을 호출하지 않습니다.
+        <p class="eyebrow">PF07 / LOCAL CONTROL SURFACE / 01</p>
+        <h1 id="hub-title">시작하고,<br><span>모든 상태를 본다.</span></h1>
+        <p id="mode-description" class="lede">상점, 주문 자동화, 전달 상태, 실패 복구를 하나의 패키지 런타임에서 제어합니다. 현재 모드는 합성 주문 전용이며 실제 결제나 외부 수신자를 호출하지 않습니다.
         </p>
         <div class="actions primary-actions">
           <button id="start-button" class="button button-primary" type="button">런타임 시작</button>
@@ -36,7 +45,7 @@
       <aside class="status-card" aria-labelledby="status-title">
         <div class="status-heading">
           <div>
-            <p class="eyebrow">LOCAL RUNTIME</p>
+            <p class="eyebrow">LIVE SYSTEM READOUT</p>
             <h2 id="status-title">실행 상태</h2>
           </div>
           <span id="status-badge" class="badge badge-idle">확인 중</span>
@@ -56,7 +65,7 @@
       </aside>
     </section>
 
-    <section class="control-grid" aria-label="운영 도구">
+    <section id="access" class="control-grid" aria-label="운영 도구">
       <article>
         <p class="step">01</p>
         <h2>시작과 운영 모드</h2>
@@ -191,7 +200,7 @@
           <p class="form-note">현재 상태가 있으면 같은 passphrase의 외부 pre-restore 백업을 먼저 만들고, 기존 writer를 중지한 뒤 정확한 PF07 볼륨만 교체합니다.</p>
         </form>
         <form id="update-form" class="control-form">
-          <h3>통제된 사전 배포 업데이트</h3>
+          <h3>통제된 1.0.0 → 1.0.1 업데이트</h3>
           <label for="update-predecessor">기존 PF07 패키지 추출 폴더 절대 경로</label>
           <input id="update-predecessor" type="text" autocomplete="off" required>
           <label for="update-confirmation">확인 문구</label>
@@ -231,7 +240,7 @@
     </section>
 
     <footer>
-      <p>OddRoom OrderOps · Quiet Utility</p>
+      <p>OFFSET · OBJECTS / ORDER SYSTEM</p>
       <p>합성 데이터 전용 · 실제 결제 없음 · 로컬 루프백 전용</p>
     </footer>
   </main>

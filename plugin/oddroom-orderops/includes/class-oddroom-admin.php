@@ -25,8 +25,8 @@ final class OddRoom_Admin
     {
         add_submenu_page(
             'woocommerce',
-            'OddRoom OrderOps',
-            'OrderOps',
+            'OFFSET OrderOps',
+            'OFFSET OrderOps',
             'manage_woocommerce',
             self::PAGE,
             [self::class, 'render']
@@ -42,7 +42,7 @@ final class OddRoom_Admin
             'oddroom-orderops-admin',
             plugins_url('../assets/css/admin.css', __FILE__),
             [],
-            '0.3.0'
+            '0.4.0'
         );
     }
 
@@ -250,13 +250,12 @@ final class OddRoom_Admin
 
     private static function renderHero(array $setup): void
     {
-        $symbol = plugins_url('../assets/images/brand/symbol.svg', __FILE__);
-        echo '<header class="oddroom-hero"><div class="oddroom-brand"><img src="' . esc_url($symbol) . '" width="42" height="42" alt=""><span>ODDROOM / ORDEROPS</span></div>';
-        echo '<div class="oddroom-hero-copy"><p class="oddroom-eyebrow">QUIET UTILITY · OPERATOR CONSOLE</p><h1>'
-            . esc_html(self::text("주문의 다음 상태를,\n복구 가능하게.", "The next order state,\nkept recoverable."))
+        echo '<header class="oddroom-hero"><div class="oddroom-brand"><span>OFFSET / ORDEROPS</span><small>OPERATOR CONSOLE</small></div>';
+        echo '<div class="oddroom-hero-copy"><p class="oddroom-eyebrow">ORDER OPERATIONS / LIVE STATE</p><h1>'
+            . esc_html(self::text('주문 운영', 'Order operations'))
             . '</h1><p>' . esc_html(self::text(
-                '주문 사실·내구 이벤트·n8n 실행·CRM·Slack 효과를 하나의 운영 흐름으로 조회하고 복구합니다.',
-                'Inspect and recover order facts, durable events, n8n execution, CRM state, and Slack effects as one operating flow.'
+                '주문 사실부터 n8n 실행, CRM·Slack 전달, 실패 복구까지 한 화면에서 추적하고 조치합니다.',
+                'Trace and act on order facts, n8n execution, CRM and Slack delivery, and failure recovery from one surface.'
             )) . '</p></div>';
         echo '<div class="oddroom-hero-meta"><span class="oddroom-mode-pill">' . esc_html((string) $setup['mode']) . '</span><span>0 KRW</span><span>'
             . esc_html(self::text('합성 데이터 전용', 'Synthetic data only')) . '</span></div>';

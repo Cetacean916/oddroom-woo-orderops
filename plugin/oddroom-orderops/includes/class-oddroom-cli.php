@@ -249,7 +249,7 @@ final class OddRoom_CLI
 
     private static function createProductFixture(string $shape, string $alias, string $amount): array
     {
-        $name = 'OddRoom Synthetic ' . strtoupper($alias);
+        $name = 'OFFSET Synthetic ' . strtoupper($alias);
         $sku = 'PF07-' . strtoupper($alias) . '-' . wp_rand(1000, 9999);
         $couponCode = null;
         $variationId = 0;

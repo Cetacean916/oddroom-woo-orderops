@@ -1,29 +1,29 @@
 {
   "schema": "pf07.distribution-content-bindings.v1",
-  "fixture_version": "quiet-utility-1.0.0",
+  "fixture_version": "offset-objects-1.0.0",
   "plugin_version": "0.2.0",
   "plugin_schema_version": "1.1.0",
   "payload_schema_version": "1",
-  "file_count": 80,
-  "content_set_sha256": "02a7ea3686f2e49ab3d7791b2f58569470f263ffef063effa25ebce061448d6d",
+  "file_count": 85,
+  "content_set_sha256": "d1075056a0814ba5aa5a6d7a10dcdabf8f59f628abadf51e62ed816e129317de",
   "files": [
     {
       "source": "launcher/bin/pf07",
       "package_path": "launcher/bin/pf07",
-      "sha256": "77a62c4a6c643391fba94e324996434854b1097b397ccf01413382aa8097e783",
-      "bytes": 239
+      "sha256": "38f4a6fca122f59e63e33640853e6ab8067886a532730254572061c642e6fe89",
+      "bytes": 268
     },
     {
       "source": "launcher/bin/pf07-hub",
       "package_path": "launcher/bin/pf07-hub",
-      "sha256": "716a664b6dadb71289f3138cf6267b3832eed53846f2dea8a888ea3f91fcbc03",
-      "bytes": 239
+      "sha256": "5b2223fbda0fc33bb9737de6f96451cda6f85900d5059c48594d8b9bfb57fd97",
+      "bytes": 268
     },
     {
       "source": "launcher/pf07_launcher/__init__.py",
       "package_path": "launcher/pf07_launcher/__init__.py",
-      "sha256": "299768f2c0387d18f1342ed23f4ee1d79c6b146a392674365e7519381677a18d",
-      "bytes": 88
+      "sha256": "834b43092d49df4f88cf2bdd018afc9e2eaaa7e4dee4d6d826dde132d5237551",
+      "bytes": 87
     },
     {
       "source": "launcher/pf07_launcher/action_contract.py",
@@ -34,20 +34,20 @@
     {
       "source": "launcher/pf07_launcher/cli.py",
       "package_path": "launcher/pf07_launcher/cli.py",
-      "sha256": "1abb9c7df4159d451e665e4ec87edb7e4682779651942de73f0f6764f3584a89",
-      "bytes": 9076
+      "sha256": "8c961492f79987e8c093a7b158c67d65078b3235ea29daebaa54574c89de051b",
+      "bytes": 9075
     },
     {
       "source": "launcher/pf07_launcher/core.py",
       "package_path": "launcher/pf07_launcher/core.py",
-      "sha256": "e378b15f3cc83803ed23755eb0a30a45006d73d6b40171b43d0d52cfa4347ca3",
-      "bytes": 114221
+      "sha256": "e476f1b518876e7c11f19bf260c7ddf7fe2c66cb6bccd123da670af7d5b10ee3",
+      "bytes": 114546
     },
     {
       "source": "launcher/pf07_launcher/hub.py",
       "package_path": "launcher/pf07_launcher/hub.py",
-      "sha256": "86ce942511f6279c4c018f062b96c1994239e5388e07e84ebe80c49b1a9a90cf",
-      "bytes": 10882
+      "sha256": "3a20f6d188fd30d97af8ce67baf4260af83af6d1db06175fd2b4de458a72449e",
+      "bytes": 11067
     },
     {
       "source": "launcher/pf07_launcher/tunnel_proxy.py",
@@ -58,32 +58,38 @@
     {
       "source": "launcher/ui/app.css",
       "package_path": "launcher/ui/app.css",
-      "sha256": "74bf695e858bc7bfcfd6447228d9a72c88c512c5f1464415ffbd79ac187f1270",
-      "bytes": 10592
+      "sha256": "db5278e098ec53a9eb2579a51198d5c7cb212b88c009816ce8371d1eb90d3e06",
+      "bytes": 16796
     },
     {
       "source": "launcher/ui/app.js",
       "package_path": "launcher/ui/app.js",
-      "sha256": "6b2d5608cf58c9b0ec8681ff18777efe7dbcbdc673d10cd7cf630bcf278981bc",
-      "bytes": 23325
+      "sha256": "4e15a15fdff9c5349e8c7e1fedf8ebe117197419b4cc5460891ea42fae194f1a",
+      "bytes": 23318
+    },
+    {
+      "source": "launcher/ui/fonts/PretendardVariable.woff2",
+      "package_path": "launcher/ui/fonts/PretendardVariable.woff2",
+      "sha256": "9599f12fd42fc0bce1cd50b47a0c022e108d7aa64dd0d1bb0ed44f3282d900b4",
+      "bytes": 2057688
     },
     {
       "source": "launcher/ui/index.en.html",
       "package_path": "launcher/ui/index.en.html",
-      "sha256": "65f541e9c77328d854cb0c00eba72613a13b0c0907a00d576316ddb24722e8ca",
-      "bytes": 15218
+      "sha256": "cd8fb9babc3a2667d9e86c76be15f8e1fa8961a4eb020c568cf84fdd3a4c53f6",
+      "bytes": 15697
     },
     {
       "source": "launcher/ui/index.ko.html",
       "package_path": "launcher/ui/index.ko.html",
-      "sha256": "318024d5bd72acff0019d9c8780647b7a96532198fbce64bffb45be9d2c004ce",
-      "bytes": 15675
+      "sha256": "e53fbf4164a29a4e753fd09ad662f259ea9dbbc49eaf6fe6eba07b0f779b013d",
+      "bytes": 16172
     },
     {
       "source": "packaging/common/action-contract.json",
       "package_path": "packaging/common/action-contract.json",
-      "sha256": "0dbd38c329c31ef9b008ba9daf3c2e8ecc0f93be3a6706cc00dc3de67e0607ca",
-      "bytes": 2333
+      "sha256": "48fa8aa9586ce5f4afcc89a85fdf3b430d175be57be3706a00f75fc1967842d5",
+      "bytes": 2329
     },
     {
       "source": "packaging/common/compose.yaml",
@@ -106,20 +112,20 @@
     {
       "source": "packaging/common/seed/catalogs/en_US.json",
       "package_path": "packaging/common/seed/catalogs/en_US.json",
-      "sha256": "d4fdd7d1672b4775142ff726b0c421466686e4888f2e9eed5184a17d59c204fb",
-      "bytes": 297
+      "sha256": "d8644abd8be756d2dca9703cc140d020faa6c32bcc6a7c16c5081da02053c498",
+      "bytes": 296
     },
     {
       "source": "packaging/common/seed/catalogs/ko_KR.json",
       "package_path": "packaging/common/seed/catalogs/ko_KR.json",
-      "sha256": "39e18a1f3acca16466a75e44a6d5c79a6b53f78da303b3b15b291bb1a6244b5a",
-      "bytes": 322
+      "sha256": "cf929ac0f0e229e4d4093679f03baa149a7e7e65954e8b53ab84290a962bb7a3",
+      "bytes": 321
     },
     {
       "source": "packaging/common/seed/seed-manifest.json",
       "package_path": "packaging/common/seed/seed-manifest.json",
-      "sha256": "92388ce881106b25617b1820f8eec5111535291313aae1f8d68c83f6567c0257",
-      "bytes": 1499
+      "sha256": "0f3736d004e4b584976d27776c63ff8936f88210af23627242c790d5329c51e5",
+      "bytes": 1476
     },
     {
       "source": "packaging/common/task-runner-deps/package-lock.json",
@@ -142,8 +148,8 @@
     {
       "source": "packaging/common/workflows/connected-mode.json",
       "package_path": "packaging/common/workflows/connected-mode.json",
-      "sha256": "0f75f755ebdf5650d4bc2468b656faa57255a7e31b93273673408c459834253b",
-      "bytes": 62758
+      "sha256": "517db5d4966abbbc35bfd596266e04bc4c8711875416e0f634288357f3891300",
+      "bytes": 62745
     },
     {
       "source": "packaging/common/workflows/demo-mode.json",
@@ -160,14 +166,14 @@
     {
       "source": "plugin/oddroom-orderops/assets/css/admin.css",
       "package_path": "payload/oddroom-orderops/assets/css/admin.css",
-      "sha256": "25e35d3742d1f9812ba6557b1756478c36235ddee313870112a4bbf29d54b66f",
-      "bytes": 15274
+      "sha256": "e5724822d0c32e1d98db8a499f62be1b125b22a2b9272664618c235a6d7f3260",
+      "bytes": 16657
     },
     {
       "source": "plugin/oddroom-orderops/assets/css/storefront.css",
       "package_path": "payload/oddroom-orderops/assets/css/storefront.css",
-      "sha256": "d4720a235354a224a143ef36033d6b94d341b00063b289e1081f7c8ead3a9bf8",
-      "bytes": 19221
+      "sha256": "53749ab4954c17396adb5c55ed6032e298a12411cb66a56708fb00137d341324",
+      "bytes": 37360
     },
     {
       "source": "plugin/oddroom-orderops/assets/fonts/DoHyeon-Regular.woff2",
@@ -188,40 +194,64 @@
       "bytes": 54960
     },
     {
+      "source": "plugin/oddroom-orderops/assets/fonts/NotoSerifKR-OFL.txt",
+      "package_path": "payload/oddroom-orderops/assets/fonts/NotoSerifKR-OFL.txt",
+      "sha256": "5e0da210fb04058a8c0087985d2d456b931c2579811a49655721d3cf0c36b6d6",
+      "bytes": 4350
+    },
+    {
+      "source": "plugin/oddroom-orderops/assets/fonts/NotoSerifKR-Variable-PF07Subset.woff2",
+      "package_path": "payload/oddroom-orderops/assets/fonts/NotoSerifKR-Variable-PF07Subset.woff2",
+      "sha256": "e5c26900eed5d9b3a6ddfd2979a64637ecd5671884e3af5b6f764459383605e3",
+      "bytes": 238496
+    },
+    {
+      "source": "plugin/oddroom-orderops/assets/fonts/Pretendard-OFL.txt",
+      "package_path": "payload/oddroom-orderops/assets/fonts/Pretendard-OFL.txt",
+      "sha256": "82e9c8a4b203261f10ddba1296422d64914ff3d4b7bd8a12896d03f0f088d70a",
+      "bytes": 4816
+    },
+    {
+      "source": "plugin/oddroom-orderops/assets/fonts/PretendardVariable.woff2",
+      "package_path": "payload/oddroom-orderops/assets/fonts/PretendardVariable.woff2",
+      "sha256": "9599f12fd42fc0bce1cd50b47a0c022e108d7aa64dd0d1bb0ed44f3282d900b4",
+      "bytes": 2057688
+    },
+    {
       "source": "plugin/oddroom-orderops/assets/images/brand/logo-dark.svg",
       "package_path": "payload/oddroom-orderops/assets/images/brand/logo-dark.svg",
-      "sha256": "6c31fe42ed239c60e4381a60d7836baa6123762eba71a20cc77b3631a18539bb",
-      "bytes": 687
+      "sha256": "a22ba7fb6cbfe5be200a52da0f91ad83e0c796bc9d425fd6cab51adf2ae66d04",
+      "bytes": 589
     },
     {
       "source": "plugin/oddroom-orderops/assets/images/brand/logo-light.svg",
       "package_path": "payload/oddroom-orderops/assets/images/brand/logo-light.svg",
-      "sha256": "df88aa9f31a1356328c2f598f6e498ffa692571fc0aac083d26a414e36533e41",
-      "bytes": 688
+      "sha256": "fc1c68ad78094a2e12b2aa08d3cce019ad2d646bbcc9bc9fe7e1f42e79c4e642",
+      "bytes": 590
     },
     {
       "source": "plugin/oddroom-orderops/assets/images/brand/offset-grid-pattern.svg",
       "package_path": "payload/oddroom-orderops/assets/images/brand/offset-grid-pattern.svg",
-      "sha256": "3aed321f42a03ad73dc944e258c15a20eafbbf2968fc48202527e73ffbb35fb5",
-      "bytes": 521
+      "sha256": "ab18f6ebbc2ce474213faba50c28cb96c2d5af747dc5b031db0bf37c751c530e",
+      "bytes": 600
     },
     {
       "source": "plugin/oddroom-orderops/assets/images/brand/symbol.svg",
       "package_path": "payload/oddroom-orderops/assets/images/brand/symbol.svg",
-      "sha256": "a48ded6625125a284bd46c17fd92eefc4e0844e7f78ed018798061db2f71dd0f",
-      "bytes": 542
+      "sha256": "08ced7c45c2707a5f54192afb0aea846330624ad58d2714b6b18451e7c65b2b5",
+      "bytes": 388
     },
     {
       "source": "plugin/oddroom-orderops/assets/images/brand/wordmark-horizontal.svg",
       "package_path": "payload/oddroom-orderops/assets/images/brand/wordmark-horizontal.svg",
-      "sha256": "51b90e0bded56ca5fcf611fabb1643ddc74f66968c5a7d28dd1bc62d054e161c",
-      "bytes": 702
+      "sha256": "228fc7308290d3d7ac03f13c1e8dcd7b3f01651902407dac6edc591f95f0b752",
+      "bytes": 578
     },
     {
       "source": "plugin/oddroom-orderops/assets/images/favicon.svg",
       "package_path": "payload/oddroom-orderops/assets/images/favicon.svg",
-      "sha256": "53b8a06f973b9e119a66c9fab6ab7036c1988835e5ec50c2f81682092520aa38",
-      "bytes": 450
+      "sha256": "7fc58a6a879467a60ca9b8916b81d8c72ca139785d7afafe7c594195add94daa",
+      "bytes": 383
     },
     {
       "source": "plugin/oddroom-orderops/assets/images/quiet-utility/home/cta-still.webp",
@@ -358,8 +388,8 @@
     {
       "source": "plugin/oddroom-orderops/includes/class-oddroom-admin.php",
       "package_path": "payload/oddroom-orderops/includes/class-oddroom-admin.php",
-      "sha256": "8d766e632125cbd997e0b763dc1f1c573ab2590372a20b4a482cf3fdd5a2593c",
-      "bytes": 36635
+      "sha256": "a5ab09c07be7cf5252258a5f9ddf0e65f840ccef952819828f68917462ad2184",
+      "bytes": 36447
     },
     {
       "source": "plugin/oddroom-orderops/includes/class-oddroom-canonical-payload.php",
@@ -370,14 +400,14 @@
     {
       "source": "plugin/oddroom-orderops/includes/class-oddroom-cli.php",
       "package_path": "payload/oddroom-orderops/includes/class-oddroom-cli.php",
-      "sha256": "566c0b5c2549977a32e6576d0aed77f9799114f30ab1f6d69a2ce3a24b785cec",
-      "bytes": 13689
+      "sha256": "8ad3bd926f67cd54748862a618c289f18005cee5cc76806aebfcfda261a7d14a",
+      "bytes": 13688
     },
     {
       "source": "plugin/oddroom-orderops/includes/class-oddroom-dependencies.php",
       "package_path": "payload/oddroom-orderops/includes/class-oddroom-dependencies.php",
-      "sha256": "2281af48815d47cc53baab4094d970a8564fa85902ef21499464a6de639ca8dd",
-      "bytes": 6014
+      "sha256": "3111a3bb70b7cf3d7181db0384b7e768a47fe1c7941e793c460cdaba5c5e336c",
+      "bytes": 6012
     },
     {
       "source": "plugin/oddroom-orderops/includes/class-oddroom-events.php",
@@ -394,8 +424,8 @@
     {
       "source": "plugin/oddroom-orderops/includes/class-oddroom-installer.php",
       "package_path": "payload/oddroom-orderops/includes/class-oddroom-installer.php",
-      "sha256": "9ad3c43466981e1586133b7484df2bffacb2c1edbb14809b228e49ac36e4d04a",
-      "bytes": 6215
+      "sha256": "37293bbbd42c395ee56135c89bf10ae5a6d422cec4694ffe76b178184c0ef9bc",
+      "bytes": 6214
     },
     {
       "source": "plugin/oddroom-orderops/includes/class-oddroom-package.php",
@@ -454,20 +484,20 @@
     {
       "source": "plugin/oddroom-orderops/includes/class-oddroom-storefront.php",
       "package_path": "payload/oddroom-orderops/includes/class-oddroom-storefront.php",
-      "sha256": "26b5c142f3887b08d2e6ca3a286487af477147d2704102d76d691eebd5257357",
-      "bytes": 42902
+      "sha256": "a165cccba1cd0d72cb1dc054036cc23dd355a5fa00b7f1b43e72430c9cc91c37",
+      "bytes": 45854
     },
     {
       "source": "plugin/oddroom-orderops/includes/class-oddroom-worker.php",
       "package_path": "payload/oddroom-orderops/includes/class-oddroom-worker.php",
-      "sha256": "68011596d17d3c99c5c4f51e693308e58fb236b57a1996e8440bb6476a9c8021",
-      "bytes": 18790
+      "sha256": "9f91b9101525b6be4df60f7406169f0fc052e07efd54df186181d5819e1cd1d6",
+      "bytes": 18789
     },
     {
       "source": "plugin/oddroom-orderops/oddroom-orderops.php",
       "package_path": "payload/oddroom-orderops/oddroom-orderops.php",
-      "sha256": "8a9d4076c2e9e65a813ec36bace61e16d7c57214f626e8a1a74a36510ad139a1",
-      "bytes": 2627
+      "sha256": "5f563cf086a67c2d57e9aa2383be7369f020786dcff5bc93515f87c1202e65e2",
+      "bytes": 2626
     },
     {
       "source": "plugin/oddroom-orderops/tests/run.php",

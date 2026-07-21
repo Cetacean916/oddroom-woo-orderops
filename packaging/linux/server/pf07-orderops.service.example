@@ -1,5 +1,5 @@
 [Unit]
-Description=OddRoom OrderOps PF07 package runtime
+Description=OFFSET OrderOps PF07 package runtime
 Requires=docker.service
 After=docker.service network-online.target
 

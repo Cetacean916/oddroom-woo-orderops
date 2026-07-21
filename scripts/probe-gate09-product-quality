@@ -86,6 +86,7 @@ def main() -> None:
         "PF07_ADMIN_PASSWORD_FILE",
         runtime_root / "runtime/secrets/wordpress_admin_password",
     )).resolve()
+    admin_user = os.environ.get("PF07_ADMIN_USER", "oddroom-operator")
     secret_root = (runtime_root / "runtime/secrets").resolve()
     base_url = os.environ.get("PF07_BASE_URL", "http://127.0.0.1:18081").rstrip("/")
     admin_base_url = os.environ.get("PF07_ADMIN_BASE_URL", "http://127.0.0.1:18081").rstrip("/")
@@ -94,11 +95,18 @@ def main() -> None:
     require(runtime_root.is_dir() and compose_file.is_file() and runtime_env.is_file(), "restored runtime inputs are missing")
     require(output_dir.is_dir(), "PF07_EVIDENCE_OUTPUT_DIR is missing")
     require(password_file.is_file() and not password_file.is_symlink(), "protected administrator password file is missing")
+    require(
+        re.fullmatch(r"[A-Za-z0-9_.@-]{1,60}", admin_user) is not None,
+        "protected administrator alias is invalid",
+    )
     try:
         password_file.relative_to(secret_root)
     except ValueError as error:
         raise ProbeRuntimeError("administrator password file escaped the protected runtime secret root") from error
-    require(re.fullmatch(r"pf07-[a-z0-9-]+", project) is not None, "compose project identity is invalid")
+    require(
+        re.fullmatch(r"pf07(?:pkg)?-[a-z0-9-]+", project) is not None,
+        "compose project identity is neither the restored-runtime nor package-owned PF07 form",
+    )
     require(re.fullmatch(r"https?://[^\s/]+(?::[1-9][0-9]{0,4})?", base_url) is not None, "storefront base URL is invalid")
     require(re.fullmatch(r"http://(?:127\.0\.0\.1|localhost|\[::1\])(?::[1-9][0-9]{0,4})?", admin_base_url) is not None, "administrator base URL must be loopback-only")
 
@@ -129,7 +137,7 @@ def main() -> None:
     ui_environment.update({
         "PF07_BASE_URL": base_url,
         "PF07_ADMIN_BASE_URL": admin_base_url,
-        "PF07_ADMIN_USER": "oddroom-operator",
+        "PF07_ADMIN_USER": admin_user,
         "PF07_ADMIN_PASSWORD_FILE": str(password_file),
         "PF07_UI_EVIDENCE": str(ui_path),
     })

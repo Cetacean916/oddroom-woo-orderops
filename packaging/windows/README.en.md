@@ -1,4 +1,4 @@
-# OddRoom OrderOps · Windows x64
+# OFFSET OrderOps · Windows x64
 
 1. Extract the complete ZIP into one folder. Paths containing spaces or Korean characters are supported.
 2. Double-click `PF07-Launcher.exe`.

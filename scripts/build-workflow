@@ -8,6 +8,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parent.parent
 TARGET = ROOT / "workflow/oddroom-orderops-vsl.json"
+PACKAGE_TARGET = ROOT / "packaging/common/workflows/connected-mode.json"
 CREDENTIAL = {"httpBearerAuth": {"id": "PF07HubSpotRuntime1", "name": "PF07 HubSpot Runtime"}}
 SLACK_CREDENTIAL = {"httpHeaderAuth": {"id": "PF07SlackRuntime1", "name": "PF07 Slack Runtime"}}
 
@@ -204,7 +205,7 @@ if (existing && existingRank === context.payload.state_rank) {
 const order = context.payload.order;
 const contactBody = { inputs: [{ id: order.customer.email, idProperty: 'email', properties: { email: order.customer.email, firstname: order.customer.first_name, lastname: order.customer.last_name } }] };
 const contactReadBody = { idProperty: 'email', properties: ['email','firstname','lastname'], inputs: [{ id: order.customer.email }] };
-const dealBody = { inputs: [{ id: context.order_key, idProperty: 'oddroom_wc_order_key', properties: { dealname: `OddRoom order ${order.number}`, pipeline: String($env.HUBSPOT_PIPELINE_ID), dealstage: String($env.HUBSPOT_INITIAL_STAGE_ID), oddroom_wc_order_key: context.order_key, oddroom_order_state: context.payload.event_type, oddroom_order_state_rank: String(context.payload.state_rank), oddroom_last_event_at: context.payload.occurred_at_utc, oddroom_last_event_key: context.event_key } }] };
+const dealBody = { inputs: [{ id: context.order_key, idProperty: 'oddroom_wc_order_key', properties: { dealname: `OFFSET order ${order.number}`, pipeline: String($env.HUBSPOT_PIPELINE_ID), dealstage: String($env.HUBSPOT_INITIAL_STAGE_ID), oddroom_wc_order_key: context.order_key, oddroom_order_state: context.payload.event_type, oddroom_order_state_rank: String(context.payload.state_rank), oddroom_last_event_at: context.payload.occurred_at_utc, oddroom_last_event_key: context.event_key } }] };
 const readOnlyMode = mode === 'duplicate';
 const sameEventState = Boolean(existing && existingRank === context.payload.state_rank && existingKey === context.event_key);
 const contactMutationRequired = !readOnlyMode && phaseIndex <= phaseOrder.indexOf('deal_resolved');
@@ -302,7 +303,7 @@ if (results.length !== 1 || dealId === '') {
 }
 if ((prepared.existing_deal_id && prepared.existing_deal_id !== dealId) || (upsertDealId && upsertDealId !== dealId)) return failure(422, 'terminal_error', 'HUBSPOT_SCHEMA', 'HubSpot Deal identity changed during one execution.', progressPhase, dealId);
 const rank = Number(properties.oddroom_order_state_rank);
-const presentationExact = properties.dealname === `OddRoom order ${context.payload.order.number}` && properties.pipeline === String($env.HUBSPOT_PIPELINE_ID) && properties.dealstage === String($env.HUBSPOT_INITIAL_STAGE_ID);
+const presentationExact = properties.dealname === `OFFSET order ${context.payload.order.number}` && properties.pipeline === String($env.HUBSPOT_PIPELINE_ID) && properties.dealstage === String($env.HUBSPOT_INITIAL_STAGE_ID);
 const currentExact = properties.oddroom_wc_order_key === context.order_key && properties.oddroom_order_state === context.payload.event_type && rank === context.payload.state_rank && properties.oddroom_last_event_at === context.payload.occurred_at_utc && properties.oddroom_last_event_key === context.event_key && presentationExact;
 if (!currentExact) {
   if (!prepared.deal_mutation_required) return failure(409, 'operator_review', 'RESUME_PHASE_CONFLICT', 'Remote Deal facts conflict with the persisted resume phase.', context.resume_phase, dealId);
@@ -506,7 +507,7 @@ connections = {
 
 document = {
     "id": "PF07OrderOpsVSL1",
-    "name": "OddRoom OrderOps",
+    "name": "OFFSET OrderOps",
     "active": False,
     "nodes": nodes,
     "connections": connections,
@@ -522,9 +523,12 @@ rendered = json.dumps(document, ensure_ascii=False, indent=2) + "\n"
 if sys.argv[1:] == ["--check"]:
     if not TARGET.exists() or TARGET.read_text(encoding="utf-8") != rendered:
         raise SystemExit("FAIL: generated workflow is stale")
-    print("PASS: generated workflow is current")
+    if not PACKAGE_TARGET.exists() or PACKAGE_TARGET.read_text(encoding="utf-8") != rendered:
+        raise SystemExit("FAIL: packaged connected workflow is stale")
+    print("PASS: generated and packaged workflows are current")
 elif sys.argv[1:]:
     raise SystemExit("usage: scripts/build-workflow [--check]")
 else:
     TARGET.write_text(rendered, encoding="utf-8")
+    PACKAGE_TARGET.write_text(rendered, encoding="utf-8")
     print(f"PASS: generated {len(nodes)}-node workflow")

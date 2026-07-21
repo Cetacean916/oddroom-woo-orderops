@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: OddRoom OrderOps
+ * Plugin Name: OFFSET OrderOps
  * Description: Recoverable WooCommerce order delivery to a signed n8n adapter.
  * Version: 0.2.0
  * Requires PHP: 8.1

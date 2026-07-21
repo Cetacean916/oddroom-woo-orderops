@@ -1,33 +1,33 @@
 {
   "schema": "pf07.demo-seed.v1",
-  "seed_id": "quiet-utility-1.0.0",
+  "seed_id": "offset-objects-1.0.0",
   "deterministic_business_objects": {
     "homepage_slug": "oddroom-home",
     "category_slug": "demo-products",
-    "coupon": "ODDROOM10",
+    "coupon": "OFFSET10",
     "products": [
       {
         "kind": "simple",
-        "sku": "ODDROOM-DROP-KIT",
-        "display_name": "OddRoom 드롭 키트 · Offset Dock",
-        "asset": "payload/oddroom-orderops/assets/images/quiet-utility/offset-dock.webp",
+        "sku": "OFFSET-DOCK",
+        "display_name": "OFFSET · Offset Dock",
+        "asset": "payload/oddroom-orderops/assets/images/quiet-utility/simple/pdp-main.webp",
         "asset_sha256": "8d1d485d433458005bc02d4a34d30cd684fad3ce385b60993e48eb7b8ce17038"
       },
       {
         "kind": "variable",
-        "sku": "ODDROOM-CAMPAIGN-PACK",
+        "sku": "OFFSET-FOLDLINE",
         "variation_skus": [
-          "ODDROOM-CAMPAIGN-CORE",
-          "ODDROOM-CAMPAIGN-PLUS"
+          "OFFSET-FOLDLINE-GRAPHITE",
+          "OFFSET-FOLDLINE-SANDSTONE"
         ],
-        "display_name": "OddRoom 캠페인 팩 · Foldline Tech Case",
-        "asset": "payload/oddroom-orderops/assets/images/quiet-utility/foldline-tech-case.webp",
+        "display_name": "OFFSET · Foldline Tech Case",
+        "asset": "payload/oddroom-orderops/assets/images/quiet-utility/variable/pdp-main.webp",
         "asset_sha256": "85970a4db7e1456a2b3983d91e9717012a7691021546adb2b751b57d1077d12f"
       }
     ]
   },
   "presentation": {
-    "hero_asset": "payload/oddroom-orderops/assets/images/quiet-utility/home-hero.webp",
+    "hero_asset": "payload/oddroom-orderops/assets/images/quiet-utility/home/hero-desktop.webp",
     "hero_asset_sha256": "e96425f66876aaf360bc7347feb01a6105fad56e0317004379f4ebad90562bf7",
     "catalogs": [
       "packaging/common/seed/catalogs/ko_KR.json",

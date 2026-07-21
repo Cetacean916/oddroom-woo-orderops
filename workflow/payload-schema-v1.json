@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:oddroom-orderops:payload-schema:1",
-  "title": "OddRoom OrderOps immutable request payload v1",
+  "title": "OFFSET OrderOps immutable request payload v1",
   "type": "object",
   "additionalProperties": false,
   "required": [

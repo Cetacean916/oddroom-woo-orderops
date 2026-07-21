@@ -191,7 +191,7 @@ function existingDeal(ctx, rank = ctx.payload.state_rank, eventKey = ctx.event_k
       oddroom_order_state_rank: String(rank),
       oddroom_last_event_at: ctx.payload.occurred_at_utc,
       oddroom_last_event_key: eventKey,
-      dealname: `OddRoom order ${ctx.payload.order.number}`,
+      dealname: `OFFSET order ${ctx.payload.order.number}`,
       pipeline: 'default',
       dealstage: 'appointmentscheduled',
     },

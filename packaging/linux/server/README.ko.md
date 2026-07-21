@@ -1,4 +1,4 @@
-# OddRoom OrderOps · Linux server baseline
+# OFFSET OrderOps · Linux server baseline
 
 이 패키지는 준비된 Linux 서버에서 다시 설계하지 않고 배치할 수 있는 격리형 기준선입니다. 기본 WordPress 바인딩은 `127.0.0.1`이며 MariaDB·n8n·Docker API는 외부에 게시하지 않습니다. 제공된 nginx 예시는 인증이 유지되는 WordPress 상점과 `/wp-admin/` 경로만 동일 origin으로 프록시하며 인증 우회 기능이 없습니다.
 

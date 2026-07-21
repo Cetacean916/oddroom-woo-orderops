@@ -116,6 +116,9 @@ class HubHandler(BaseHTTPRequestHandler):
         if path == "/app.js":
             self._bytes((self.server.ui_root / "app.js").read_bytes(), "text/javascript; charset=utf-8")
             return
+        if path == "/fonts/PretendardVariable.woff2":
+            self._bytes((self.server.ui_root / "fonts" / "PretendardVariable.woff2").read_bytes(), "font/woff2")
+            return
         if path == "/brand-symbol.svg":
             symbol = package_root() / "payload" / "oddroom-orderops" / "assets" / "images" / "brand" / "symbol.svg"
             self._bytes(symbol.read_bytes(), "image/svg+xml")
@@ -267,7 +270,7 @@ def _select_hub_port(requested: int | None) -> int:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(prog="pf07-hub", description="OddRoom OrderOps graphical launch hub")
+    parser = argparse.ArgumentParser(prog="pf07-hub", description="OFFSET OrderOps graphical launch hub")
     parser.add_argument("--port", type=int, default=None)
     parser.add_argument("--no-browser", action="store_true")
     args = parser.parse_args()

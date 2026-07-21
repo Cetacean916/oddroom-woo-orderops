@@ -1,10 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 160" role="img" aria-labelledby="title">
-  <title id="title">OddRoom OrderOps offset grid pattern</title>
-  <rect width="240" height="160" fill="#f1eee7"/>
-  <g fill="none" stroke="#405a49" stroke-opacity=".13">
-    <path d="M0 32h240M0 80h240M0 128h240M48 0v160M120 0v160M192 0v160"/>
-    <path d="M0 104h72l12-24 17 48 16-32h123" stroke-width="2"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2400 1600" role="img" aria-labelledby="title">
+  <title id="title">OFFSET editorial grid pattern</title>
+  <rect width="2400" height="1600" fill="#f3f0e7"/>
+  <g fill="none" stroke="#171714" stroke-opacity=".14" stroke-width="4">
+    <path d="M0 320h2400M0 800h2400M0 1280h2400M480 0v1600M1200 0v1600M1920 0v1600"/>
   </g>
-  <circle cx="84" cy="80" r="4" fill="#405a49"/>
-  <circle cx="117" cy="96" r="4" fill="#c3ad9d"/>
+  <rect x="300" y="350" width="760" height="420" fill="#a43f22"/>
+  <rect x="980" y="830" width="1040" height="430" fill="#171714"/>
+  <path d="M1060 560h340v270h-340" fill="none" stroke="#667045" stroke-width="36"/>
 </svg>

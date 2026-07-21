@@ -17,6 +17,10 @@ const packageRoot = process.env.PF07_PACKAGE_ROOT ? path.resolve(process.env.PF0
 if (!outputDir || !packageRoot || !process.env.DISPLAY) {
   throw new Error("usage: DISPLAY=:N PF07_PACKAGE_ROOT=FINAL_PACKAGE scripts/record-public-media.mjs OUTPUT_DIR");
 }
+const captureDisplay = /^:(\d+)(?:\.\d+)?$/.exec(process.env.DISPLAY);
+if (!captureDisplay || Number(captureDisplay[1]) < 10) {
+  throw new Error("public media recording requires a dedicated Xvfb display (:10 or higher); refusing to capture an owner desktop");
+}
 
 const targets = {
   demo: path.join(outputDir, "demo-video.mp4"),
@@ -59,9 +63,10 @@ const artifactManifestBytes = await fsp.readFile(artifactManifestPath);
 const artifactManifest = JSON.parse(artifactManifestBytes.toString("utf8"));
 if (artifactManifest.schema !== "pf07.artifact-manifest.v1"
   || artifactManifest.artifact_id !== "pf07-linux-x86_64"
-  || artifactManifest.build_id !== "pf07-build-6359b71f0044da5a37a0"
+  || artifactManifest.package_version !== "1.0.1"
+  || artifactManifest.build_id !== "pf07-build-13003091bee3a5201dba"
   || artifactManifest.actual_os_runtime_execution !== false
-  || artifactManifest.tested_boundary !== "ACTUAL_LINUX_LOCAL_EXECUTION_REQUIRED_IN_STEP_060") {
+  || artifactManifest.tested_boundary !== "ACTUAL_LINUX_LOCAL_EXECUTION_REQUIRED_ON_CANONICAL_CI_BYTES_IN_STEP_090") {
   throw new Error("final Linux package identity or execution boundary failed");
 }
 
@@ -70,7 +75,7 @@ const scratchRoot = path.resolve(process.env.PF07_SCRATCH_ROOT || os.tmpdir());
 await fsp.mkdir(scratchRoot, { recursive: true });
 const visibleOperationRoot = await fsp.mkdtemp(path.join(scratchRoot, "pf07-final-media-terminal-"));
 const localPreflight = await fetch(`${baseUrl}/`);
-if (!localPreflight.ok || !(await localPreflight.text()).includes("OddRoom")) {
+if (!localPreflight.ok || !(await localPreflight.text()).includes("OFFSET")) {
   throw new Error("final package storefront preflight failed");
 }
 
@@ -184,26 +189,29 @@ async function caption(page, marker, detail) {
     root.id = "pf07-recording-caption";
     Object.assign(root.style, {
       position: "fixed", zIndex: "2147483647", top: "18px", right: "18px", width: "372px",
-      padding: "15px 17px", color: "#f7fbff", background: "rgba(6,17,31,.95)",
-      border: "2px solid #78b88a", borderRadius: "12px", boxShadow: "0 14px 40px rgba(0,0,0,.34)",
+      padding: "15px 17px", color: "#171714", background: "rgba(243,240,231,.97)",
+      border: "1px solid #171714", borderRadius: "0", boxShadow: "none",
       fontFamily: '"Noto Sans KR","DejaVu Sans",Arial,sans-serif', pointerEvents: "none", lineHeight: "1.35",
     });
     const strong = document.createElement("strong");
     strong.textContent = marker;
-    Object.assign(strong.style, { display: "block", color: "#9cdbad", fontSize: "20px", letterSpacing: ".055em" });
+    Object.assign(strong.style, { display: "block", color: "#a43f22", fontSize: "20px", letterSpacing: ".055em" });
     const text = document.createElement("span");
     text.textContent = detail;
     Object.assign(text.style, { display: "block", marginTop: "5px", fontSize: "14px" });
     root.append(strong, text);
-    document.body.append(root);
+    document.documentElement.append(root);
   }, { marker, detail });
-  await wait(120);
+  await wait(600);
 }
 
-async function setFullscreen(page) {
+async function setCaptureBounds(page) {
   const session = await page.context().newCDPSession(page);
   const { windowId } = await session.send("Browser.getWindowForTarget");
-  await session.send("Browser.setWindowBounds", { windowId, bounds: { windowState: "fullscreen" } });
+  await session.send("Browser.setWindowBounds", {
+    windowId,
+    bounds: { windowState: "fullscreen" },
+  });
   await wait(450);
 }
 
@@ -273,7 +281,7 @@ async function openContext(browser) {
   });
   const page = await context.newPage();
   page.setDefaultTimeout(30000);
-  await setFullscreen(page);
+  await setCaptureBounds(page);
   return { context, page };
 }
 
@@ -282,7 +290,7 @@ async function focusAction(locator) {
   await locator.hover();
   await locator.focus();
   await locator.evaluate((node) => {
-    node.style.outline = "4px solid #315dff";
+    node.style.outline = "3px solid #d65b31";
     node.style.outlineOffset = "4px";
   });
   await wait(350);
@@ -307,7 +315,7 @@ async function openHubTarget(hubPage, context, selector, expectedPathPrefix) {
   }
   const page = await context.newPage();
   await page.goto(target, { waitUntil: "networkidle" });
-  await setFullscreen(page);
+  await setCaptureBounds(page);
   return page;
 }
 
@@ -327,7 +335,7 @@ async function slowFill(page, selector, value, { protect = false, instant = fals
       node.style.setProperty("color", "transparent", "important");
       node.style.setProperty("-webkit-text-fill-color", "transparent", "important");
       node.style.setProperty("text-shadow", "0 0 10px #334", "important");
-      node.style.setProperty("caret-color", "#315dff", "important");
+      node.style.setProperty("caret-color", "#d65b31", "important");
     });
   }
   await field.focus();
@@ -367,7 +375,7 @@ async function createOrderThroughCheckout(page, timelineState = null) {
     await wait(300);
   }
 
-  const shopLink = page.getByRole("link", { name: /상품과 주문 흐름 보기|Explore products and orders/i }).first();
+  const shopLink = page.getByRole("link", { name: /컬렉션 보기|컬렉션에서 시작|Shop the collection|Start with the collection/i }).first();
   await clickAndWait(shopLink, page);
   if (timelineState) {
     await caption(page, "SHOP OPENED", "Actual final catalog · synthetic products only");
@@ -375,7 +383,7 @@ async function createOrderThroughCheckout(page, timelineState = null) {
     await wait(2200);
   }
 
-  const productLink = page.locator('a[href*="/product/oddroom-drop-kit/"]').first();
+  const productLink = page.locator('a[href*="/product/offset-dock/"]').first();
   await clickAndWait(productLink, page);
   if (timelineState) {
     await caption(page, "PRODUCT SELECTED", "Offset Dock · real final product detail");
@@ -445,7 +453,10 @@ async function loginAdmin(page, { requireCard = true } = {}) {
     await page.locator("#user_login").evaluate((node) => { node.type = "password"; });
     await slowFill(page, "#user_login", runtime.PF07_ADMIN_USER, { protect: true, instant: true });
     await slowFill(page, "#user_pass", runtime.PF07_ADMIN_PASSWORD, { protect: true, instant: true });
-    await page.click("#wp-submit", { noWaitAfter: true });
+    await Promise.all([
+      page.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 45000 }),
+      page.click("#wp-submit"),
+    ]);
     await page.locator("#adminmenu").waitFor({ timeout: 45000 });
   }
   if (!/[?&]page=oddroom-orderops(?:&|$)/.test(page.url())) {
@@ -588,7 +599,7 @@ async function runVisibleWorker({ heading, command, capture, timeline, event, ob
   const child = spawn(terminal, [
     "--disable-server", "--geometry=76x10+500+470", "--title=PF07 Final Package Worker",
     "--hide-menubar", "--hide-toolbar", "--hide-scrollbar", "--font=DejaVu Sans Mono 15",
-    "--color-text=#f7fbff", "--color-bg=#07111f", "--execute", "bash", "-lc", visibleOperationShell,
+    "--color-text=#f3f0e7", "--color-bg=#171714", "--execute", "bash", "-lc", visibleOperationShell,
   ], {
     env: {
       ...process.env,
@@ -762,7 +773,7 @@ try {
   await compose("stop", "-t", "1", "worker");
   await createRecoveryOrderViaWpCli();
   const recoveryAdmin = await recoverySession.context.newPage();
-  await setFullscreen(recoveryAdmin);
+  await setCaptureBounds(recoveryAdmin);
   await loginAdmin(recoveryAdmin);
   if (!(await newestClass(recoveryAdmin)).includes("status-queued")) throw new Error("recovery row was not pending");
 
@@ -783,7 +794,7 @@ try {
   });
   await reloadAdmin(recoveryAdmin);
   if (!(await newestClass(recoveryAdmin)).includes("status-failed")) throw new Error("recovery row did not enter failed");
-  await caption(recoveryAdmin, "FAILED", "Same outbox row · manual retry now available");
+  await caption(recoveryAdmin, "FAILED", "Same outbox row · HTTP 422 · manual retry now available");
   mark(recoveryCapture, recoveryTimeline, "FAILED", "status_failed_manual_retry_visible");
   await wait(250);
   await compose("start", "worker");
@@ -843,7 +854,7 @@ try {
 const posterTime = Math.max(0, (demoTimeline.find((event) => event.event === "ADMIN_COMPLETED")?.at_seconds || 55) + 0.5);
 await runProcess(ffmpeg, [
   "-hide_banner", "-loglevel", "error", "-i", targets.demo, "-ss", String(posterTime),
-  "-frames:v", "1", "-vf", "scale=1440:810:force_original_aspect_ratio=decrease,pad=1440:1000:(ow-iw)/2:(oh-ih)/2:color=0x07111f",
+  "-frames:v", "1", "-vf", "scale=1440:810:force_original_aspect_ratio=decrease,pad=1440:1000:(ow-iw)/2:(oh-ih)/2:color=0x171714",
   "-map_metadata", "-1", targets.poster,
 ]);
 

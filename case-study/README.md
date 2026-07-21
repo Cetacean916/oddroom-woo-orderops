@@ -1,17 +1,17 @@
-# PF07 — OddRoom Woo OrderOps
+# PF07 — OFFSET OrderOps
 
 ## 구매자가 겪는 문제
 
-WooCommerce 주문을 사람이 CRM에 옮기면 누락과 중복 효과가 생기기 쉽고, 외부 API가 중간에 실패했을 때 무엇이 이미 반영됐는지 확인하기 어렵습니다. OddRoom Woo OrderOps는 네 가지 주문 사실을 불변 outbox에 한 번 기록하고, 주문별 직렬화·제한 재시도·운영자 확인 경로를 통해 HubSpot과 Slack 전달 상태를 설명 가능하게 만듭니다.
+WooCommerce 주문을 사람이 CRM에 옮기면 누락과 중복 효과가 생기기 쉽고, 외부 API가 중간에 실패했을 때 무엇이 이미 반영됐는지 확인하기 어렵습니다. OFFSET OrderOps는 네 가지 주문 사실을 불변 outbox에 한 번 기록하고, 주문별 직렬화·제한 재시도·운영자 확인 경로를 통해 HubSpot과 Slack 전달 상태를 설명 가능하게 만듭니다.
 
 ![WordPress에서 n8n, HubSpot, Slack으로 이어지는 복구 가능 전달 구조](architecture.svg)
 
 ## 공개 영상
 
-- [73초 실제 end-to-end walkthrough](https://cetacean916.github.io/portfolio-showcase/assets/media/pf07/demo-video.mp4) — 계약의 60–90초 구간 안에서 실제 상품 선택·키 입력·주문 제출과 관리자 `pending → completed` 전이, 화면에 나타나는 WP-CLI worker 실행을 한 번의 연속 녹화로 보여줍니다.
-- [28초 실제 실패 → 재시도 → 복구 클립](https://cetacean916.github.io/portfolio-showcase/assets/media/pf07/recovery-clip.mp4) — 화면에 나타나는 n8n 중지·실패 worker·재기동·복구 worker와 `pending → retry_wait → completed` 전이를 이어서 보여줍니다.
+- [62초 실제 end-to-end walkthrough](https://cetacean916.github.io/portfolio-showcase/assets/media/pf07/demo-video.mp4) — 계약의 60–90초 구간 안에서 실제 상품 선택·키 입력·주문 제출과 관리자 `pending → completed` 전이, 화면에 나타나는 최종 1.0.1 패키지 worker 실행을 한 번의 연속 녹화로 보여줍니다.
+- [24초 실제 실패 → 수동 재시도 → 복구 클립](https://cetacean916.github.io/portfolio-showcase/assets/media/pf07/recovery-clip.mp4) — 패키지 허브의 제한된 terminal-failure 전환, 화면에 나타나는 실패·복구 worker, 관리자 수동 재시도와 동일 row의 `pending → failed → pending → recovered` 전이를 이어서 보여줍니다.
 
-두 영상은 정적 설명 슬라이드가 아니라 보호 staging runtime의 실제 브라우저·WP-CLI·Docker Compose 동작을 연속 캡처한 결과입니다. 합성 주문과 마스킹된 별칭만 사용하며, 보호 계정·호스트·webhook·토큰·개인 식별자는 포함하지 않습니다.
+두 영상은 정적 설명 슬라이드가 아니라 최종 Linux 1.0.1 패키지 소유 런타임의 실제 브라우저·WP-CLI·Docker Compose 동작을 연속 캡처한 결과입니다. 합성 주문과 마스킹된 별칭만 사용하며, 보호 계정·호스트·webhook·토큰·개인 식별자는 포함하지 않습니다.
 
 ## 전달 구조와 운영 결과
 

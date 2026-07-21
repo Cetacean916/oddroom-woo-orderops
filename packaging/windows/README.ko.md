@@ -1,4 +1,4 @@
-# OddRoom OrderOps · Windows x64
+# OFFSET OrderOps · Windows x64
 
 1. ZIP 전체를 하나의 폴더에 풉니다. 공백·한글이 들어간 경로도 지원합니다.
 2. `PF07-Launcher.exe`를 더블클릭합니다.

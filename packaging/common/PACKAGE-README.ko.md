@@ -1,4 +1,4 @@
-# OddRoom OrderOps 패키지
+# OFFSET OrderOps 패키지
 
 이 패키지는 자격 증명 없이 시작하는 `DEMO_MODE` 실행본입니다. 합성 주문만 사용하고 실제 결제, 이메일, HubSpot, Slack을 호출하지 않습니다.
 

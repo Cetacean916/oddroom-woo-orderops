@@ -1,4 +1,4 @@
-# OddRoom OrderOps · Linux local
+# OFFSET OrderOps · Linux local
 
 ZIP이 아닌 `tar.gz` 전체를 공백·한글을 포함할 수 있는 새 폴더에 풉니다. 파일 관리자에서 `PF07-Launcher`를 실행하거나 `PF07-OrderOps.desktop`을 신뢰한 뒤 엽니다. 런처는 Python 3.10+, Docker Engine, Compose 플러그인을 검사하고 누락 시 공식 설치 안내를 브라우저로 엽니다. 설치 후 다시 실행하면 같은 패키지 진행 상태에서 재검사합니다.
 
