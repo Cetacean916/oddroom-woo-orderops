@@ -7,10 +7,11 @@ if ! command -v python3 >/dev/null 2>&1; then
   exit 20
 fi
 export PYTHONPATH="$script_dir/launcher${PYTHONPATH:+:$PYTHONPATH}"
-state=$(python3 -m pf07_launcher.cli preflight 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin)["state"])') || state=CHECK_FAILED
+export PYTHONDONTWRITEBYTECODE=1
+state=$(python3 -B -m pf07_launcher.cli preflight 2>/dev/null | python3 -B -c 'import json,sys; print(json.load(sys.stdin)["state"])') || state=CHECK_FAILED
 if [ "$state" != READY ]; then
-  python3 -m pf07_launcher.cli preflight --open-installer >/dev/null 2>&1 || true
+  python3 -B -m pf07_launcher.cli preflight --open-installer >/dev/null 2>&1 || true
   printf '%s\n' 'A prerequisite is not ready. Follow the opened official guide, then launch PF07 again.' >&2
   exit 21
 fi
-exec python3 -m pf07_launcher.hub
+exec python3 -B -m pf07_launcher.hub

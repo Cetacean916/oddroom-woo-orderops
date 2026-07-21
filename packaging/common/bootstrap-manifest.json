@@ -48,8 +48,8 @@
   },
   "content_bindings": {
     "path": "packaging/common/distribution-content-bindings.json",
-    "sha256": "654c1a75b09db8c40bc96a296405d42447c4ef4f59b95d9fb7d9c7294c0fc34c",
-    "content_set_sha256": "02a7ea3686f2e49ab3d7791b2f58569470f263ffef063effa25ebce061448d6d",
+    "sha256": "9071e06b9677f8fbce945a71f5fe9880443430ec392226ee5114b13b83f200fe",
+    "content_set_sha256": "9e493d24d186b68d123971adcf9256729d1ba3b79245cfd9039ae252d71af133",
     "includes": [
       "sanitized deterministic seed",
       "PF07 plugin",
@@ -61,9 +61,9 @@
   },
   "distribution_seed": {
     "classification": "DISTRIBUTION_SEED",
-    "seed_id": "quiet-utility-1.0.0",
+    "seed_id": "offset-objects-1.0.0",
     "manifest": "packaging/common/seed/seed-manifest.json",
-    "manifest_sha256": "92388ce881106b25617b1820f8eec5111535291313aae1f8d68c83f6567c0257",
+    "manifest_sha256": "0f3736d004e4b584976d27776c63ff8936f88210af23627242c790d5329c51e5",
     "contains_runtime_database": false,
     "contains_credentials": false,
     "contains_owner_state": false

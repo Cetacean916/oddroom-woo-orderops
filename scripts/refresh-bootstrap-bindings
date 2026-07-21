@@ -64,7 +64,7 @@ def main() -> None:
         digest.update(str(item["package_path"]).encode("utf-8") + b"\0" + bytes.fromhex(str(item["sha256"])))
     value = {
         "schema": "pf07.distribution-content-bindings.v1",
-        "fixture_version": "quiet-utility-1.0.0",
+        "fixture_version": "offset-objects-1.0.0",
         "plugin_version": "0.2.0",
         "plugin_schema_version": "1.1.0",
         "payload_schema_version": "1",

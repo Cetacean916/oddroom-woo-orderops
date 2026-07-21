@@ -1,6 +1,6 @@
-# OddRoom Woo OrderOps
+# OFFSET OrderOps · PF07
 
-OddRoom Woo OrderOps is a recoverable WooCommerce order-operations integration. A custom WordPress plugin captures immutable order events, serializes delivery per order, and sends signed requests through a dedicated n8n adapter to HubSpot and Slack.
+OFFSET OrderOps is a recoverable WooCommerce order-operations integration presented through the OFFSET objects-and-order-system visual identity. A custom WordPress plugin captures immutable order events, serializes delivery per order, and sends signed requests through a dedicated n8n adapter to HubSpot and Slack. The historical `oddroom-orderops` code namespace remains only as a compatibility identifier.
 
 This repository is built from a separate non-Git implementation source by a deny-by-default public builder. It contains synthetic fixtures and public-safe evidence only. Protected raw evidence, credentials, runtime state, backups, and owner-machine paths are excluded.
 
@@ -21,7 +21,7 @@ The protected acceptance run exercised the complete four-event path and its reco
 - Seven-day, 50-order reconciliation derives expected events only from WooCommerce fact times. Controlled insert and schedule suppression fixtures were repaired on the first scan and became no-ops on the second.
 - Staging-only fault controls are tied to the protected run, expire by database UTC within 30 minutes, and can be disabled together by the protected end-run transaction.
 - The administrator surface provides deterministic filters, sorting, 50-row pagination, contained table overflow, masked identifiers, protected reveal/actions, and passed an isolated 500-row usability observation.
-- The OddRoom storefront includes a branded home, shop, simple product, two-variation product, coupon, cart, checkout, and account surface. Staging is `noindex`; outbound mail is captured; checkout exposes only a relabelled no-funds synthetic method.
+- The OFFSET storefront includes a branded home, shop, simple product, two-variation product, coupon, cart, checkout, and account surface. Staging is `noindex`; outbound mail is captured; checkout exposes only a relabelled no-funds synthetic method.
 - Playwright 1.61.1 and axe-core 4.12.1 passed 18 full-document storefront observations and three scoped administrator observations across 390, 768, and 1440 CSS pixels with zero serious/critical violations, page overflow, broken assets, clipped actions, or console errors.
 - An authenticated on-demand HTTPS route exposed only the storefront and the exact signed webhook. WordPress administration and the n8n editor remained private; a 262145-byte chunked request was rejected at ingress before workflow execution.
 - Dependency, activation, HPOS-off/on, migration, data-preserving uninstall, opt-in removal, and every required Action Scheduler failure branch were exercised in an isolated compatibility runtime.

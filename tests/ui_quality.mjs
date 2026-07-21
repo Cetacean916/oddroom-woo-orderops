@@ -12,7 +12,7 @@ const viewports = [390, 768, 1440];
 const routes = [
   ['home', '/'],
   ['shop', '/shop/'],
-  ['product', '/product/oddroom-drop-kit/'],
+  ['product', '/product/offset-dock/'],
   ['cart', '/cart/'],
   ['checkout', '/checkout/'],
   ['account', '/my-account/'],
@@ -54,7 +54,7 @@ for (const width of viewports) {
 
   for (const [name, route] of routes) {
     if (name === 'cart') {
-      await page.goto(`${baseUrl}/product/oddroom-drop-kit/`, { waitUntil: 'domcontentloaded' });
+      await page.goto(`${baseUrl}/product/offset-dock/`, { waitUntil: 'domcontentloaded' });
       const add = page.locator('button.single_add_to_cart_button');
       await add.waitFor({ state: 'visible' });
       await add.click();

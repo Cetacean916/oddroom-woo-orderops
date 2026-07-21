@@ -9,7 +9,7 @@
 
 
 static void show_error(const wchar_t *message) {
-    MessageBoxW(NULL, message, L"OddRoom OrderOps", MB_OK | MB_ICONERROR | MB_SETFOREGROUND);
+    MessageBoxW(NULL, message, L"OFFSET OrderOps", MB_OK | MB_ICONERROR | MB_SETFOREGROUND);
 }
 
 

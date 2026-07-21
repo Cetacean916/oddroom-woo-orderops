@@ -1,4 +1,4 @@
-# OddRoom OrderOps · macOS universal app entry
+# OFFSET OrderOps · macOS universal app entry
 
 1. Extract the complete ZIP into one folder and double-click `PF07 Launcher.app`. You may place the complete package folder under Applications; do not move the app alone because it needs the adjacent shared launcher and payload.
 2. If macOS blocks the downloaded app, Control-click it in Finder, choose `Open`, then confirm `Open`. This zero-cost portfolio artifact is unsigned and not notarized; paid signing is not applied.

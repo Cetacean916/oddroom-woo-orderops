@@ -271,7 +271,7 @@ if mode in ("--repository-public", "--post-public"):
             return response.read()
 
     repository_page = fetch("https://github.com/Cetacean916/oddroom-woo-orderops")
-    if b"OddRoom Woo OrderOps" not in repository_page:
+    if b"OFFSET OrderOps" not in repository_page:
         fail("unauthenticated repository page lacks the project identity")
     remote_matrix = fetch(f"https://raw.githubusercontent.com/Cetacean916/oddroom-woo-orderops/main/{SUCCESSOR_PUBLIC_PREFIX}/acceptance-matrix.json")
     if hashlib.sha256(remote_matrix).hexdigest() != hashlib.sha256((public_root / "acceptance-matrix.json").read_bytes()).hexdigest():

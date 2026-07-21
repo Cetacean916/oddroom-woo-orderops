@@ -3,7 +3,7 @@
 ## Classification and Authority
 
 - Repository class: development.
-- Delivery scope: PF07 OddRoom Woo OrderOps only.
+- Delivery scope: PF07 OFFSET OrderOps only; historical `oddroom-*` identifiers remain compatibility namespaces.
 - The active PF07 implementation contract controls product, evidence, release, and completion requirements.
 - Git-staging root canon controls every Git operation. This file is subordinate to that canon and MUST NOT broaden it.
 - Higher-priority system, developer, and current owner instructions govern conflicts.

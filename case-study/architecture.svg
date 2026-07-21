@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
-  <title id="title">OddRoom Woo OrderOps recovery architecture</title>
+  <title id="title">OFFSET OrderOps recovery architecture</title>
   <desc id="desc">WooCommerce records an immutable outbox event, a fenced worker signs the raw bytes, n8n verifies the signature, and HubSpot and Slack return checkpoints. Retry and operator review loop back to the outbox without rebuilding the event.</desc>
   <rect width="1200" height="630" fill="#fff8eb"/>
   <style>

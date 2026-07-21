@@ -136,7 +136,7 @@ def main() -> None:
     ):
         require(token in pe_result.stdout, f"PE metadata is missing: {token}")
     utf16 = pe.read_bytes().decode("utf-16le", errors="ignore")
-    for token in ("OddRoom OrderOps", "PF07-Launcher.exe", "1.0.0"):
+    for token in ("OFFSET OrderOps", "PF07-Launcher.exe", "1.0.0"):
         require(token in utf16, f"PE version string missing: {token}")
     powershell = parse_powershell(
         args.pwsh,

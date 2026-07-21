@@ -926,7 +926,7 @@ def start() -> dict[str, Any]:
                         "core",
                         "install",
                         f"--url={values['ODDROOM_PUBLIC_BASE_URL']}",
-                        "--title=OddRoom OrderOps Demo",
+                        "--title=OFFSET Order System",
                         f"--admin_user={values['PF07_ADMIN_USER']}",
                         f"--admin_email={ADMIN_EMAIL}",
                         f"--admin_password={values['PF07_ADMIN_PASSWORD']}",
@@ -946,7 +946,7 @@ def start() -> dict[str, Any]:
             _ensure_wordpress_plugin(values, "woocommerce", "10.9.4", ["/workspace/downloads/woocommerce.10.9.4.zip"])
             _install_verified_translations(values)
 
-            _set_operation("storefront", "Quiet Utility 상점과 운영 화면을 준비하는 중입니다.")
+            _set_operation("storefront", "OFFSET 상점과 운영 화면을 준비하는 중입니다.")
             for key, value in (
                 ("blog_public", "0"),
                 ("timezone_string", "Asia/Seoul"),

@@ -1,4 +1,4 @@
-# OddRoom OrderOps package
+# OFFSET OrderOps package
 
 This package starts in credential-free `DEMO_MODE`. It uses synthetic orders and does not contact real payment, email, HubSpot, or Slack services.
 

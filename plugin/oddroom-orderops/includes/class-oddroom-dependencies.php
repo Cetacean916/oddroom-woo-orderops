@@ -119,7 +119,7 @@ final class OddRoom_Dependencies
             return;
         }
 
-        echo '<div class="notice notice-error"><p><strong>OddRoom OrderOps is paused.</strong> '
+        echo '<div class="notice notice-error"><p><strong>OFFSET OrderOps is paused.</strong> '
             . esc_html(self::messageFor((string) $status['code']))
             . '</p></div>';
     }
@@ -127,7 +127,7 @@ final class OddRoom_Dependencies
     public static function messageFor(string $code): string
     {
         return match ($code) {
-            'WOOCOMMERCE_UNAVAILABLE' => 'Install and activate WooCommerce, then reactivate OddRoom OrderOps. No order automation was started.',
+            'WOOCOMMERCE_UNAVAILABLE' => 'Install and activate WooCommerce, then reactivate OFFSET OrderOps. No order automation was started.',
             'ACTION_SCHEDULER_NOT_READY' => 'Action Scheduler did not initialize. Activate a supported WooCommerce or Action Scheduler distribution, then retry. No order automation was started.',
             'ACTION_SCHEDULER_VERSION_UNSUPPORTED' => 'Action Scheduler 4.0.0 or later is required. Update the loaded distribution, rerun the preflight, and then retry. No order automation was started.',
             'WOOCOMMERCE_CURRENCY_MISMATCH' => 'Set the WooCommerce currency to KRW, then retry. No order automation was started.',

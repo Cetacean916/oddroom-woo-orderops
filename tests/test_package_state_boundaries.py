@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -16,6 +18,43 @@ from pf07_launcher.tunnel_proxy import TunnelProxy  # noqa: E402
 
 
 class PackageStateBoundaryTest(unittest.TestCase):
+    def test_package_entrypoints_keep_python_bytecode_out_of_distribution_tree(self) -> None:
+        entrypoints = (
+            "launcher/bin/pf07",
+            "launcher/bin/pf07-hub",
+            "packaging/linux/PF07-Launcher",
+            "packaging/linux/pf07",
+            "packaging/linux/server/pf07-server",
+            "packaging/macos/pf07",
+            "packaging/macos/PF07 Launcher.app/Contents/MacOS/PF07-OrderOps",
+            "packaging/windows/pf07.cmd",
+            "packaging/windows/Start-PF07.ps1",
+        )
+        for relative in entrypoints:
+            with self.subTest(entrypoint=relative):
+                text = (ROOT / relative).read_text(encoding="utf-8")
+                self.assertIn("PYTHONDONTWRITEBYTECODE", text)
+
+        with tempfile.TemporaryDirectory() as directory_name:
+            root = Path(directory_name)
+            shutil.copytree(
+                ROOT / "launcher/pf07_launcher",
+                root / "launcher/pf07_launcher",
+                ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.pyo"),
+            )
+            (root / "launcher/bin").mkdir(parents=True)
+            shutil.copy2(ROOT / "launcher/bin/pf07", root / "launcher/bin/pf07")
+            result = subprocess.run(
+                [str(root / "launcher/bin/pf07"), "--help"],
+                cwd=root,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertFalse(any(root.rglob("__pycache__")))
+            self.assertFalse(any(root.rglob("*.pyc")))
+
     def test_status_does_not_create_first_run_identity(self) -> None:
         with tempfile.TemporaryDirectory() as directory_name:
             root = Path(directory_name)

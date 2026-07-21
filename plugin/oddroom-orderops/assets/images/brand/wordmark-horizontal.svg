@@ -1,9 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 72" role="img" aria-labelledby="title">
-  <title id="title">OddRoom OrderOps</title>
-  <g transform="translate(4 4) scale(.92)">
-    <rect width="64" height="64" rx="18" fill="#405a49"/>
-    <path d="M17 20h20a10 10 0 0 1 10 10v14M47 44H27a10 10 0 0 1-10-10V20" fill="none" stroke="#fbfaf6" stroke-width="6" stroke-linecap="round"/>
-  </g>
-  <text x="82" y="45" fill="#20231f" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="800" letter-spacing="4">ODDROOM</text>
-  <text x="278" y="45" fill="#405a49" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="700" letter-spacing="3">/ ORDEROPS</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 388 72" role="img" aria-labelledby="title">
+  <title id="title">OFFSET / ORDER SYSTEM</title>
+  <rect x="4" y="10" width="31" height="18" fill="#a43f22"/>
+  <rect x="18" y="38" width="31" height="18" fill="#171714"/>
+  <text x="65" y="43" fill="#171714" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="900" letter-spacing="4">OFFSET</text>
+  <text x="225" y="42" fill="#667045" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="800" letter-spacing="2">/ ORDER SYSTEM</text>
 </svg>

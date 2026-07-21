@@ -1,8 +1,8 @@
-# PF07 — OddRoom Woo OrderOps
+# PF07 — OFFSET OrderOps
 
 ## 구매자가 겪는 문제
 
-WooCommerce 주문을 사람이 CRM에 옮기면 누락과 중복 효과가 생기기 쉽고, 외부 API가 중간에 실패했을 때 무엇이 이미 반영됐는지 확인하기 어렵습니다. OddRoom Woo OrderOps는 네 가지 주문 사실을 불변 outbox에 한 번 기록하고, 주문별 직렬화·제한 재시도·운영자 확인 경로를 통해 HubSpot과 Slack 전달 상태를 설명 가능하게 만듭니다.
+WooCommerce 주문을 사람이 CRM에 옮기면 누락과 중복 효과가 생기기 쉽고, 외부 API가 중간에 실패했을 때 무엇이 이미 반영됐는지 확인하기 어렵습니다. OFFSET OrderOps는 네 가지 주문 사실을 불변 outbox에 한 번 기록하고, 주문별 직렬화·제한 재시도·운영자 확인 경로를 통해 HubSpot과 Slack 전달 상태를 설명 가능하게 만듭니다.
 
 ![WordPress에서 n8n, HubSpot, Slack으로 이어지는 복구 가능 전달 구조](architecture.svg)
 

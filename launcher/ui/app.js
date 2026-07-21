@@ -75,7 +75,7 @@ const copy = locale === 'en_US' ? {
     containers: 'Starting the isolated database and WordPress containers.',
     wordpress: 'Preparing WordPress and language support.',
     dependencies: 'Preparing pinned WooCommerce and Action Scheduler versions.',
-    storefront: 'Preparing the Quiet Utility store and operations surfaces.',
+    storefront: 'Preparing the OFFSET store and operations surfaces.',
     automation: 'Preparing the package-owned n8n workflow and background worker.',
     'task-runner-image': 'Preparing the versioned task runner from its pinned dependency lock.',
     verify: 'Verifying the store and administrator targets.',

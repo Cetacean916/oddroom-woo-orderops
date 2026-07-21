@@ -267,7 +267,7 @@ def _select_hub_port(requested: int | None) -> int:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(prog="pf07-hub", description="OddRoom OrderOps graphical launch hub")
+    parser = argparse.ArgumentParser(prog="pf07-hub", description="OFFSET OrderOps graphical launch hub")
     parser.add_argument("--port", type=int, default=None)
     parser.add_argument("--no-browser", action="store_true")
     args = parser.parse_args()

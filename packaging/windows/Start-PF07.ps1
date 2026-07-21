@@ -10,7 +10,7 @@ if (-not (Test-Path -LiteralPath (Join-Path $PackageRoot 'packaging\common\actio
     Add-Type -AssemblyName System.Windows.Forms
     [System.Windows.Forms.MessageBox]::Show(
         'The PF07 package is incomplete. Extract the complete ZIP into one folder and try again.',
-        'OddRoom OrderOps',
+        'OFFSET OrderOps',
         'OK',
         'Error'
     ) | Out-Null
@@ -24,7 +24,7 @@ $ResumePath = Join-Path $StateDirectory 'prerequisite-resume.json'
 function Show-PF07Message {
     param([string]$Text, [string]$Kind = 'Information', [string]$Buttons = 'OK')
     Add-Type -AssemblyName System.Windows.Forms
-    return [System.Windows.Forms.MessageBox]::Show($Text, 'OddRoom OrderOps', $Buttons, $Kind)
+    return [System.Windows.Forms.MessageBox]::Show($Text, 'OFFSET OrderOps', $Buttons, $Kind)
 }
 
 function Save-PF07Resume {
@@ -81,7 +81,8 @@ if ($null -eq $Python) {
 }
 
 $env:PYTHONPATH = (Join-Path $PackageRoot 'launcher')
-$PythonArguments = @() + $Python.Prefix
+$env:PYTHONDONTWRITEBYTECODE = '1'
+$PythonArguments = @() + $Python.Prefix + @('-B')
 
 if ($Action -eq 'Preflight' -or $Action -eq 'Hub') {
     $PreflightJson = & $Python.File @PythonArguments -m pf07_launcher.cli preflight 2>&1

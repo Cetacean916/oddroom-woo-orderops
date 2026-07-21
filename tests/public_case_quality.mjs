@@ -423,7 +423,7 @@ try {
     });
     const axe = await new AxeBuilder({ page }).analyze();
     const seriousOrCritical = axe.violations.filter((item) => ["serious", "critical"].includes(item.impact)).length;
-    if (!audit.title.includes("OddRoom") || !audit.h1.includes("OrderOps")) throw new Error(`${width}: title or heading missing`);
+    if (!audit.title.includes("OFFSET") || !audit.h1.includes("OrderOps")) throw new Error(`${width}: selected brand title or heading missing`);
     if (audit.scrollWidth > audit.viewportWidth + 1 || audit.brokenImages || audit.clippedActions) throw new Error(`${width}: layout or asset failure ${JSON.stringify(audit)}`);
     if (JSON.stringify(audit.scorecard) !== JSON.stringify(mediaObservation.scorecard)
       || JSON.stringify(audit.evidenceLinks) !== JSON.stringify(expectedEvidenceLinks)

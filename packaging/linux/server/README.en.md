@@ -1,4 +1,4 @@
-# OddRoom OrderOps · Linux server baseline
+# OFFSET OrderOps · Linux server baseline
 
 This package is an isolated baseline that a prepared Linux server can deploy without redesign. WordPress binds to `127.0.0.1` by default; MariaDB, n8n, and the Docker API are never published. The nginx example proxies the WordPress storefront and authenticated `/wp-admin/` on one origin and contains no authentication bypass.
 

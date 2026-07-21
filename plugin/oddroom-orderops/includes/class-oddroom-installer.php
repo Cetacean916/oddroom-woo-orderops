@@ -119,7 +119,7 @@ final class OddRoom_Installer
 
         if (!self::tablesAreTransactional()) {
             update_option('oddroom_orderops_health_error', 'DATABASE_ENGINE_UNSUPPORTED', false);
-            throw new RuntimeException('OddRoom OrderOps requires transactional InnoDB tables.');
+            throw new RuntimeException('OFFSET OrderOps requires transactional InnoDB tables.');
         }
 
         update_option(self::OPTION, self::SCHEMA_VERSION, false);
