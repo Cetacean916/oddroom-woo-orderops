@@ -65,10 +65,16 @@ def _normal_order(path: Path) -> dict:
     _require(isinstance(orders, list) and len(orders) == 3, "GATE-01 must contain exactly three orders")
     shapes: list[str] = []
     order_ids: list[int] = []
+    payload_hashes: set[str] = set()
+    execution_ids: set[int] = set()
+    signed_requests = 0
+    fixed_hubspot_paths = 0
+    completed_envelopes = 0
+    persisted_deal_checkpoints = 0
     hashes_valid = True
     for index, order in enumerate(orders):
         _require(isinstance(order, dict), "GATE-01 order is not an object")
-        _exact(order, {"order_id", "product_id", "variation_id", "shape", "coupon_applied", "payload"}, f"GATE-01 order {index}")
+        _exact(order, {"order_id", "product_id", "variation_id", "shape", "coupon_applied", "payload", "execution"}, f"GATE-01 order {index}")
         order_id = _integer(order["order_id"], "GATE-01 order_id", 1)
         _integer(order["product_id"], "GATE-01 product_id", 1)
         variation_id = _integer(order["variation_id"], "GATE-01 variation_id")
@@ -79,9 +85,47 @@ def _normal_order(path: Path) -> dict:
         _require((shape == "coupon") == order["coupon_applied"], "GATE-01 coupon fact differs from shape")
         _require(isinstance(order["payload"], dict), "GATE-01 payload commitment is missing")
         _payload(order["payload"], f"GATE-01 order {index}")
+        payload_hash = _sha(order["payload"]["stored_payload_hash"], f"GATE-01 payload hash {index}")
+        payload_hashes.add(payload_hash)
+        execution = order["execution"]
+        _require(isinstance(execution, dict), "GATE-01 execution observation is missing")
+        _exact(
+            execution,
+            {
+                "execution_id", "verified_authorized", "ingress_raw_body_sha256", "verified_payload_sha256",
+                "executed_hubspot_nodes", "envelope_result", "envelope_phase",
+                "envelope_deal_checkpoint_present", "wordpress_status", "wordpress_phase",
+                "wordpress_deal_checkpoint_present",
+            },
+            f"GATE-01 execution {index}",
+        )
+        execution_ids.add(_integer(execution["execution_id"], "GATE-01 execution_id", 1))
+        exact_signed = (
+            execution["verified_authorized"] is True
+            and _sha(execution["ingress_raw_body_sha256"], "GATE-01 ingress body") == payload_hash
+            and _sha(execution["verified_payload_sha256"], "GATE-01 verified payload") == payload_hash
+        )
+        signed_requests += int(exact_signed)
+        expected_hubspot_nodes = [
+            "HubSpot 2026-03 Deal Read",
+            "HubSpot 2026-03 Deal Readback",
+            "HubSpot 2026-03 Deal Upsert",
+        ]
+        fixed_hubspot_paths += int(execution["executed_hubspot_nodes"] == expected_hubspot_nodes)
+        completed_envelopes += int(
+            execution["envelope_result"] == "completed"
+            and execution["envelope_phase"] == "completed"
+            and execution["envelope_deal_checkpoint_present"] is True
+        )
+        persisted_deal_checkpoints += int(
+            execution["wordpress_status"] == "completed"
+            and execution["wordpress_phase"] == "completed"
+            and execution["wordpress_deal_checkpoint_present"] is True
+        )
         shapes.append(shape)
         order_ids.append(order_id)
     _require(len(set(order_ids)) == 3, "GATE-01 order identities are not distinct")
+    _require(len(execution_ids) == 3, "GATE-01 execution identities are not distinct")
     admin_ids = value["admin_order_ids"]
     storage_ids = value["storage_order_ids"]
     _require(isinstance(admin_ids, list) and isinstance(storage_ids, list), "GATE-01 admin/storage observations are missing")
@@ -92,6 +136,11 @@ def _normal_order(path: Path) -> dict:
         "coupon_orders": shapes.count("coupon"),
         "woocommerce_admin_and_storage_observed": observed,
         "immutable_payload_hashes_valid": hashes_valid,
+        "distinct_payload_hash_count": len(payload_hashes),
+        "signed_request_count": signed_requests,
+        "fixed_hubspot_path_execution_count": fixed_hubspot_paths,
+        "completed_envelope_count": completed_envelopes,
+        "persisted_deal_checkpoint_count": persisted_deal_checkpoints,
     }
 
 

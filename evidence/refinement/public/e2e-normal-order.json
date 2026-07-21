@@ -1,0 +1,35 @@
+{
+  "schema_version": "1",
+  "acceptance_id": "GATE-01",
+  "run_id": "PF07-REFINEMENT-ACCEPTANCE-RUN",
+  "started_at": "2026-07-21T06:40:20Z",
+  "finished_at": "2026-07-21T06:40:53Z",
+  "source_tree_sha256": "61dd3ab2842d5f1d529db0f74ff191983777f8fa1429337e6a62752af9856c94",
+  "command_or_probe": "recorded redaction of protected acceptance observation",
+  "exit_code": 0,
+  "observations": {
+    "result": "PASS",
+    "simple_product_orders": 1,
+    "variable_product_orders": 1,
+    "coupon_orders": 1,
+    "woocommerce_admin_and_storage_observed": true,
+    "immutable_payload_hashes_valid": true,
+    "distinct_payload_hash_count": 3,
+    "signed_request_count": 3,
+    "fixed_hubspot_path_execution_count": 3,
+    "completed_envelope_count": 3,
+    "persisted_deal_checkpoint_count": 3
+  },
+  "artifact_hashes": {},
+  "redaction_state": "PUBLIC_REDACTED",
+  "redaction_transform": {
+    "id": "pf07-public-evidence-redaction",
+    "version": "1",
+    "script_sha256": "85e4f8137dceb273572374edab98fab7f16a99988a63c2335637755a859bdc9a"
+  },
+  "source_acceptance_id": "GATE-01",
+  "source_record_sha256": "a242df4e71408bfd91956358726a46cdf57fcc471ac201aaa395ffcbbce2e06b",
+  "source_artifact_hashes": {
+    "gate01_order_variety_trace": "6521bc8aa2a06c2c6ee11060e9e61a400714d4dc23feda5c82e1239e5d0c4df2"
+  }
+}

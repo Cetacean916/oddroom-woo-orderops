@@ -1,0 +1,12 @@
+{
+  "schema": "pf07.macos-app-architecture.v1",
+  "adapter_type": "portable-posix-script",
+  "supported_cpu_architectures": [
+    "arm64",
+    "x86_64"
+  ],
+  "shared_launcher_core": "../../../launcher/pf07_launcher",
+  "native_execution_claim": "NOT_RUN_ON_MACOS",
+  "signing": "UNSIGNED",
+  "notarization": "NOT_NOTARIZED"
+}

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 80" role="img" aria-labelledby="title">
+  <title id="title">OddRoom OrderOps logo for light backgrounds</title>
+  <rect x="2" y="8" width="64" height="64" rx="18" fill="#405a49"/>
+  <path d="M19 28h20a10 10 0 0 1 10 10v14M49 52H29a10 10 0 0 1-10-10V28" fill="none" stroke="#fbfaf6" stroke-width="6" stroke-linecap="round"/>
+  <text x="84" y="47" fill="#20231f" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="800" letter-spacing="3.5">ODDROOM</text>
+  <text x="268" y="47" fill="#405a49" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700" letter-spacing="2.5">ORDEROPS</text>
+</svg>

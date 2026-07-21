@@ -1,0 +1,268 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import plistlib
+import re
+import subprocess
+from pathlib import Path
+from typing import Any
+
+
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as source:
+        for block in iter(lambda: source.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def require(condition: bool, message: str) -> None:
+    if not condition:
+        raise SystemExit(message)
+
+
+def load(path: Path) -> dict[str, Any]:
+    value = json.loads(path.read_text(encoding="utf-8"))
+    require(isinstance(value, dict), f"expected JSON object: {path}")
+    return value
+
+
+def verify_checksum_file(directory: Path, filename: str = "SHA256SUMS.txt") -> int:
+    checksum_path = directory / filename
+    count = 0
+    for raw in checksum_path.read_text(encoding="utf-8").splitlines():
+        if not raw:
+            continue
+        expected, relative = raw.split(maxsplit=1)
+        relative = relative.lstrip("* ")
+        target = directory / relative
+        require(target.is_file(), f"checksum target missing: {target}")
+        require(sha256(target) == expected, f"checksum mismatch: {target}")
+        count += 1
+    return count
+
+
+def parse_powershell(pwsh: Path, paths: list[Path]) -> dict[str, Any]:
+    environment = dict(os.environ)
+    environment["PF07_PS_FILES"] = os.pathsep.join(str(path) for path in paths)
+    command = r'''
+$bad = @()
+foreach ($path in $env:PF07_PS_FILES.Split([IO.Path]::PathSeparator)) {
+  $tokens = $null
+  $errors = $null
+  [System.Management.Automation.Language.Parser]::ParseFile($path, [ref]$tokens, [ref]$errors) | Out-Null
+  foreach ($entry in $errors) { $bad += "$path :: $($entry.Message)" }
+}
+if ($bad.Count -gt 0) { $bad | ForEach-Object { Write-Error $_ }; exit 1 }
+"POWERSHELL_AST_PASS=$($env:PF07_PS_FILES.Split([IO.Path]::PathSeparator).Count)"
+'''
+    result = subprocess.run(
+        [str(pwsh), "-NoLogo", "-NoProfile", "-NonInteractive", "-Command", command],
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        env=environment,
+        check=False,
+    )
+    require(result.returncode == 0, "PowerShell AST parsing failed:\n" + result.stdout)
+    return {"status": "PASS", "files": [path.name for path in paths], "tool_output": result.stdout.strip()}
+
+
+def validate_cmd(path: Path, required: list[str]) -> dict[str, Any]:
+    text = path.read_text(encoding="utf-8")
+    require(text.lower().startswith("@echo off"), f"CMD entrypoint does not disable echo: {path}")
+    require(text.lower().count("setlocal") == 1, f"CMD entrypoint scope is ambiguous: {path}")
+    require(text.count("(") == text.count(")"), f"CMD parentheses are unbalanced: {path}")
+    for token in required:
+        require(token.lower() in text.lower(), f"CMD entrypoint missing {token}: {path}")
+    require("/home/" not in text and "바탕화면" not in text, f"CMD contains host path: {path}")
+    return {"path": path.name, "status": "PASS", "required_tokens": required}
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Validate PF07 platform artifact boundaries")
+    parser.add_argument("--build", required=True, type=Path)
+    parser.add_argument("--compare-build", type=Path)
+    parser.add_argument("--llvm-readobj", required=True, type=Path)
+    parser.add_argument("--pwsh", required=True, type=Path)
+    parser.add_argument("--output", type=Path)
+    args = parser.parse_args()
+    build = args.build.resolve()
+    aggregate = load(build / "ARTIFACT-MANIFEST.json")
+    require(aggregate["artifact_count"] == 5, "artifact set must contain exactly five platform artifacts")
+    checksum_count = verify_checksum_file(build)
+    rows = {row["artifact_id"]: row for row in aggregate["artifacts"]}
+    require(set(rows) == {
+        "pf07-windows-x64",
+        "pf07-windows-kvm-test-kit",
+        "pf07-macos-universal",
+        "pf07-linux-x86_64",
+        "pf07-linux-server",
+    }, "artifact ID set mismatch")
+    for row in rows.values():
+        archive = build / row["filename"]
+        require(sha256(archive) == row["sha256"], f"aggregate archive hash mismatch: {archive.name}")
+        candidate = build / "packages" / row["root_name"]
+        require(verify_checksum_file(candidate) == row["file_count"] - 1, f"candidate checksum coverage mismatch: {row['artifact_id']}")
+        manifest = load(candidate / "ARTIFACT-MANIFEST.json")
+        require(manifest["build_id"] == aggregate["build_id"], "candidate build ID mismatch")
+        require(manifest["runtime_topology"]["business_runtime_count"] == 1, "one-runtime topology missing")
+        require(manifest["runtime_topology"]["locale_variants"] == ["ko_KR", "en_US"], "dual locale topology missing")
+
+    windows = build / "packages" / rows["pf07-windows-x64"]["root_name"]
+    pe = windows / "PF07-Launcher.exe"
+    pe_result = subprocess.run(
+        [str(args.llvm_readobj), "--file-headers", "--coff-imports", "--coff-resources", str(pe)],
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        check=False,
+    )
+    require(pe_result.returncode == 0, "PE inspection failed:\n" + pe_result.stdout)
+    for token in (
+        "Format: COFF-x86-64",
+        "Machine: IMAGE_FILE_MACHINE_AMD64",
+        "Subsystem: IMAGE_SUBSYSTEM_WINDOWS_GUI",
+        "Name: USER32.dll",
+        "Symbol: MessageBoxW",
+        "Name: KERNEL32.dll",
+        "Symbol: CreateProcessW",
+        "Type: VERSIONINFO",
+        "TimeDateStamp: 1970-01-01 00:00:00",
+    ):
+        require(token in pe_result.stdout, f"PE metadata is missing: {token}")
+    utf16 = pe.read_bytes().decode("utf-16le", errors="ignore")
+    for token in ("OddRoom OrderOps", "PF07-Launcher.exe", "1.0.0"):
+        require(token in utf16, f"PE version string missing: {token}")
+    powershell = parse_powershell(
+        args.pwsh,
+        [
+            windows / "Start-PF07.ps1",
+            build / "packages" / rows["pf07-windows-kvm-test-kit"]["root_name"] / "PF07-KVM-Evidence.ps1",
+        ],
+    )
+    cmd_results = [
+        validate_cmd(windows / "START-PF07.cmd", ["%~dp0", "powershell.exe", "Start-PF07.ps1"]),
+        validate_cmd(windows / "pf07.cmd", ["%~dp0", "PYTHONPATH", "pf07_launcher.cli", "%*"]),
+    ]
+
+    kit = build / "packages" / rows["pf07-windows-kvm-test-kit"]["root_name"]
+    binding = load(kit / "buyer-package-binding.json")
+    require(binding["buyer_archive"] == rows["pf07-windows-x64"]["filename"], "KVM kit buyer filename binding mismatch")
+    require(binding["buyer_sha256"] == rows["pf07-windows-x64"]["sha256"], "KVM kit buyer SHA binding mismatch")
+    kit_html = (kit / "PF07-KVM-TEST.html").read_text(encoding="utf-8")
+    require("__BUYER_" not in kit_html, "KVM kit retains an unresolved binding placeholder")
+    for step in range(1, 11):
+        require(f"><b>{step}</b>" in kit_html, f"KVM GUI workflow step {step} missing")
+    for token in ("preflight", "hub", "Store", "Admin", "status", "Stop", "restart/recovery", "diagnostics", "Evidence export"):
+        require(token.lower() in kit_html.lower(), f"KVM workflow coverage missing: {token}")
+
+    macos = build / "packages" / rows["pf07-macos-universal"]["root_name"]
+    plist_path = macos / "PF07 Launcher.app/Contents/Info.plist"
+    plist = plistlib.loads(plist_path.read_bytes())
+    require(plist["CFBundleExecutable"] == "PF07-OrderOps", "macOS executable binding mismatch")
+    require(plist["LSArchitecturePriority"] == ["arm64", "x86_64"], "macOS architecture declaration mismatch")
+    mac_entry = macos / "PF07 Launcher.app/Contents/MacOS/PF07-OrderOps"
+    require(os.access(mac_entry, os.X_OK), "macOS app entry is not executable")
+    mac_manifest = load(macos / "ARTIFACT-MANIFEST.json")
+    require(mac_manifest["macos_delivery"]["signing"] == "UNSIGNED", "macOS signing truth missing")
+    require(mac_manifest["macos_delivery"]["notarization"] == "NOT_NOTARIZED", "macOS notarization truth missing")
+
+    shared_hash_sets: dict[str, set[str]] = {}
+    for artifact_id in ("pf07-windows-x64", "pf07-macos-universal", "pf07-linux-x86_64", "pf07-linux-server"):
+        candidate = build / "packages" / rows[artifact_id]["root_name"]
+        hashes = {
+            path.relative_to(candidate / "launcher/pf07_launcher").as_posix(): sha256(path)
+            for path in (candidate / "launcher/pf07_launcher").glob("*.py")
+        }
+        for name, digest in hashes.items():
+            shared_hash_sets.setdefault(name, set()).add(digest)
+    require(all(len(values) == 1 for values in shared_hash_sets.values()), "shared launcher core differs by platform")
+    action_contract = load(windows / "packaging/common/action-contract.json")
+    environment = dict(os.environ)
+    environment["PYTHONPATH"] = str(windows / "launcher")
+    cli_help = subprocess.run(
+        ["python3", "-m", "pf07_launcher.cli", "--help"],
+        cwd=windows,
+        env=environment,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        check=False,
+    )
+    require(cli_help.returncode == 0, "shared CLI parser did not load from the Windows artifact")
+    for action in action_contract["required_actions"]:
+        require(action in cli_help.stdout, f"shared CLI is missing the required action: {action}")
+    core_text = (windows / "launcher/pf07_launcher/core.py").read_text(encoding="utf-8")
+    core_operations = (
+        "preflight", "start", "stop", "restart", "recover", "diagnostics", "export_evidence",
+        "backup", "restore", "controlled_update", "tunnel_on", "tunnel_status", "tunnel_off", "uninstall",
+    )
+    for function in core_operations:
+        require(re.search(rf"^def {re.escape(function)}\(", core_text, re.MULTILINE) is not None, f"shared core operation missing: {function}")
+    hub_text = (windows / "launcher/pf07_launcher/hub.py").read_text(encoding="utf-8")
+    hub_routes = (
+        "/api/preflight", "/api/start", "/api/stop", "/api/restart", "/api/recover",
+        "/api/diagnostics", "/api/evidence-export", "/api/backup", "/api/restore", "/api/update",
+        "/api/tunnel-on", "/api/tunnel-status", "/api/tunnel-off", "/api/uninstall",
+    )
+    for route in hub_routes:
+        require(route in hub_text, f"shared hub API route missing: {route}")
+
+    deterministic = None
+    if args.compare_build:
+        compare = args.compare_build.resolve()
+        names = ["ARTIFACT-MANIFEST.json", "PF07-RELEASE-INPUT.json", "SHA256SUMS.txt"] + [row["filename"] for row in rows.values()]
+        mismatches = [name for name in names if sha256(build / name) != sha256(compare / name)]
+        require(not mismatches, f"deterministic build mismatch: {mismatches}")
+        deterministic = {"status": "PASS", "compared_files": len(names)}
+
+    result = {
+        "schema": "pf07.step090-platform-validation.v1",
+        "status": "PASS",
+        "build_id": aggregate["build_id"],
+        "artifact_count": aggregate["artifact_count"],
+        "top_level_checksum_count": checksum_count,
+        "deterministic_build": deterministic,
+        "windows": {
+            "status": "WINDOWS_PACKAGE_AND_TEST_KIT_READY",
+            "actual_owner_kvm_execution": "NOT_RUN",
+            "pe": {"machine": "AMD64", "subsystem": "WINDOWS_GUI", "imports": ["USER32.dll", "KERNEL32.dll"], "version": "1.0.0"},
+            "powershell": powershell,
+            "cmd": cmd_results,
+            "kvm_binding": {"archive": binding["buyer_archive"], "sha256": binding["buyer_sha256"]},
+        },
+        "macos": {
+            "status": "MACOS_ARTIFACT_BASE_READY",
+            "actual_macos_execution": "NOT_RUN",
+            "architectures": plist["LSArchitecturePriority"],
+            "signing": "UNSIGNED",
+            "notarization": "NOT_NOTARIZED",
+        },
+        "linux": {
+            "local_artifact_ready_for_canonical_ci_execution": True,
+            "server_artifact_ready_for_canonical_ci_execution": True,
+            "actual_execution": "REQUIRED_AFTER_CANONICAL_CI_DOWNLOAD",
+        },
+        "shared_core_identity": {
+            "status": "PASS",
+            "files": len(shared_hash_sets),
+            "required_cli_actions": len(action_contract["required_actions"]),
+            "hub_routes_checked": len(hub_routes),
+            "anti_stub_core_operations_checked": len(core_operations)
+        },
+    }
+    payload = json.dumps(result, ensure_ascii=False, indent=2) + "\n"
+    if args.output:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(payload, encoding="utf-8")
+    print("PF07_STEP090_PLATFORM_VALIDATION=PASS")
+    print(payload, end="")
+
+
+if __name__ == "__main__":
+    main()

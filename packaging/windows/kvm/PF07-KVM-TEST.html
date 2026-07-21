@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PF07 Windows KVM Test Kit</title>
+  <style>
+    :root{color-scheme:dark;--ink:#f5f3ed;--muted:#aaa79f;--panel:#171918;--line:#343936;--accent:#d5ff46;--danger:#ff897e}*{box-sizing:border-box}body{margin:0;background:#0d0f0e;color:var(--ink);font:16px/1.55 Segoe UI,Arial,sans-serif}main{max-width:900px;margin:auto;padding:48px 24px 80px}h1{font-size:clamp(2rem,6vw,4.6rem);line-height:.98;margin:.2em 0}.eyebrow{letter-spacing:.15em;color:var(--accent);font-weight:700}.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:24px;margin:20px 0}.step{display:grid;grid-template-columns:52px 1fr;gap:16px;padding:18px 0;border-top:1px solid var(--line)}.step b{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;background:var(--accent);color:#10120f}button,.button{display:inline-block;border:0;border-radius:999px;padding:13px 18px;background:var(--accent);color:#10120f;font-weight:700;cursor:pointer;text-decoration:none}input{display:block;width:100%;margin:12px 0;padding:14px;background:#0d0f0e;color:var(--ink);border:1px solid var(--line);border-radius:10px}.status{white-space:pre-wrap;color:var(--muted)}code{overflow-wrap:anywhere}.pass{color:var(--accent)}.fail{color:var(--danger)}label{display:flex;gap:10px;align-items:flex-start}label input{width:auto;margin-top:6px}</style>
+</head>
+<body><main>
+  <p class="eyebrow">OWNER KVM · GUI-FIRST TEST KIT</p>
+  <h1>PF07 Windows buyer package test</h1>
+  <p>Buyer archive: <code id="archive-name">__BUYER_ARCHIVE_NAME__</code><br>Expected SHA-256: <code id="expected-hash">__BUYER_SHA256__</code></p>
+  <section class="card">
+    <h2>0. Verify the exact buyer ZIP</h2>
+    <input id="archive" type="file" accept=".zip">
+    <button id="verify" type="button">Select and verify ZIP</button>
+    <p id="hash-status" class="status">No archive selected.</p>
+  </section>
+  <section class="card" id="steps"><h2>Numbered no-terminal workflow</h2>
+    <div class="step"><b>1</b><label><input type="checkbox" data-step="download">Download the exact named buyer ZIP from the stable release link and verify it above.</label></div>
+    <div class="step"><b>2</b><label><input type="checkbox" data-step="extract">Extract the whole ZIP into a new folder containing spaces and Korean characters.</label></div>
+    <div class="step"><b>3</b><label><input type="checkbox" data-step="preflight">Double-click PF07-Launcher.exe and complete any graphical prerequisite recovery; reopen it after install/reboot.</label></div>
+    <div class="step"><b>4</b><label><input type="checkbox" data-step="hub">Confirm the bilingual launch hub opens without a terminal.</label></div>
+    <div class="step"><b>5</b><label><input type="checkbox" data-step="start">Select Start runtime and wait for all five services to become Ready.</label></div>
+    <div class="step"><b>6</b><label><input type="checkbox" data-step="targets">Open Store and Open Admin from the hub; confirm the admin requires login.</label></div>
+    <div class="step"><b>7</b><label><input type="checkbox" data-step="status">Switch Korean → English → Korean, then confirm status remains one Compose project and one shop identity.</label></div>
+    <div class="step"><b>8</b><label><input type="checkbox" data-step="stop">Stop, start again, and confirm the same data and identity return.</label></div>
+    <div class="step"><b>9</b><label><input type="checkbox" data-step="recovery">Use restart/recovery after one stopped or failed-health state and confirm Ready returns.</label></div>
+    <div class="step"><b>10</b><label><input type="checkbox" data-step="evidence">Open Diagnostics, then use Evidence export and retain the redacted ZIP outside the extracted package.</label></div>
+    <button id="export" type="button">Download machine-readable result</button>
+  </section>
+  <p>Alternative assisted collector: double-click <code>RUN-KVM-TEST.cmd</code> for a Windows file picker, hash check, PE metadata readback, and JSON export.</p>
+<script>
+const expected='__BUYER_SHA256__';let observed='';
+document.querySelector('#verify').addEventListener('click',async()=>{const file=document.querySelector('#archive').files[0],out=document.querySelector('#hash-status');if(!file){out.textContent='Choose the buyer ZIP first.';out.className='status fail';return}const bytes=await file.arrayBuffer();observed=[...new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))].map(x=>x.toString(16).padStart(2,'0')).join('');const pass=file.name==='__BUYER_ARCHIVE_NAME__'&&observed===expected;out.textContent=`Name: ${file.name}\nSHA-256: ${observed}\nResult: ${pass?'PASS':'FAIL'}`;out.className=`status ${pass?'pass':'fail'}`});
+document.querySelector('#export').addEventListener('click',()=>{const steps={};document.querySelectorAll('[data-step]').forEach(x=>steps[x.dataset.step]=x.checked);const value={schema:'pf07.windows-kvm-result.v1',buyer_archive:'__BUYER_ARCHIVE_NAME__',expected_sha256:expected,observed_sha256:observed||null,steps,owner_kvm_execution:true,created_at_utc:new Date().toISOString()};const blob=new Blob([JSON.stringify(value,null,2)+'\n'],{type:'application/json'});const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download='PF07-WINDOWS-KVM-RESULT.json';link.click();URL.revokeObjectURL(link.href)});
+</script></main></body></html>

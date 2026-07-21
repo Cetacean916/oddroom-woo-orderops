@@ -16,6 +16,12 @@ sys.dont_write_bytecode = True
 os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
 
 from evidence_contract import EvidenceContractError, validate_public_record_shape
+from refinement_evidence_paths import (
+    LEGACY_PUBLIC_MANIFEST_SHA256,
+    PUBLIC_RUN_ALIAS,
+    SUCCESSOR_PUBLIC_PREFIX,
+    successor_public_root,
+)
 
 
 def fail(message: str) -> None:
@@ -57,11 +63,20 @@ if manifest_path.exists():
         if hashlib.sha256(path.read_bytes()).hexdigest() != entry["sha256"] or mode_value != entry["mode"]:
             fail(f"generated manifest bytes or mode differ: {entry['path']}")
 
-for forbidden in ("evidence/raw", "backup", "backups", "credentials", "runtime", ".env", "reports/FINAL-REPORT.md"):
+for forbidden in (
+    "evidence/raw",
+    "evidence/refinement/raw-private",
+    "backup",
+    "backups",
+    "credentials",
+    "runtime",
+    ".env",
+    "reports/FINAL-REPORT.md",
+    "reports/PF07-REFINEMENT-FINAL-REPORT.md",
+):
     if any(path == forbidden or path.startswith(forbidden + "/") for path in allowlist):
         fail(f"protected path is allowlisted: {forbidden}")
 
-text_suffixes = {".md", ".php", ".py", ".mjs", ".js", ".yml", ".yaml", ".json", ".txt", ".example", ".svg", ""}
 secret_patterns = [
     re.compile(r"-----BEGIN (?:OPENSSH|RSA|EC|DSA) PRIVATE KEY-----"),
     re.compile(r"(?i)authorization\s*:\s*bearer\s+[a-z0-9._-]{12,}"),
@@ -92,8 +107,6 @@ for relative in allowlist:
     for pattern in binary_secret_patterns:
         if pattern.search(binary_scan):
             fail(f"public-bound binary secret, protected identifier, or owner-path pattern in {relative}")
-    if path.suffix.lower() not in text_suffixes and path.name not in ("ci", "build-public-release", "validate-public", "validate-all", "generate-public-evidence"):
-        continue
     try:
         text = path.read_text(encoding="utf-8")
     except UnicodeDecodeError:
@@ -105,10 +118,28 @@ for relative in allowlist:
         if pattern.search(scan_text):
             fail(f"public-bound secret, protected identifier, or owner-path pattern in {relative}")
 
-public_root = root / "evidence/public"
+legacy_public_root = root / "evidence/public"
+legacy_manifest_path = legacy_public_root / "evidence-manifest.sha256"
+if not legacy_manifest_path.is_file() or hashlib.sha256(legacy_manifest_path.read_bytes()).hexdigest() != LEGACY_PUBLIC_MANIFEST_SHA256:
+    fail("historical v1.0.2 public evidence manifest changed")
+legacy_manifest_entries: dict[str, str] = {}
+for line in legacy_manifest_path.read_text(encoding="utf-8").splitlines():
+    match = re.fullmatch(r"([0-9a-f]{64})  (evidence/public/[a-z0-9-]+\.(?:json|txt))", line)
+    if not match or match.group(2) in legacy_manifest_entries:
+        fail("historical public evidence manifest line is invalid or duplicated")
+    legacy_manifest_entries[match.group(2)] = match.group(1)
+expected_legacy_manifest = {
+    path.relative_to(root).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
+    for path in legacy_public_root.glob("*")
+    if path.is_file() and path.name != "evidence-manifest.sha256"
+}
+if legacy_manifest_entries != expected_legacy_manifest:
+    fail("historical v1.0.2 public evidence bytes changed")
+
+public_root = successor_public_root(root)
 manifest_entries: dict[str, str] = {}
 for line in (public_root / "evidence-manifest.sha256").read_text(encoding="utf-8").splitlines():
-    match = re.fullmatch(r"([0-9a-f]{64})  (evidence/public/[a-z0-9-]+\.(?:json|txt))", line)
+    match = re.fullmatch(rf"([0-9a-f]{{64}})  ({re.escape(SUCCESSOR_PUBLIC_PREFIX)}/[a-z0-9-]+\.(?:json|txt))", line)
     if not match or match.group(2) in manifest_entries:
         fail("public evidence manifest line is invalid or duplicated")
     manifest_entries[match.group(2)] = match.group(1)
@@ -131,8 +162,9 @@ for fixture in fixture_items:
     if fixture["record"] in expected_records:
         fail("public fixture record identity is duplicated")
     expected_records[fixture["record"]] = fixture["acceptance_id"]
-if set(manifest_entries) != {f"evidence/public/{name}" for name in expected_records} | {"evidence/public/acceptance-matrix.json"}:
-    fail("public evidence inventory differs from the exact fifteen records plus buyer-proof matrix")
+expected_records["vsl-pass.json"] = "VSL-PASS"
+if set(manifest_entries) != {f"{SUCCESSOR_PUBLIC_PREFIX}/{name}" for name in expected_records} | {f"{SUCCESSOR_PUBLIC_PREFIX}/acceptance-matrix.json"}:
+    fail("successor public evidence inventory differs from fifteen gate records, VSL, and buyer-proof matrix")
 
 transform_sha = hashlib.sha256((root / "scripts/generate-public-evidence").read_bytes()).hexdigest()
 public_records: dict[str, dict] = {}
@@ -164,7 +196,7 @@ if (
     }
     or matrix.get("schema_version") != "1"
     or matrix.get("acceptance_id") != "ACCEPTANCE-MATRIX"
-    or matrix.get("run_id") != "PF07-ACCEPTANCE-RUN"
+    or matrix.get("run_id") != PUBLIC_RUN_ALIAS
     or matrix.get("source_tree_sha256") != next(iter(source_tree_hashes))
     or matrix.get("command_or_probe") != "pre-public buyer-proof index over generated public records"
     or matrix.get("exit_code") != 0
@@ -241,7 +273,7 @@ if mode in ("--repository-public", "--post-public"):
     repository_page = fetch("https://github.com/Cetacean916/oddroom-woo-orderops")
     if b"OddRoom Woo OrderOps" not in repository_page:
         fail("unauthenticated repository page lacks the project identity")
-    remote_matrix = fetch("https://raw.githubusercontent.com/Cetacean916/oddroom-woo-orderops/main/evidence/public/acceptance-matrix.json")
+    remote_matrix = fetch(f"https://raw.githubusercontent.com/Cetacean916/oddroom-woo-orderops/main/{SUCCESSOR_PUBLIC_PREFIX}/acceptance-matrix.json")
     if hashlib.sha256(remote_matrix).hexdigest() != hashlib.sha256((public_root / "acceptance-matrix.json").read_bytes()).hexdigest():
         fail("public repository evidence differs from the validated clone")
 

@@ -27,7 +27,7 @@ The protected acceptance run exercised the complete four-event path and its reco
 - Dependency, activation, HPOS-off/on, migration, data-preserving uninstall, opt-in removal, and every required Action Scheduler failure branch were exercised in an isolated compatibility runtime.
 - A quiesced formal backup was restored into a separate Compose project with fresh WordPress, database, application, and n8n volumes. Recreated HubSpot and Slack credentials passed smoke checks; one new restored order converged on one Deal and one payment notification, and duplicate replay produced no second notification.
 
-The public case, exact proof scorecard, architecture, and claim boundaries are in [case-study/README.md](case-study/README.md). Public machine evidence is indexed by [evidence/public/acceptance-matrix.json](evidence/public/acceptance-matrix.json). Protected raw records, account identifiers, runtime state, backups, and credentials are deliberately absent from this repository.
+The public case, exact proof scorecard, architecture, and claim boundaries are in [case-study/README.md](case-study/README.md). Current successor machine evidence is indexed by [evidence/refinement/public/acceptance-matrix.json](evidence/refinement/public/acceptance-matrix.json). The preserved `evidence/public` namespace remains the byte-identical v1.0.2 public baseline. Protected raw records, account identifiers, runtime state, backups, and credentials are deliberately absent from this repository.
 
 ## Local checks
 
@@ -97,9 +97,10 @@ The first public detail still is rebuilt from the exact committed `LIVE_STOREFRO
 
 ```bash
 node scripts/build-public-stills.mjs <EXECUTION_MEDIA_DIRECTORY> <NEW_OUTPUT_DIRECTORY>
+node scripts/build-public-media-manifest.mjs <COMPLETE_MEDIA_DIRECTORY>
 ```
 
-The builder refuses replacement, re-extracts each frame from the source video, verifies its SHA-256 against `execution-proof.json`, and emits a 1200×1350 PNG plus source commitments for the showcase media manifest.
+The still builder refuses replacement, re-extracts each frame from the source video, and verifies its SHA-256 against `execution-proof.json`. The manifest builder then probes every complete media asset and writes the exact source, proof, evidence, still, and video commitments without replacing an existing manifest.
 
 ## Claims boundary
 

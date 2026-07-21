@@ -14,7 +14,12 @@
         {"path": "variable_product_orders", "operator": "gte", "expected": 1},
         {"path": "coupon_orders", "operator": "gte", "expected": 1},
         {"path": "woocommerce_admin_and_storage_observed", "operator": "eq", "expected": true},
-        {"path": "immutable_payload_hashes_valid", "operator": "eq", "expected": true}
+        {"path": "immutable_payload_hashes_valid", "operator": "eq", "expected": true},
+        {"path": "distinct_payload_hash_count", "operator": "gte", "expected": 2},
+        {"path": "signed_request_count", "operator": "gte", "expected": 2},
+        {"path": "fixed_hubspot_path_execution_count", "operator": "gte", "expected": 2},
+        {"path": "completed_envelope_count", "operator": "gte", "expected": 2},
+        {"path": "persisted_deal_checkpoint_count", "operator": "gte", "expected": 2}
       ]
     },
     {

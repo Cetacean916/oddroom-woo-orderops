@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from evidence_contract import EvidenceContractError, validate_public_lineage  # noqa: E402
+from refinement_evidence_paths import PUBLIC_RUN_ALIAS  # noqa: E402
 
 
 TRANSFORM_SHA = "a" * 64
@@ -31,7 +32,7 @@ RAW = {
 PUBLIC = {
     "schema_version": "1",
     "acceptance_id": RAW["acceptance_id"],
-    "run_id": "PF07-ACCEPTANCE-RUN",
+    "run_id": PUBLIC_RUN_ALIAS,
     "started_at": RAW["started_at"],
     "finished_at": RAW["finished_at"],
     "source_tree_sha256": RAW["source_tree_sha256"],

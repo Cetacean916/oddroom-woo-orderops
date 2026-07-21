@@ -1,0 +1,224 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+from datetime import datetime, timezone
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import subprocess
+import tempfile
+
+from refinement_evidence_paths import successor_raw_root
+
+
+ROOT = Path(__file__).resolve().parent.parent
+RAW_ROOT = successor_raw_root(ROOT)
+TARGET = RAW_ROOT / "vsl-pass.json"
+
+
+def fail(message: str) -> None:
+    raise SystemExit(f"FAIL: {message}")
+
+
+def load(path: Path) -> dict:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        fail(f"cannot read {path.name}: {error}")
+    if not isinstance(value, dict):
+        fail(f"JSON root is not an object: {path.name}")
+    return value
+
+
+def sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def require(condition: bool, message: str) -> None:
+    if not condition:
+        fail(message)
+
+
+def passing_record(name: str, acceptance_id: str) -> dict:
+    value = load(RAW_ROOT / name)
+    require(value.get("acceptance_id") == acceptance_id, f"acceptance identity differs: {name}")
+    require(value.get("exit_code") == 0 and value.get("redaction_state") == "RAW_PROTECTED", f"protected result differs: {name}")
+    observations = value.get("observations")
+    require(isinstance(observations, dict) and observations.get("result") == "PASS", f"passing observations are missing: {name}")
+    return value
+
+
+parser = argparse.ArgumentParser(description="Derive the five successor VSL rows from final executable GATE evidence.")
+parser.add_argument("--replace", action="store_true")
+args = parser.parse_args()
+
+if TARGET.exists() and not args.replace:
+    fail("successor VSL record already exists; preserve its preimage before --replace")
+
+gate01 = passing_record("e2e-normal-order.json", "GATE-01")
+gate04 = passing_record("duplicate-suppression.json", "GATE-04")
+gate06 = passing_record("outage-retry.json", "GATE-06")
+gate09 = passing_record("product-quality.json", "GATE-09")
+records = [gate01, gate04, gate06, gate09]
+run_ids = {record.get("run_id") for record in records}
+source_hashes = {record.get("source_tree_sha256") for record in records}
+require(len(run_ids) == 1 and next(iter(run_ids)) is not None, "VSL source records do not share one successor run")
+require(len(source_hashes) == 1 and re.fullmatch(r"[0-9a-f]{64}", str(next(iter(source_hashes)))) is not None, "VSL source records do not share one source tree")
+
+inventory = load(RAW_ROOT / "protected-artifact-inventory.json")
+inventory_items = inventory.get("artifacts")
+require(inventory.get("schema_version") == 1 and isinstance(inventory_items, dict), "protected artifact inventory is invalid")
+artifact_hashes: dict[str, str] = {}
+for record in records:
+    commitments = record.get("artifact_hashes")
+    require(isinstance(commitments, dict) and commitments, "VSL source artifact commitments are missing")
+    for alias, digest in commitments.items():
+        item = inventory_items.get(alias)
+        require(isinstance(item, dict) and item.get("sha256") == digest, f"VSL artifact inventory binding failed: {alias}")
+        relative = item.get("path")
+        require(isinstance(relative, str) and relative.startswith("artifacts/") and ".." not in Path(relative).parts, f"VSL artifact path is invalid: {alias}")
+        artifact = RAW_ROOT / relative
+        require(artifact.is_file() and sha256(artifact) == digest, f"VSL artifact bytes differ: {alias}")
+        artifact_hashes[alias] = digest
+
+static = subprocess.run(
+    ["python3", "tests/test_vsl_contract.py"],
+    cwd=ROOT,
+    text=True,
+    stdout=subprocess.PIPE,
+    stderr=subprocess.STDOUT,
+    check=False,
+)
+require(static.returncode == 0, "current workflow/admin static contract did not pass")
+
+workflow = load(ROOT / "workflow/oddroom-orderops-vsl.json")
+hubspot_urls = {
+    node.get("parameters", {}).get("url")
+    for node in workflow.get("nodes", [])
+    if isinstance(node, dict) and str(node.get("name", "")).startswith("HubSpot 2026-03 Deal ")
+}
+require(
+    {
+        "https://api.hubapi.com/crm/objects/2026-03/deals/batch/read",
+        "https://api.hubapi.com/crm/objects/2026-03/deals/batch/upsert",
+    } <= hubspot_urls,
+    "fixed HubSpot 2026-03 Deal endpoints differ",
+)
+
+o1 = gate01["observations"]
+o4 = gate04["observations"]
+o6 = gate06["observations"]
+o9 = gate09["observations"]
+require(o1.get("distinct_payload_hash_count", 0) >= 2 and o1.get("immutable_payload_hashes_valid") is True, "VSL-001 immutable distinct-order evidence failed")
+require(
+    o4.get("concurrent_workers", 0) >= 3
+    and o4.get("row_claim_owners") == 1
+    and o4.get("order_lease_owners") == 1
+    and o4.get("deal_count") == 1,
+    "VSL-002 concurrency evidence failed",
+)
+require(
+    o6.get("payload_rebuilt") is False
+    and o6.get("runner_mode") == "foreground_wp_cli_without_admin_page_load"
+    and o6.get("admin_page_load_count") == 0
+    and o6.get("recovery_deal_checkpoint_present") is True,
+    "VSL-003 outage/recovery evidence failed",
+)
+require(
+    o9.get("admin_scoped_page_count", 0) >= 1
+    and o9.get("clipped_action_failures") == 0
+    and o9.get("php_fatal_warning_count") == 0,
+    "VSL-004 actual administrator-surface evidence failed",
+)
+require(
+    o1.get("signed_request_count", 0) >= 2
+    and o1.get("fixed_hubspot_path_execution_count", 0) >= 2
+    and o1.get("completed_envelope_count", 0) >= 2
+    and o1.get("persisted_deal_checkpoint_count", 0) >= 2,
+    "VSL-005 signed workflow/checkpoint evidence failed",
+)
+
+record = {
+    "schema_version": "1",
+    "acceptance_id": "VSL-PASS",
+    "run_id": next(iter(run_ids)),
+    "started_at": min(record["started_at"] for record in records),
+    "finished_at": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
+    "source_tree_sha256": next(iter(source_hashes)),
+    "command_or_probe": "scripts/derive-successor-vsl --replace",
+    "exit_code": 0,
+    "observations": {
+        "result": "PASS",
+        "baseline_ids": [f"VSL-{index:03d}" for index in range(1, 6)],
+        "VSL-001": {
+            "result": "PASS",
+            "real_order_count": o1["simple_product_orders"] + o1["variable_product_orders"] + o1["coupon_orders"],
+            "distinct_payload_hash_count": o1["distinct_payload_hash_count"],
+            "immutable_payload_hashes_valid": o1["immutable_payload_hashes_valid"],
+        },
+        "VSL-002": {
+            "result": "PASS",
+            "concurrent_workers": o4["concurrent_workers"],
+            "row_claim_owners": o4["row_claim_owners"],
+            "order_lease_owners": o4["order_lease_owners"],
+            "deal_count": o4["deal_count"],
+        },
+        "VSL-003": {
+            "result": "PASS",
+            "payload_rebuilt": o6["payload_rebuilt"],
+            "runner_mode": o6["runner_mode"],
+            "admin_page_load_count": o6["admin_page_load_count"],
+            "recovery_deal_checkpoint_present": o6["recovery_deal_checkpoint_present"],
+        },
+        "VSL-004": {
+            "result": "PASS",
+            "admin_scoped_page_count": o9["admin_scoped_page_count"],
+            "clipped_action_failures": o9["clipped_action_failures"],
+            "php_fatal_warning_count": o9["php_fatal_warning_count"],
+            "static_admin_contract": "PASS",
+        },
+        "VSL-005": {
+            "result": "PASS",
+            "signed_request_count": o1["signed_request_count"],
+            "fixed_hubspot_path_execution_count": o1["fixed_hubspot_path_execution_count"],
+            "completed_envelope_count": o1["completed_envelope_count"],
+            "persisted_deal_checkpoint_count": o1["persisted_deal_checkpoint_count"],
+            "fixed_hubspot_api_generation": "2026-03",
+        },
+    },
+    "artifact_hashes": dict(sorted(artifact_hashes.items())),
+    "redaction_state": "RAW_PROTECTED",
+}
+
+RAW_ROOT.mkdir(parents=True, exist_ok=True)
+scratch_root = Path(os.environ.get("PF07_SCRATCH_ROOT", tempfile.gettempdir())).expanduser().resolve()
+scratch_root.mkdir(parents=True, exist_ok=True)
+with tempfile.TemporaryDirectory(prefix="pf07-successor-vsl-", dir=scratch_root) as temporary:
+    stage_root = Path(temporary)
+    record_stage = stage_root / TARGET.name
+    record_stage.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    record_stage.chmod(0o600)
+    future: dict[Path, str] = {
+        path: sha256(path)
+        for path in RAW_ROOT.rglob("*")
+        if path.is_file() and path.name not in {"evidence-manifest.sha256", TARGET.name}
+    }
+    future[TARGET] = sha256(record_stage)
+    manifest_stage = stage_root / "evidence-manifest.sha256"
+    manifest_stage.write_text(
+        "\n".join(
+            f"{digest}  {path.relative_to(ROOT).as_posix()}"
+            for path, digest in sorted(future.items(), key=lambda item: item[0].as_posix())
+        ) + "\n",
+        encoding="utf-8",
+    )
+    manifest_stage.chmod(0o600)
+    os.replace(record_stage, TARGET)
+    os.replace(manifest_stage, RAW_ROOT / "evidence-manifest.sha256")
+    TARGET.chmod(0o600)
+    (RAW_ROOT / "evidence-manifest.sha256").chmod(0o600)
+
+print(json.dumps({"status": "PASS", "record": TARGET.name, "baseline_count": 5}, separators=(",", ":")))

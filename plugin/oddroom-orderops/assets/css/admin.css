@@ -1,0 +1,230 @@
+:root {
+  --odd-paper: #f0ede6;
+  --odd-surface: #fbfaf6;
+  --odd-ink: #20231f;
+  --odd-muted: #4f584f;
+  --odd-sage: #415b49;
+  --odd-sage-soft: #dce4d8;
+  --odd-stone: #d6d1c6;
+  --odd-line: #d4d0c6;
+  --odd-danger: #8a5149;
+  --odd-warning: #8a6b38;
+  --odd-shadow: 0 22px 70px rgb(31 38 31 / 10%);
+}
+
+.oddroom-orderops {
+  max-width: 1540px;
+  margin: 20px 20px 60px 0;
+  color: var(--odd-ink);
+  font-family: Inter, "Noto Sans KR", "Apple SD Gothic Neo", system-ui, sans-serif;
+  line-height: 1.55;
+}
+
+.oddroom-orderops * { box-sizing: border-box; }
+.oddroom-orderops h1,
+.oddroom-orderops h2,
+.oddroom-orderops h3,
+.oddroom-orderops p { word-break: keep-all; }
+.oddroom-orderops button,
+.oddroom-orderops input,
+.oddroom-orderops select { font: inherit; }
+.oddroom-orderops a:focus-visible,
+.oddroom-orderops button:focus-visible,
+.oddroom-orderops input:focus-visible,
+.oddroom-orderops select:focus-visible,
+.oddroom-orderops summary:focus-visible { outline: 3px solid var(--odd-sage); outline-offset: 3px; }
+
+.oddroom-hero {
+  position: relative;
+  overflow: hidden;
+  min-height: 510px;
+  padding: clamp(30px, 6vw, 76px);
+  border: 1px solid #304237;
+  border-radius: 28px;
+  background:
+    linear-gradient(120deg, rgb(25 35 29 / 97%), rgb(55 77 62 / 94%)),
+    repeating-linear-gradient(90deg, transparent 0 94px, rgb(255 255 255 / 5%) 94px 95px);
+  color: #f8f6ef;
+  box-shadow: var(--odd-shadow);
+}
+
+.oddroom-hero::after {
+  position: absolute;
+  right: -10%;
+  bottom: -45%;
+  width: 580px;
+  height: 580px;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 44% 56% 42% 58%;
+  content: "";
+  transform: rotate(18deg);
+}
+
+.oddroom-brand { position: relative; z-index: 1; display: flex; align-items: center; gap: 12px; font-weight: 900; letter-spacing: .13em; }
+.oddroom-brand img { width: 42px; height: 42px; padding: 7px; border-radius: 13px; background: #edf0e8; }
+.oddroom-hero-copy { position: relative; z-index: 1; max-width: 850px; margin-top: clamp(54px, 8vw, 96px); }
+.oddroom-eyebrow { margin: 0 0 14px; color: #4b6452; font-size: 11px; font-weight: 900; letter-spacing: .16em; }
+.oddroom-hero .oddroom-eyebrow { color: #b9cbb9; }
+.oddroom-hero h1 { max-width: 13ch; margin: 0; color: #f8f6ef; white-space: pre-line; font-size: clamp(48px, 6.5vw, 92px); line-height: 1.02; letter-spacing: -.06em; }
+.oddroom-hero-copy > p:last-child { max-width: 68ch; margin: 26px 0 0; color: #d7ded6; font-size: clamp(15px, 1.5vw, 19px); }
+.oddroom-hero-meta { position: absolute; z-index: 2; top: 42px; right: 42px; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
+.oddroom-hero-meta span { padding: 6px 11px; border: 1px solid rgb(255 255 255 / 18%); border-radius: 999px; color: #dce4dc; font-size: 10px; font-weight: 800; letter-spacing: .06em; }
+.oddroom-hero-meta .oddroom-mode-pill { border-color: #aec2ad; background: #dce6da; color: #334839; }
+.oddroom-hero nav { position: absolute; z-index: 2; right: 42px; bottom: 34px; display: flex; flex-wrap: wrap; gap: 18px; }
+.oddroom-hero nav a { color: #edf2ec; font-size: 12px; font-weight: 800; text-decoration: none; border-bottom: 1px solid rgb(255 255 255 / 35%); }
+
+.oddroom-stat-grid { margin: 18px 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.oddroom-stat { min-height: 116px; padding: 20px; border: 1px solid var(--odd-line); border-radius: 18px; background: var(--odd-surface); }
+.oddroom-stat span { display: block; color: var(--odd-muted); font-size: 11px; font-weight: 800; letter-spacing: .04em; }
+.oddroom-stat strong { display: block; margin-top: 15px; overflow-wrap: anywhere; font-size: clamp(17px, 2vw, 24px); line-height: 1.18; letter-spacing: -.03em; }
+.oddroom-stat.tone-pass { border-color: #bdcbbb; background: #e7ece3; }
+.oddroom-stat.tone-hold { border-color: #d8b8b1; background: #f2e5e2; }
+.oddroom-stat.tone-mode { background: #27352b; color: #fff; }
+.oddroom-stat.tone-mode span { color: #c1cec0; }
+
+.oddroom-two-column { display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(360px, .88fr); gap: 18px; margin: 18px 0; align-items: start; }
+.oddroom-panel { padding: clamp(24px, 4vw, 46px); border: 1px solid var(--odd-line); border-radius: 24px; background: var(--odd-surface); box-shadow: 0 12px 45px rgb(31 38 31 / 6%); }
+.oddroom-section-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
+.oddroom-section-heading h2 { max-width: 19ch; margin: 0; font-size: clamp(28px, 3.4vw, 48px); line-height: 1.08; letter-spacing: -.05em; }
+.oddroom-section-heading p:last-child { max-width: 72ch; color: var(--odd-muted); }
+.oddroom-count { padding: 7px 12px; border-radius: 999px; background: var(--odd-sage-soft); color: var(--odd-sage); font-size: 11px; font-weight: 900; white-space: nowrap; }
+
+.oddroom-setup-steps { margin: 30px 0; padding: 0; list-style: none; }
+.oddroom-setup-steps li { padding: 18px 0; border-top: 1px solid var(--odd-line); display: grid; grid-template-columns: 48px 1fr; gap: 15px; }
+.oddroom-setup-steps li > span { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: #e7e4dc; color: var(--odd-muted); font-size: 11px; font-weight: 900; }
+.oddroom-setup-steps li.is-pass > span { background: var(--odd-sage); color: #fff; }
+.oddroom-setup-steps li.is-wait > span { background: #e8dfcf; color: #745e38; }
+.oddroom-setup-steps strong { font-size: 15px; }
+.oddroom-setup-steps p { margin: 5px 0 0; color: var(--odd-muted); font-size: 13px; }
+
+.oddroom-form { margin-top: 24px; }
+.oddroom-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.oddroom-readonly-field { min-height: 66px; padding: 9px 11px; border: 1px solid #d1d3cd; border-radius: 10px; background: #f4f4ef; display: grid; align-content: center; gap: 3px; }
+.oddroom-readonly-field span { color: #687168; font-size: 11px; font-weight: 800; }
+.oddroom-readonly-field strong { color: var(--odd-sage); font-size: 13px; letter-spacing: .03em; }
+.oddroom-orderops label { display: grid; gap: 7px; color: #4f584f; font-size: 12px; font-weight: 800; }
+.oddroom-orderops input,
+.oddroom-orderops select { width: 100%; min-height: 42px; margin: 0; padding: 8px 11px; border: 1px solid #bbbdb7; border-radius: 10px; background: #fff; color: var(--odd-ink); }
+.oddroom-orderops .button { min-height: 40px; margin: 14px 0 0; padding: 7px 15px; border-color: var(--odd-sage); border-radius: 999px; background: var(--odd-sage); color: #fff; font-weight: 800; }
+.oddroom-orderops .button-secondary { border-color: #aeb4ac; background: #fff; color: var(--odd-ink); }
+.oddroom-orderops .button-link-delete { border-color: #d4aaa2; background: #f5e9e6; color: var(--odd-danger); text-decoration: none; }
+.oddroom-boundary { margin: 18px 0 0; padding: 13px 15px; border-radius: 12px; background: #ece9e1; color: var(--odd-muted); font-size: 12px; }
+.oddroom-danger { margin-top: 24px; padding: 17px; border: 1px solid #dec1bb; border-radius: 14px; background: #f7eeeb; }
+.oddroom-danger summary { color: var(--odd-danger); font-weight: 900; cursor: pointer; }
+.oddroom-danger p { color: #725a55; font-size: 12px; }
+.oddroom-danger form { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; }
+.oddroom-danger label { flex: 1 1 240px; }
+
+.oddroom-scenario-key { margin: 24px 0; display: flex; flex-wrap: wrap; gap: 8px 16px; color: var(--odd-muted); font-size: 11px; }
+.oddroom-scenario-key span { display: inline-flex; align-items: center; gap: 7px; }
+.oddroom-scenario-key i { width: 9px; height: 9px; border-radius: 50%; background: #8b958b; }
+.oddroom-scenario-key .is-normal { background: var(--odd-sage); }
+.oddroom-scenario-key .is-retrying { background: #bd8c39; }
+.oddroom-scenario-key .is-failed { background: var(--odd-danger); }
+.oddroom-scenario-key .is-recovered { background: #60806b; box-shadow: 0 0 0 3px #dce7dd; }
+.oddroom-panel hr { margin: 30px 0; border: 0; border-top: 1px solid var(--odd-line); }
+.oddroom-panel h3 { font-size: 20px; letter-spacing: -.025em; }
+
+.oddroom-events-panel { margin-top: 18px; }
+.oddroom-filter { margin: 28px 0; padding: 16px; border: 1px solid var(--odd-line); border-radius: 16px; display: grid; grid-template-columns: repeat(5, minmax(110px, 1fr)) auto; align-items: end; gap: 10px; background: #f2f0ea; }
+.oddroom-filter .button { margin: 0; }
+.oddroom-event-list { display: grid; gap: 12px; }
+.oddroom-event-card { position: relative; overflow: hidden; border: 1px solid var(--odd-line); border-radius: 18px; background: #fff; }
+.oddroom-event-card::before { position: absolute; top: 0; bottom: 0; left: 0; width: 5px; background: #899189; content: ""; }
+.oddroom-event-card.status-normal::before { background: var(--odd-sage); }
+.oddroom-event-card.status-retrying::before { background: #bd8c39; }
+.oddroom-event-card.status-failed::before { background: var(--odd-danger); }
+.oddroom-event-card.status-recovered::before { background: #60806b; }
+.oddroom-event-card.status-operator::before { background: #75578b; }
+.oddroom-event-card > header { padding: 22px 24px 16px 28px; display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; }
+.oddroom-event-card h3 { margin: 7px 0 3px; font-size: 21px; }
+.oddroom-event-card header p { margin: 0; color: var(--odd-muted); font-size: 11px; }
+.oddroom-event-card code { color: #536055; }
+.oddroom-event-type { color: var(--odd-sage); font-size: 10px; font-weight: 900; letter-spacing: .12em; }
+.oddroom-status { padding: 6px 10px; border-radius: 999px; background: #ebe9e3; font-size: 10px; font-weight: 900; white-space: nowrap; }
+.status-normal .oddroom-status,
+.status-recovered .oddroom-status { background: #dfe8df; color: #36513d; }
+.status-retrying .oddroom-status { background: #eee3cf; color: #75591f; }
+.status-failed .oddroom-status { background: #f1dfdc; color: #7a4038; }
+.status-operator .oddroom-status { background: #e8dfea; color: #644775; }
+.oddroom-event-metrics { border-top: 1px solid var(--odd-line); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.oddroom-event-metrics div { min-height: 76px; padding: 16px 20px 16px 28px; }
+.oddroom-event-metrics div + div { border-left: 1px solid var(--odd-line); }
+.oddroom-event-metrics span { display: block; color: var(--odd-muted); font-size: 10px; font-weight: 800; }
+.oddroom-event-metrics strong { display: block; margin-top: 8px; overflow-wrap: anywhere; font-size: 13px; }
+.oddroom-event-details { border-top: 1px solid var(--odd-line); }
+.oddroom-event-details > summary { padding: 14px 28px; color: var(--odd-sage); font-weight: 900; cursor: pointer; }
+.oddroom-event-details[open] > summary { background: #f2f1eb; }
+.oddroom-correlation { padding: 22px 28px; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; background: #263229; color: #dbe2da; }
+.oddroom-correlation span { padding: 7px 10px; border: 1px solid rgb(255 255 255 / 13%); border-radius: 999px; font-size: 11px; }
+.oddroom-correlation b { color: #fff; }
+.oddroom-correlation i { color: #92a794; font-style: normal; }
+.oddroom-fact-grid { margin: 0; padding: 18px 28px; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1px; background: var(--odd-line); }
+.oddroom-fact-grid div { min-width: 0; padding: 14px; background: #fff; }
+.oddroom-fact-grid dt { color: var(--odd-muted); font-size: 10px; font-weight: 800; }
+.oddroom-fact-grid dd { margin: 7px 0 0; overflow-wrap: anywhere; font-size: 12px; font-weight: 700; }
+.oddroom-row-actions { padding: 16px 28px 24px; display: flex; flex-wrap: wrap; gap: 8px; }
+.oddroom-row-actions form { margin: 0; }
+.oddroom-row-actions .button { margin: 0; }
+.oddroom-resolve { width: min(640px, 100%); padding: 14px; border: 1px solid var(--odd-line); border-radius: 12px; }
+.oddroom-resolve summary { font-weight: 900; cursor: pointer; }
+.oddroom-resolve form { margin-top: 14px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.oddroom-resolve form .button { width: max-content; }
+.oddroom-empty { padding: 70px 24px; border: 1px dashed #bfc2ba; border-radius: 18px; text-align: center; }
+.oddroom-empty strong { font-size: 20px; }
+.oddroom-empty p { color: var(--odd-muted); }
+.oddroom-pagination { margin-top: 20px; display: flex; gap: 6px; }
+.oddroom-pagination .page-numbers { min-width: 36px; height: 36px; padding: 8px; border: 1px solid var(--odd-line); border-radius: 50%; display: inline-grid; place-items: center; background: #fff; text-decoration: none; }
+
+.oddroom-notice { margin: 18px 0; padding: 15px 18px; border: 1px solid var(--odd-line); border-radius: 14px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; background: #fff; }
+.oddroom-notice.is-success { border-color: #b8c9b8; background: #e7eee5; }
+.oddroom-notice.is-error { border-color: #dbb6ae; background: #f5e5e2; }
+.oddroom-notice.is-info { border-color: #b7c4cd; background: #e8eef1; display: block; }
+.oddroom-notice code { overflow-wrap: anywhere; }
+
+@media (max-width: 1180px) {
+  .oddroom-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .oddroom-two-column { grid-template-columns: 1fr; }
+  .oddroom-filter { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .oddroom-fact-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 782px) {
+  .oddroom-orderops { margin-right: 10px; }
+  .oddroom-hero { min-height: 0; padding: 28px 22px 34px; border-radius: 20px; }
+  .oddroom-hero-meta { position: relative; top: auto; right: auto; margin-top: 24px; justify-content: flex-start; }
+  .oddroom-hero-copy { margin-top: 52px; }
+  .oddroom-hero h1 { font-size: clamp(42px, 12vw, 68px); }
+  .oddroom-hero nav { position: relative; right: auto; bottom: auto; margin-top: 34px; }
+  .oddroom-stat-grid { grid-template-columns: 1fr 1fr; }
+  .oddroom-fields,
+  .oddroom-filter { grid-template-columns: 1fr; }
+  .oddroom-event-card > header { padding: 20px 20px 15px 24px; }
+  .oddroom-event-metrics { grid-template-columns: 1fr 1fr; }
+  .oddroom-event-metrics div:nth-child(3) { border-left: 0; border-top: 1px solid var(--odd-line); }
+  .oddroom-event-metrics div:nth-child(4) { border-top: 1px solid var(--odd-line); }
+  .oddroom-fact-grid { grid-template-columns: 1fr; }
+  .oddroom-correlation { align-items: flex-start; flex-direction: column; }
+  .oddroom-correlation i { transform: rotate(90deg); }
+  .oddroom-resolve form { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 480px) {
+  .oddroom-stat-grid { grid-template-columns: 1fr; }
+  .oddroom-panel { padding: 22px 16px; border-radius: 18px; }
+  .oddroom-section-heading { display: block; }
+  .oddroom-count { display: inline-block; margin-top: 12px; }
+  .oddroom-event-card > header { flex-direction: column; }
+  .oddroom-event-metrics { grid-template-columns: 1fr; }
+  .oddroom-event-metrics div + div { border-top: 1px solid var(--odd-line); border-left: 0; }
+  .oddroom-event-details > summary,
+  .oddroom-correlation,
+  .oddroom-fact-grid,
+  .oddroom-row-actions { padding-right: 18px; padding-left: 18px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oddroom-orderops *,
+  .oddroom-orderops *::before,
+  .oddroom-orderops *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+}

@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="pf07-session-token" content="__PF07_SESSION_TOKEN__">
+  <meta name="pf07-locale" content="en_US">
+  <title>OddRoom OrderOps · Launch Hub</title>
+  <link rel="icon" href="/brand-symbol.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/app.css">
+</head>
+<body>
+  <main>
+    <header class="masthead">
+      <a class="brand" href="#top" aria-label="OddRoom OrderOps launch hub home"><img src="/brand-symbol.svg" width="30" height="30" alt="">ODDROOM <span>/ ORDEROPS</span></a>
+      <div class="masthead-tools">
+        <label for="language-select">Language</label>
+        <select id="language-select" aria-label="Display language"><option value="ko_KR">Korean</option><option value="en_US" selected>English</option></select>
+        <p id="mode-pill" class="mode">DEMO MODE · 0 KRW</p>
+      </div>
+    </header>
+
+    <section id="top" class="hero" aria-labelledby="hub-title">
+      <div class="hero-copy">
+        <p class="eyebrow">PACKAGE-OWNED LAUNCH HUB</p>
+        <h1 id="hub-title">One hub for<br><span>store and recovery.</span></h1>
+        <p id="mode-description" class="lede">
+          Start an isolated demo without service credentials. It uses synthetic orders only and never contacts real payment, external CRM, or Slack services.
+        </p>
+        <div class="actions primary-actions">
+          <button id="start-button" class="button button-primary" type="button">Start runtime</button>
+          <button id="store-button" class="button" type="button" disabled>Open store</button>
+          <button id="admin-button" class="button" type="button" disabled>Open admin</button>
+        </div>
+      </div>
+
+      <aside class="status-card" aria-labelledby="status-title">
+        <div class="status-heading">
+          <div>
+            <p class="eyebrow">LOCAL RUNTIME</p>
+            <h2 id="status-title">Runtime status</h2>
+          </div>
+          <span id="status-badge" class="badge badge-idle">Checking</span>
+        </div>
+        <div class="signal" aria-hidden="true"><span id="signal-fill"></span></div>
+        <dl class="facts">
+          <div><dt>Mode</dt><dd id="mode-fact">DEMO_MODE</dd></div>
+          <div><dt>Store</dt><dd id="store-fact">Waiting</dd></div>
+          <div><dt>Admin</dt><dd id="admin-fact">Waiting</dd></div>
+          <div><dt>Automation</dt><dd id="n8n-fact">Waiting</dd></div>
+          <div><dt>Code runner</dt><dd id="runner-fact">Waiting</dd></div>
+          <div><dt>Background worker</dt><dd id="worker-fact">Waiting</dd></div>
+          <div><dt>Required services</dt><dd id="service-fact">0 / 5</dd></div>
+        </dl>
+        <p id="operation-message" class="operation" role="status" aria-live="polite">
+          Checking the package state.
+        </p>
+      </aside>
+    </section>
+
+    <section class="control-grid" aria-label="Operations">
+      <article>
+        <p class="step">01</p>
+        <h2>Start and mode</h2>
+        <p>Start one isolated runtime inside this package. Switch between credential-free demo and protected live recipients over the same business state.</p>
+        <button id="setup-button" class="text-button" type="button">Open connection setup</button>
+      </article>
+      <article>
+        <p class="step">02</p>
+        <h2>Store and admin</h2>
+        <p>Open only the real WooCommerce targets that passed readiness. The administrator credential is generated inside this package.</p>
+        <button id="credential-button" class="text-button" type="button">Show local admin credential</button>
+      </article>
+      <article>
+        <p class="step">03</p>
+        <h2>State and recovery</h2>
+        <p>Choose normal, retry, failure, or operator-review behavior for the next synthetic order and inspect its real recovery path in admin.</p>
+        <button id="recovery-button" class="text-button" type="button">Open recovery controls</button>
+      </article>
+      <article>
+        <p class="step">04</p>
+        <h2>Safe stop</h2>
+        <p>Stop the containers while preserving local orders and settings. The next start resumes the same state.</p>
+        <button id="stop-button" class="text-button text-button-muted" type="button">Stop runtime</button>
+      </article>
+    </section>
+
+    <section id="credential-panel" class="credential-panel" hidden aria-labelledby="credential-title">
+      <div>
+        <p class="eyebrow">PACKAGE-LOCAL ONLY</p>
+        <h2 id="credential-title">Administrator credential</h2>
+      </div>
+      <dl>
+        <div><dt>User</dt><dd><code id="admin-user">—</code></dd></div>
+        <div><dt>Password</dt><dd><code id="admin-password">—</code></dd></div>
+      </dl>
+      <button id="copy-button" class="button" type="button">Copy password</button>
+    </section>
+
+    <section id="connection-panel" class="recovery-panel connection-panel" hidden aria-labelledby="connection-title">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">PROTECTED CONNECTED MODE</p>
+          <h2 id="connection-title">Connect real recipients safely.</h2>
+        </div>
+        <p>Tokens are written only to this package's permission-restricted storage after tests pass, and are never displayed again. Tests only read the HubSpot pipeline and check Slack authentication.</p>
+      </div>
+      <form id="connected-form" class="connected-form">
+        <fieldset>
+          <legend>HubSpot</legend>
+          <label for="hubspot-token">Private app access token<input id="hubspot-token" type="password" autocomplete="new-password" required></label>
+          <label for="hubspot-pipeline">Deal pipeline internal ID<input id="hubspot-pipeline" type="text" autocomplete="off" required placeholder="default"></label>
+          <label for="hubspot-stage">Initial stage internal ID<input id="hubspot-stage" type="text" autocomplete="off" required></label>
+          <label for="hubspot-alias">Display alias<input id="hubspot-alias" type="text" value="PF07HubSpotRuntime1" required></label>
+        </fieldset>
+        <fieldset>
+          <legend>Slack</legend>
+          <label for="slack-token">Bot token<input id="slack-token" type="password" autocomplete="new-password" required></label>
+          <label for="slack-channel">Channel ID<input id="slack-channel" type="text" autocomplete="off" required placeholder="C…"></label>
+          <label for="slack-alias">Display alias<input id="slack-alias" type="text" value="PF07SlackRuntime1" required></label>
+          <p class="form-note">Connected mode still uses synthetic orders only. Never use real customer or payment data.</p>
+        </fieldset>
+        <div class="connected-actions">
+          <button id="connected-button" class="button button-primary" type="submit">Test connections and use CONNECTED_MODE</button>
+          <button id="demo-mode-button" class="button" type="button">Use DEMO_MODE</button>
+        </div>
+      </form>
+      <p id="connection-result" class="panel-result" role="status" aria-live="polite"></p>
+    </section>
+
+    <section id="recovery-panel" class="recovery-panel" hidden aria-labelledby="recovery-title">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">DETERMINISTIC DEMO CONTROL</p>
+          <h2 id="recovery-title">Delivery states and scoped reset</h2>
+        </div>
+        <p>These controls affect package-owned synthetic demo data only. They never contact an external CRM, Slack, or payment service.</p>
+      </div>
+      <div class="recovery-grid">
+        <form id="scenario-form" class="control-form">
+          <label for="scenario-select">Delivery result for the next synthetic order</label>
+          <select id="scenario-select">
+            <option value="normal">Normal completion</option>
+            <option value="fail_once">Fail once, then recover automatically</option>
+            <option value="terminal">Terminal failure</option>
+            <option value="operator_review">Wait for operator review</option>
+          </select>
+          <button id="scenario-button" class="button" type="submit">Apply next state</button>
+          <p class="form-note">After applying, create a new synthetic order in the store to run this state through the real worker path.</p>
+        </form>
+        <form id="reset-form" class="control-form control-form-danger">
+          <label for="reset-confirmation">Confirm demo-data reset</label>
+          <input id="reset-confirmation" type="text" autocomplete="off" spellcheck="false" placeholder="RESET PF07 DEMO">
+          <button id="reset-button" class="button button-danger" type="submit" disabled>Reset synthetic demo data</button>
+          <p class="form-note">Type <code>RESET PF07 DEMO</code> exactly. The administrator, catalog, runtime identity, and volumes are preserved.</p>
+        </form>
+      </div>
+      <p id="recovery-result" class="panel-result" role="status" aria-live="polite"></p>
+    </section>
+
+    <section id="operations-panel" class="recovery-panel operations-panel" aria-labelledby="operations-title">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">PACKAGE OPERATIONS</p>
+          <h2 id="operations-title">From diagnostics to safe transfer.</h2>
+        </div>
+        <p>Every action is limited to this package's Compose project and volumes. Evidence and encrypted backups are created outside the extraction; diagnostics exclude tokens and administrator passwords.</p>
+      </div>
+      <div class="operation-actions" aria-label="Immediate package operations">
+        <button id="preflight-button" class="button" type="button">Recheck prerequisites</button>
+        <button id="restart-button" class="button" type="button">Restart same runtime</button>
+        <button id="recover-button" class="button" type="button">Run recovery</button>
+        <button id="diagnostics-button" class="button" type="button">View diagnostics</button>
+        <button id="evidence-button" class="button" type="button">Export evidence ZIP</button>
+      </div>
+      <div class="operations-grid">
+        <form id="backup-form" class="control-form">
+          <h3>Authenticated encrypted backup</h3>
+          <label for="backup-passphrase">Recipient-held passphrase</label>
+          <input id="backup-passphrase" type="password" minlength="12" autocomplete="new-password" required>
+          <button class="button" type="submit">Create backup</button>
+          <p class="form-note">Quiesces three volumes and local state, then protects them with AES-256-CTR + HMAC-SHA256 Encrypt-then-MAC. The passphrase is never stored; losing it is unrecoverable.</p>
+        </form>
+        <form id="restore-form" class="control-form">
+          <h3>Restore one writer</h3>
+          <label for="restore-archive">Absolute external `.pf07backup` path</label>
+          <input id="restore-archive" type="text" autocomplete="off" required>
+          <label for="restore-passphrase">Backup passphrase</label>
+          <input id="restore-passphrase" type="password" minlength="12" autocomplete="current-password" required>
+          <label for="restore-confirmation">Confirmation phrase</label>
+          <input id="restore-confirmation" type="text" autocomplete="off" placeholder="RESTORE PF07" required>
+          <button class="button" type="submit">Authenticate and restore</button>
+          <p class="form-note">If current state exists, PF07 first creates an external pre-restore backup with the same passphrase, stops the old writer, and replaces only exact PF07 volumes.</p>
+        </form>
+        <form id="update-form" class="control-form">
+          <h3>Controlled pre-release update</h3>
+          <label for="update-predecessor">Absolute path to the predecessor PF07 extraction</label>
+          <input id="update-predecessor" type="text" autocomplete="off" required>
+          <label for="update-confirmation">Confirmation phrase</label>
+          <input id="update-confirmation" type="text" autocomplete="off" placeholder="UPDATE PF07" required>
+          <button class="button" type="submit">Quiesce predecessor and move to this package</button>
+          <p class="form-note">Run this from a separately extracted new archive. PF07 verifies both build identities, quiesces the predecessor, and binds the preserved `SHOP_INSTANCE_ID` and three volumes to exactly one successor writer.</p>
+        </form>
+        <form id="tunnel-form" class="control-form">
+          <h3>Optional HTTPS tunnel</h3>
+          <label for="tunnel-provider">Provider</label>
+          <select id="tunnel-provider"><option value="cloudflared">Cloudflare Quick Tunnel (0 KRW, no credential)</option><option value="ngrok">ngrok (external protected config)</option></select>
+          <label for="tunnel-executable">External provider executable path (optional when installed on PATH)</label>
+          <input id="tunnel-executable" type="text" autocomplete="off">
+          <label for="tunnel-config">Absolute external ngrok config path (optional)</label>
+          <input id="tunnel-config" type="text" autocomplete="off">
+          <label for="tunnel-confirmation">Enable confirmation phrase</label>
+          <input id="tunnel-confirmation" type="text" autocomplete="off" placeholder="ENABLE PF07 TUNNEL">
+          <div class="operation-actions">
+            <button id="tunnel-on-button" class="button" type="submit">Enable tunnel</button>
+            <button id="tunnel-off-button" class="button" type="button">Disable tunnel</button>
+            <button id="tunnel-store-button" class="button" type="button" disabled>HTTPS store</button>
+            <button id="tunnel-admin-button" class="button" type="button" disabled>HTTPS admin</button>
+          </div>
+          <p class="form-note">Only the storefront and WordPress-authenticated admin routes are allowlisted. n8n, databases, the Docker API, logs, and evidence stay private; local mode remains available after tunnel failure or shutdown.</p>
+        </form>
+        <form id="uninstall-form" class="control-form control-form-danger">
+          <h3>Package-scoped uninstall</h3>
+          <label for="uninstall-data-choice">Data choice</label>
+          <select id="uninstall-data-choice"><option value="preserve">Preserve volumes and local state</option><option value="remove">Remove PF07 volumes and local state</option></select>
+          <label for="uninstall-confirmation">Confirmation phrase</label>
+          <input id="uninstall-confirmation" type="text" autocomplete="off" placeholder="UNINSTALL PF07" required>
+          <button class="button button-danger" type="submit">Remove confirmed PF07 resources</button>
+          <p class="form-note">Create any needed encrypted backup first. Other Compose projects, volumes, and files are never touched.</p>
+        </form>
+      </div>
+      <pre id="operations-result" class="operations-result" role="status" aria-live="polite"></pre>
+    </section>
+
+    <footer>
+      <p>OddRoom OrderOps · Quiet Utility</p>
+      <p>Synthetic data only · no real payment · loopback access only</p>
+    </footer>
+  </main>
+  <script src="/app.js" defer></script>
+</body>
+</html>

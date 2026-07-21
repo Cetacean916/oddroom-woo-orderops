@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=OddRoom OrderOps
+Comment=Open the PF07 package-owned launch hub
+Exec=sh -c 'base=$(dirname "$1"); exec "$base/PF07-Launcher"' sh %k
+Terminal=false
+Categories=Development;Utility;
+StartupNotify=true

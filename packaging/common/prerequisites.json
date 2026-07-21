@@ -1,0 +1,80 @@
+{
+  "schema": "pf07.prerequisites.v1",
+  "reviewed_at_utc": "2026-07-20T20:05:00Z",
+  "python": {
+    "minimum": "3.10.0",
+    "recommended_release": "3.14.6",
+    "official_release_page": "https://www.python.org/downloads/release/python-3146/",
+    "installer_handoff": "USER_SELECTED_OFFICIAL_OS_INSTALLER_WITH_PUBLISHED_CHECKSUM",
+    "bundled": false
+  },
+  "windows": {
+    "supported_runtime": "Rancher Desktop with Moby engine",
+    "maintained_zero_krw_path": true,
+    "version": "1.22.3",
+    "installer": {
+      "name": "Rancher.Desktop.Setup.1.22.3.msi",
+      "url": "https://github.com/rancher-sandbox/rancher-desktop/releases/download/v1.22.3/Rancher.Desktop.Setup.1.22.3.msi",
+      "sha256": "d0918c3e99d2918d84d739e47df12964b2d75ccdf3f9da769b6d4b47ede187cf"
+    },
+    "vm_backend": "WSL2",
+    "container_engine": "moby",
+    "docker_desktop": "CONDITIONAL_ALTERNATIVE_ONLY_AFTER_RECIPIENT_LICENSE_ELIGIBILITY_CHECK"
+  },
+  "macos": {
+    "supported_runtime": "Rancher Desktop with Moby engine",
+    "maintained_zero_krw_path": true,
+    "version": "1.22.3",
+    "installers": {
+      "arm64": {
+        "name": "Rancher.Desktop-1.22.3.aarch64.dmg",
+        "url": "https://github.com/rancher-sandbox/rancher-desktop/releases/download/v1.22.3/Rancher.Desktop-1.22.3.aarch64.dmg",
+        "sha256": "65d474a00b9da95b9f48c64b89acf3d1f397f68b6d47bfe10373587d5d510b67"
+      },
+      "x86_64": {
+        "name": "Rancher.Desktop-1.22.3.x86_64.dmg",
+        "url": "https://github.com/rancher-sandbox/rancher-desktop/releases/download/v1.22.3/Rancher.Desktop-1.22.3.x86_64.dmg",
+        "sha256": "8068087edc44a1bb7a45a65423c2b07a16be1c111ca50f550bab052198e62150"
+      }
+    },
+    "vm_backend": "Rancher Desktop Lima VM",
+    "container_engine": "moby",
+    "docker_desktop": "CONDITIONAL_ALTERNATIVE_ONLY_AFTER_RECIPIENT_LICENSE_ELIGIBILITY_CHECK"
+  },
+  "linux": {
+    "supported_runtime": "Docker Engine with Compose plugin",
+    "maintained_zero_krw_path": true,
+    "official_install_page": "https://docs.docker.com/engine/install/",
+    "minimum_engine_api": "1.40",
+    "actually_tested_host": {
+      "engine": "29.6.1",
+      "compose": "5.3.1",
+      "python": "3.12.3",
+      "platform": "linux/amd64"
+    }
+  },
+  "optional_https_tunnel": {
+    "bundled": false,
+    "default_provider": "Cloudflare Quick Tunnel",
+    "credential_required": false,
+    "tested_linux_amd64": {
+      "executable": "cloudflared",
+      "version": "2026.7.2",
+      "official_release_url": "https://github.com/cloudflare/cloudflared/releases/tag/2026.7.2",
+      "download_url": "https://github.com/cloudflare/cloudflared/releases/download/2026.7.2/cloudflared-linux-amd64",
+      "sha256": "ec905ea7b7e327ff8abdde8cb64697a2152de74dbcdbf6aec9db8364eb3886cd"
+    },
+    "alternate_provider": {
+      "name": "ngrok",
+      "credential_config": "external protected file selected at runtime and never copied into the package"
+    },
+    "route_policy": "packaging/network/tunnel-route-allowlist.json",
+    "local_runtime_survives_provider_failure": true
+  },
+  "network_boundary": {
+    "first_install_online": true,
+    "warm_demo_offline_claim": "REQUIRES_CANONICAL_CI_LINUX_OBSERVATION",
+    "connected_mode_online": true,
+    "tunnel_mode_online": true
+  }
+}

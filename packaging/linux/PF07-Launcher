@@ -1,0 +1,16 @@
+#!/bin/sh
+set -eu
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+if ! command -v python3 >/dev/null 2>&1; then
+  if command -v xdg-open >/dev/null 2>&1; then xdg-open 'https://www.python.org/downloads/' >/dev/null 2>&1 || true; fi
+  printf '%s\n' 'Python 3.10+ is required. The official download page has been opened.' >&2
+  exit 20
+fi
+export PYTHONPATH="$script_dir/launcher${PYTHONPATH:+:$PYTHONPATH}"
+state=$(python3 -m pf07_launcher.cli preflight 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin)["state"])') || state=CHECK_FAILED
+if [ "$state" != READY ]; then
+  python3 -m pf07_launcher.cli preflight --open-installer >/dev/null 2>&1 || true
+  printf '%s\n' 'A prerequisite is not ready. Follow the opened official guide, then launch PF07 again.' >&2
+  exit 21
+fi
+exec python3 -m pf07_launcher.hub

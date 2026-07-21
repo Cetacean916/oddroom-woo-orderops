@@ -101,6 +101,7 @@ scenario(["../payload.txt"])
 scenario(["/absolute.txt"])
 scenario(["payload.sqlite"], setup=lambda _root, source: (source / "payload.sqlite").write_bytes(b"not-public"))
 scenario(["evidence/raw/payload.json"], setup=lambda _root, source: (source / "evidence/raw").mkdir(parents=True) or (source / "evidence/raw/payload.json").write_text("{}\n", encoding="utf-8"))
+scenario(["evidence/refinement/raw-private/payload.json"], setup=lambda _root, source: (source / "evidence/refinement/raw-private").mkdir(parents=True) or (source / "evidence/refinement/raw-private/payload.json").write_text("{}\n", encoding="utf-8"))
 scenario(["backup/snapshot.json"], setup=lambda _root, source: (source / "backup").mkdir() or (source / "backup/snapshot.json").write_text("{}\n", encoding="utf-8"))
 scenario(["backups/snapshot.json"], setup=lambda _root, source: (source / "backups").mkdir() or (source / "backups/snapshot.json").write_text("{}\n", encoding="utf-8"))
 scenario(["credentials/locator.json"], setup=lambda _root, source: (source / "credentials").mkdir() or (source / "credentials/locator.json").write_text("{}\n", encoding="utf-8"))
@@ -111,7 +112,7 @@ def validator_forbidden_roots() -> set[str]:
     for node in ast.walk(module):
         if isinstance(node, ast.For) and isinstance(node.target, ast.Name) and node.target.id == "forbidden" and isinstance(node.iter, (ast.Tuple, ast.List)):
             values = {item.value for item in node.iter.elts if isinstance(item, ast.Constant) and isinstance(item.value, str)}
-            if {"evidence/raw", "runtime", "backup", "backups", "credentials"} <= values:
+            if {"evidence/raw", "evidence/refinement/raw-private", "runtime", "backup", "backups", "credentials"} <= values:
                 return values
     raise AssertionError("public validator protected-root denylist is incomplete")
 

@@ -1,0 +1,44 @@
+{
+  "schema_version": "1",
+  "acceptance_id": "GATE-06-EXHAUSTION",
+  "run_id": "PF07-REFINEMENT-ACCEPTANCE-RUN",
+  "started_at": "2026-07-21T06:48:57Z",
+  "finished_at": "2026-07-21T06:48:57Z",
+  "source_tree_sha256": "61dd3ab2842d5f1d529db0f74ff191983777f8fa1429337e6a62752af9856c94",
+  "command_or_probe": "recorded redaction of protected acceptance observation",
+  "exit_code": 0,
+  "observations": {
+    "result": "PASS",
+    "terminal_automatic_attempts": 6,
+    "retry_delays_seconds": [
+      2,
+      5,
+      10,
+      20,
+      30
+    ],
+    "automatic_action_ids_distinct": true,
+    "terminal_error": "ATTEMPTS_EXHAUSTED",
+    "follow_up_actions": 0,
+    "manual_attempt_count_greater_than_automatic": true,
+    "manual_total_attempt_count": 7,
+    "manual_automatic_attempt_count": 6,
+    "manual_retry_count": 1,
+    "manual_terminal_error": "HUBSPOT_RETRYABLE",
+    "manual_terminal_follow_up_actions": 0,
+    "immutable_payload_preserved": true,
+    "residual_lock_or_lease_count": 0
+  },
+  "artifact_hashes": {},
+  "redaction_state": "PUBLIC_REDACTED",
+  "redaction_transform": {
+    "id": "pf07-public-evidence-redaction",
+    "version": "1",
+    "script_sha256": "85e4f8137dceb273572374edab98fab7f16a99988a63c2335637755a859bdc9a"
+  },
+  "source_acceptance_id": "GATE-06-EXHAUSTION",
+  "source_record_sha256": "78d76fe737cb979e76ae963ce50e7d80c888755143902c653efcd7c9fb836996",
+  "source_artifact_hashes": {
+    "exhaustion_attempt_trace": "9737e92293b417db977c40cd520b864fbfd35057ce784d9640bd6becefd77595"
+  }
+}

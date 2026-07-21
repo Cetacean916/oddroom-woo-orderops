@@ -40,14 +40,17 @@ if len(paths) != len(set(paths)):
 if "release/public-allowlist.json" not in paths or "scripts/build-public-release" not in paths:
     fail("allowlist must include itself and the builder")
 
-forbidden_roots = ("evidence/raw", "runtime", "backup", "backups", "credentials", ".git")
+forbidden_roots = ("evidence/raw", "evidence/refinement/raw-private", "runtime", "backup", "backups", "credentials", ".git")
 forbidden_exact = {".env", "reports/FINAL-REPORT.md"}
 allowed_suffixes = {
-    ".conf", ".css", ".dockerfile", ".example", ".jpg", ".js", ".json", ".md", ".mjs", ".php",
-    ".py", ".sha256", ".svg", ".txt", ".woff2", ".yaml", ".yml",
+    ".c", ".cmd", ".command", ".conf", ".css", ".desktop", ".dockerfile", ".example", ".html",
+    ".jpg", ".js", ".json", ".md", ".mjs", ".php", ".plist", ".ps1", ".py", ".rc", ".service",
+    ".sha256", ".svg", ".txt", ".webp", ".woff2", ".yaml", ".yml",
 }
 allowed_names = {
-    ".env.example", ".gitignore", "LICENSE", "ci", "build-public-release",
+    ".env.example", ".gitignore", "LICENSE", "PF07-Launcher", "PF07-OrderOps", "build-platform-packages",
+    "build-public-release", "ci", "derive-successor-vsl", "pf07", "pf07-hub", "pf07-server",
+    "refresh-bootstrap-bindings", "refresh-package-allowlists", "validate-platform-packages",
     "build-workflow", "collect-evidence", "derive-gate06-linked-evidence", "generate-public-evidence",
     "probe-clean-restore", "probe-core-acceptance", "probe-gate06", "probe-gate06-lease",
     "probe-gate06-operator", "probe-gate09-compatibility", "probe-gate09-product-quality",

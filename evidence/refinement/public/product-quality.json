@@ -1,0 +1,45 @@
+{
+  "schema_version": "1",
+  "acceptance_id": "GATE-09",
+  "run_id": "PF07-REFINEMENT-ACCEPTANCE-RUN",
+  "started_at": "2026-07-21T06:39:17Z",
+  "finished_at": "2026-07-21T06:40:19Z",
+  "source_tree_sha256": "61dd3ab2842d5f1d529db0f74ff191983777f8fa1429337e6a62752af9856c94",
+  "command_or_probe": "recorded redaction of protected acceptance observation",
+  "exit_code": 0,
+  "observations": {
+    "result": "PASS",
+    "viewport_count": 3,
+    "storefront_page_count": 6,
+    "admin_scoped_page_count": 1,
+    "serious_or_critical_violations": 0,
+    "page_overflow_failures": 0,
+    "clipped_action_failures": 0,
+    "broken_asset_failures": 0,
+    "console_error_failures": 0,
+    "php_fatal_warning_count": 0,
+    "layout_overlap_failures": 0,
+    "placeholder_or_internal_copy_failures": 0,
+    "korean_locale_failures": 0,
+    "unlabeled_control_failures": 0,
+    "keyboard_operability_failures": 0,
+    "font_load_failures": 0,
+    "unresolved_skeleton_failures": 0,
+    "image_alt_failures": 0,
+    "failed_resource_count": 0,
+    "unexpected_http_or_route_failures": 0,
+    "table_containment_failures": 0
+  },
+  "artifact_hashes": {},
+  "redaction_state": "PUBLIC_REDACTED",
+  "redaction_transform": {
+    "id": "pf07-public-evidence-redaction",
+    "version": "1",
+    "script_sha256": "85e4f8137dceb273572374edab98fab7f16a99988a63c2335637755a859bdc9a"
+  },
+  "source_acceptance_id": "GATE-09",
+  "source_record_sha256": "0ba3e5d95453f6e2c6399f18d293695cf2bc90b171b39a2658ea2f57aee75aa4",
+  "source_artifact_hashes": {
+    "gate09_product_quality_trace": "1766b5da9971ecf60d7e92d65348b93e05897fcc989604fdc19d159e6e1f92a8"
+  }
+}

@@ -342,9 +342,11 @@ for fixture in ("simple", "variable", "coupon"):
 require("WC_Product_Variation" in PLUGIN, "variable-product fixture is absent")
 require("WC_Coupon" in PLUGIN and "apply_coupon" in PLUGIN, "coupon fixture is absent")
 require("ambiguousSlackFailure" in PLUGIN and "SLACK_OUTCOME_UNKNOWN" in PLUGIN, "ambiguous Slack response path is absent")
-require("'Error code', 'Sanitized error'" in ADMIN, "admin does not separate stable and sanitized errors")
+require("self::text('오류 코드', 'Error code')" in ADMIN and "self::text('정제된 오류', 'Sanitized error')" in ADMIN,
+        "admin does not separate stable and sanitized errors in both languages")
 require("$row->error_code ?? '—'" in ADMIN and "$row->last_error ?? '—'" in ADMIN, "admin omits an error field")
-require("echo '<td>' . esc_html((string) $value) . '</td>';" in ADMIN, "admin row values are not escaped")
+require("esc_html((string) $value)" in ADMIN and "oddroom-fact-grid" in ADMIN,
+        "admin fact values are not escaped")
 require("current_user_can('manage_woocommerce')" in ADMIN, "admin action capability guard is absent")
 require("check_admin_referer($nonceAction)" in ADMIN, "action-specific nonce guard is absent")
 for decision in ("CONFIRMED_POSTED", "CONFIRMED_NOT_POSTED", "RETRY_AFTER_DUE", "UNRESOLVED"):
@@ -355,13 +357,15 @@ require("oddroom_orderops_reconcile_hourly" in PLUGIN, "hourly reconciliation ho
 require("ON_DEMAND_ONLY" in PLUGIN and "blog_public" in PLUGIN, "storefront control mode or noindex setup is absent")
 require("pre_wp_mail" in PLUGIN and "woocommerce_available_payment_gateways" in PLUGIN, "synthetic checkout containment is absent")
 require("Product proof surface" not in STOREFRONT and "Synthetic catalog" not in STOREFRONT
-        and "OddRoom 드롭 키트" in STOREFRONT and "OddRoom 캠페인 팩" in STOREFRONT
+        and "Offset Dock · 오프셋 데스크 독" in STOREFRONT
+        and "Foldline Tech Case · 폴드라인 테크 케이스" in STOREFRONT
         and "$product->set_slug('oddroom-drop-kit')" in STOREFRONT
+        and "$product->set_slug('oddroom-campaign-pack')" in STOREFRONT
         and "$product->set_category_ids([$categoryId])" in STOREFRONT,
         "buyer storefront still exposes validation copy or lacks stable product identity")
 require('.oddroom-hero h1' in STOREFRONT_CSS
         and 'font-family: "OddRoom Sans", system-ui, sans-serif;' in STOREFRONT_CSS
-        and '--odd-border: 2px solid var(--odd-ink);' in STOREFRONT_CSS,
+        and '--odd-border: 1px solid var(--odd-line);' in STOREFRONT_CSS,
         "buyer storefront typography or restrained design token is absent")
 require("normalizeMoney((string) $item->get_total())" in REPOSITORY
         and "normalizeMoney((string) $order->get_total())" in REPOSITORY
@@ -412,15 +416,13 @@ require("self::startHtmlRewrite();" in PRIVATE_ADMIN
         and "$escapedProtocolRelative === '' ? '' : $escapedPrivateProtocolRelative" in PRIVATE_ADMIN
         and "add_action('wp_loaded', [self::class, 'startHtmlRewrite']" not in PRIVATE_ADMIN,
         "loopback administrator HTML rewriting starts too late for WordPress core asset URLs")
-require("pressSequentially(value, { delay: 42 })" in MEDIA_RECORDER
-        and "runVisibleOperation" in MEDIA_RECORDER
-        and "visible_terminal_foreground_queue_exit_zero" in MEDIA_RECORDER
-        and "visible_terminal_stop_n8n_exit_zero" in MEDIA_RECORDER
-        and "visible_terminal_start_n8n_exit_zero" in MEDIA_RECORDER
+require("pressSequentially(value, { delay: 35 })" in MEDIA_RECORDER
+        and "runVisibleWorker" in MEDIA_RECORDER
+        and "visible_terminal_foreground_worker_exit_zero" in MEDIA_RECORDER
         and "visible_terminal_failure_worker_exit_zero" in MEDIA_RECORDER
         and "visible_terminal_recovery_worker_exit_zero" in MEDIA_RECORDER
-        and '"$PF07_VISIBLE_QUEUE_RUNNER" --once' in MEDIA_RECORDER
-        and 'docker compose --env-file "$PF07_VISIBLE_RUNTIME_ENV"' in MEDIA_RECORDER
+        and 'docker compose --progress quiet --env-file "$PF07_VISIBLE_RUNTIME_ENV"' in MEDIA_RECORDER
+        and "action-scheduler run --hooks=oddroom_orderops_process" in MEDIA_RECORDER
         and "actual_checkout_observed: true" in MEDIA_RECORDER
         and "visible_worker_terminal_observed: true" in MEDIA_RECORDER,
         "public media recorder can regress to narrated static screens instead of visible real execution")

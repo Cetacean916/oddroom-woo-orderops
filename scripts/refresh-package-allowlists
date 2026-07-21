@@ -1,0 +1,198 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import hashlib
+import json
+from pathlib import Path
+from typing import Any
+
+
+ROOT = Path(__file__).resolve().parents[1]
+VERSION = "1.0.0"
+
+
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as source:
+        for block in iter(lambda: source.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def source_files(directory: str) -> list[str]:
+    root = ROOT / directory
+    return [
+        path.relative_to(ROOT).as_posix()
+        for path in sorted(root.rglob("*"))
+        if path.is_file() and "__pycache__" not in path.parts and path.suffix not in {".pyc", ".pyo"}
+    ]
+
+
+def shared_files() -> list[tuple[str, str, str]]:
+    result: list[tuple[str, str, str]] = []
+    for source in source_files("packaging/common"):
+        result.append((source, source, "0644"))
+    for source in source_files("packaging/network"):
+        result.append((source, source, "0644"))
+    for source in source_files("launcher/pf07_launcher") + source_files("launcher/ui"):
+        result.append((source, source, "0644"))
+    for source in ("launcher/bin/pf07", "launcher/bin/pf07-hub"):
+        result.append((source, source, "0755"))
+    for source in source_files("plugin/oddroom-orderops"):
+        suffix = source.removeprefix("plugin/oddroom-orderops/")
+        result.append((source, f"payload/oddroom-orderops/{suffix}", "0644"))
+    for source in ("LICENSE", "THIRD_PARTY_NOTICES.md", "ASSET-LICENSES.md"):
+        result.append((source, source, "0644"))
+    return result
+
+
+def entry(source: str, target: str, mode: str, *, self_reference: bool = False) -> dict[str, Any]:
+    path = ROOT / source
+    if not path.is_file() and not self_reference:
+        raise SystemExit(f"allowlisted source is missing: {source}")
+    value: dict[str, Any] = {"source": source, "target": target, "mode": mode}
+    if self_reference:
+        value["source_sha256"] = None
+        value["self_reference"] = True
+    else:
+        value["source_sha256"] = sha256(path)
+    return value
+
+
+def write_allowlist(
+    path: str,
+    *,
+    artifact_id: str,
+    platform: str,
+    architecture: str,
+    root_name: str,
+    specific: list[tuple[str, str, str]],
+    generated: list[dict[str, Any]],
+    include_shared: bool = True,
+    tested_boundary: str,
+) -> None:
+    records = (shared_files() if include_shared else []) + specific
+    records.append((path, "PACKAGE-ALLOWLIST.json", "0644"))
+    seen: set[str] = set()
+    files: list[dict[str, Any]] = []
+    for source, target, mode in sorted(records, key=lambda row: row[1]):
+        if target in seen:
+            raise SystemExit(f"duplicate target in {path}: {target}")
+        seen.add(target)
+        files.append(entry(source, target, mode, self_reference=source == path))
+    generated_targets = [item["target"] for item in generated] + ["ARTIFACT-MANIFEST.json", "SHA256SUMS.txt"]
+    overlap = seen.intersection(generated_targets)
+    if overlap:
+        raise SystemExit(f"mapped/generated overlap in {path}: {sorted(overlap)}")
+    value = {
+        "schema": "pf07.package-allowlist.v1",
+        "artifact_id": artifact_id,
+        "package_version": VERSION,
+        "platform": platform,
+        "architecture": architecture,
+        "root_name": root_name,
+        "classification": "PUBLIC_DISTRIBUTION",
+        "tested_boundary": tested_boundary,
+        "files": files,
+        "generated_outputs": generated + [
+            {"target": "ARTIFACT-MANIFEST.json", "kind": "artifact-manifest", "mode": "0644"},
+            {"target": "SHA256SUMS.txt", "kind": "payload-checksums", "mode": "0644"},
+        ],
+    }
+    target = ROOT / path
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def main() -> None:
+    write_allowlist(
+        "packaging/windows/package-allowlist.json",
+        artifact_id="pf07-windows-x64",
+        platform="windows",
+        architecture="x86_64",
+        root_name="PF07-OrderOps-1.0.0-windows-x64",
+        specific=[
+            ("packaging/windows/Start-PF07.ps1", "Start-PF07.ps1", "0644"),
+            ("packaging/windows/START-PF07.cmd", "START-PF07.cmd", "0644"),
+            ("packaging/windows/pf07.cmd", "pf07.cmd", "0644"),
+            ("packaging/windows/README.ko.md", "README.ko.md", "0644"),
+            ("packaging/windows/README.en.md", "README.en.md", "0644"),
+        ],
+        generated=[{"target": "PF07-Launcher.exe", "kind": "windows-pe-gui", "mode": "0755"}],
+        tested_boundary="LINUX_CROSS_BUILD_AND_STATIC_ARTIFACT_VALIDATION_ONLY",
+    )
+    write_allowlist(
+        "packaging/windows/kvm-test-kit-allowlist.json",
+        artifact_id="pf07-windows-kvm-test-kit",
+        platform="windows-kvm-test-kit",
+        architecture="x86_64",
+        root_name="PF07-OrderOps-1.0.0-windows-kvm-test-kit",
+        specific=[
+            ("packaging/windows/kvm/PF07-KVM-TEST.html", "PF07-KVM-TEST.html", "0644"),
+            ("packaging/windows/kvm/PF07-KVM-Evidence.ps1", "PF07-KVM-Evidence.ps1", "0644"),
+            ("packaging/windows/kvm/RUN-KVM-TEST.cmd", "RUN-KVM-TEST.cmd", "0644"),
+            ("packaging/windows/kvm/README.ko.md", "README.ko.md", "0644"),
+            ("packaging/windows/kvm/README.en.md", "README.en.md", "0644"),
+            ("LICENSE", "LICENSE", "0644"),
+        ],
+        generated=[{"target": "buyer-package-binding.json", "kind": "buyer-archive-binding", "mode": "0644"}],
+        include_shared=False,
+        tested_boundary="ARTIFACT_DRIVEN_OWNER_KVM_WORKFLOW_NOT_EXECUTED",
+    )
+    write_allowlist(
+        "packaging/macos/package-allowlist.json",
+        artifact_id="pf07-macos-universal",
+        platform="macos",
+        architecture="arm64+x86_64-script-adapter",
+        root_name="PF07-OrderOps-1.0.0-macos-universal",
+        specific=[
+            ("packaging/macos/PF07 Launcher.app/Contents/Info.plist", "PF07 Launcher.app/Contents/Info.plist", "0644"),
+            ("packaging/macos/PF07 Launcher.app/Contents/MacOS/PF07-OrderOps", "PF07 Launcher.app/Contents/MacOS/PF07-OrderOps", "0755"),
+            ("packaging/macos/PF07 Launcher.app/Contents/Resources/architecture.json", "PF07 Launcher.app/Contents/Resources/architecture.json", "0644"),
+            ("packaging/macos/pf07.command", "pf07.command", "0755"),
+            ("packaging/macos/pf07", "pf07", "0755"),
+            ("packaging/macos/README.ko.md", "README.ko.md", "0644"),
+            ("packaging/macos/README.en.md", "README.en.md", "0644"),
+        ],
+        generated=[],
+        tested_boundary="LINUX_STATIC_APP_BUNDLE_AND_SHARED_CORE_VALIDATION_ONLY",
+    )
+    write_allowlist(
+        "packaging/linux/local-package-allowlist.json",
+        artifact_id="pf07-linux-x86_64",
+        platform="linux",
+        architecture="x86_64",
+        root_name="PF07-OrderOps-1.0.0-linux-x86_64",
+        specific=[
+            ("packaging/linux/PF07-Launcher", "PF07-Launcher", "0755"),
+            ("packaging/linux/pf07", "pf07", "0755"),
+            ("packaging/linux/PF07-OrderOps.desktop", "PF07-OrderOps.desktop", "0755"),
+            ("packaging/linux/README.local.ko.md", "README.ko.md", "0644"),
+            ("packaging/linux/README.local.en.md", "README.en.md", "0644"),
+        ],
+        generated=[],
+        tested_boundary="ACTUAL_LINUX_LOCAL_EXECUTION_REQUIRED_ON_CANONICAL_CI_BYTES_IN_STEP_090",
+    )
+    write_allowlist(
+        "packaging/linux/server-package-allowlist.json",
+        artifact_id="pf07-linux-server",
+        platform="linux-server",
+        architecture="x86_64",
+        root_name="PF07-OrderOps-1.0.0-linux-server",
+        specific=[
+            ("packaging/linux/pf07", "pf07", "0755"),
+            ("packaging/linux/server/pf07-server", "server/pf07-server", "0755"),
+            ("packaging/linux/server/pf07-server.env.example", "server/pf07-server.env.example", "0644"),
+            ("packaging/linux/server/nginx-pf07.conf.example", "server/nginx-pf07.conf.example", "0644"),
+            ("packaging/linux/server/pf07-orderops.service.example", "server/pf07-orderops.service.example", "0644"),
+            ("packaging/linux/server/README.ko.md", "README.ko.md", "0644"),
+            ("packaging/linux/server/README.en.md", "README.en.md", "0644"),
+        ],
+        generated=[],
+        tested_boundary="ACTUAL_ISOLATED_LINUX_SERVER_EXECUTION_REQUIRED_ON_CANONICAL_CI_BYTES_IN_STEP_090",
+    )
+    print("PF07_PACKAGE_ALLOWLISTS_REFRESHED=5")
+
+
+if __name__ == "__main__":
+    main()

@@ -16,6 +16,9 @@ final class OddRoom_CLI
             WP_CLI::add_command('oddroom-orderops setup-storefront', [self::class, 'setupStorefront']);
             WP_CLI::add_command('oddroom-orderops reset-checkout-limit', [self::class, 'resetCheckoutLimit']);
             WP_CLI::add_command('oddroom-orderops reconcile', [self::class, 'reconcile']);
+            WP_CLI::add_command('oddroom-orderops package-status', [self::class, 'packageStatus']);
+            WP_CLI::add_command('oddroom-orderops demo-scenario', [self::class, 'demoScenario']);
+            WP_CLI::add_command('oddroom-orderops reset-demo', [self::class, 'resetDemo']);
         }
     }
 
@@ -206,6 +209,36 @@ final class OddRoom_CLI
         if (($result['status'] ?? null) !== 'PASS') {
             WP_CLI::error('Reconciliation reported a fact failure.');
         }
+    }
+
+    public static function packageStatus(array $args, array $assocArgs): void
+    {
+        WP_CLI::line(wp_json_encode(OddRoom_Package::setupState(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+    }
+
+    public static function demoScenario(array $args, array $assocArgs): void
+    {
+        $scenario = OddRoom_Package::setScenario(sanitize_key((string) ($args[0] ?? '')));
+        WP_CLI::line(wp_json_encode([
+            'status' => 'PASS',
+            'mode' => OddRoom_Package::mode(),
+            'scenario' => $scenario,
+        ], JSON_UNESCAPED_SLASHES));
+    }
+
+    public static function resetDemo(array $args, array $assocArgs): void
+    {
+        $confirmation = (string) ($assocArgs['confirm'] ?? '');
+        $administratorId = 0;
+        $administratorLogin = getenv('PF07_ADMIN_USER');
+        if (is_string($administratorLogin) && $administratorLogin !== '') {
+            $administrator = get_user_by('login', $administratorLogin);
+            if ($administrator instanceof WP_User) {
+                $administratorId = (int) $administrator->ID;
+            }
+        }
+        $record = OddRoom_Package::resetDemo($confirmation, $administratorId);
+        WP_CLI::line(wp_json_encode($record, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
     }
 
     private static function databaseUtc(): string

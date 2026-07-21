@@ -17,6 +17,7 @@ require_once __DIR__ . '/includes/class-oddroom-retry-policy.php';
 require_once __DIR__ . '/includes/class-oddroom-dependencies.php';
 require_once __DIR__ . '/includes/class-oddroom-installer.php';
 require_once __DIR__ . '/includes/class-oddroom-repository.php';
+require_once __DIR__ . '/includes/class-oddroom-package.php';
 require_once __DIR__ . '/includes/class-oddroom-scheduler.php';
 require_once __DIR__ . '/includes/class-oddroom-worker.php';
 require_once __DIR__ . '/includes/class-oddroom-recovery.php';
@@ -49,6 +50,7 @@ $oddroomOrderOpsBoot = static function (): void {
     }
     $booted = true;
     OddRoom_Installer::maybeUpgrade();
+    OddRoom_Package::boot();
     OddRoom_Private_Admin::boot();
     OddRoom_Scheduler::boot();
     OddRoom_Events::boot();

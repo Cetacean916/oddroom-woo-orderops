@@ -16,6 +16,7 @@ MANIFEST = ROOT / "fixtures/acceptance-fixtures.json"
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from acceptance_semantics import AcceptanceSemanticError, derive_fixture_observations
+from refinement_evidence_paths import successor_public_root, successor_raw_root
 
 
 def fail(message: str) -> None:
@@ -234,7 +235,7 @@ if args.fixture:
     if not fixtures:
         fail(f"unknown fixture: {args.fixture}")
 
-record_root = ROOT / ("evidence/raw" if args.protected else "evidence/public")
+record_root = successor_raw_root(ROOT) if args.protected else successor_public_root(ROOT)
 inventory: dict[str, dict] = {}
 if args.protected:
     inventory_doc = load_json(record_root / "protected-artifact-inventory.json")

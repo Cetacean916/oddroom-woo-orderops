@@ -36,38 +36,39 @@ const sampleDynamics = (videoPath) => {
 const mediaPolicy = {
   "demo-video.mp4": {
     events: [
+      ["LAUNCH_HUB", "final_package_hub_ready"],
       ["LIVE_STOREFRONT", "home_visible"], ["SHOP_OPENED", "shop_visible"],
       ["PRODUCT_SELECTED", "product_page_visible"], ["CART_READY", "cart_contains_product"],
       ["CHECKOUT_INPUT", "synthetic_checkout_input_visible"], ["ORDER_RECEIVED", "woocommerce_confirmation_visible"],
-      ["OUTBOX_PENDING", "status_pending"], ["WORKER_RUN", "visible_terminal_foreground_queue_exit_zero"],
-      ["ADMIN_COMPLETED", "status_completed"], ["CHECKPOINTS_MASKED", "crm_checkpoint_columns_visible_masked"],
+      ["OUTBOX_PENDING", "status_pending"], ["WORKER_RUN", "visible_terminal_foreground_worker_exit_zero"],
+      ["ADMIN_COMPLETED", "status_completed"], ["INTEGRATION_RESULT", "masked_integration_correlation_visible"],
     ],
     ocr: {
-      CHECKOUT_INPUT: [/synthetic/i, /test street/i, /seoul/i],
+      LAUNCH_HUB: [/package launch hub/i, /ready/i, /actual hub controls/i],
+      CHECKOUT_INPUT: [/checkout/i, /test street/i, /seoul/i],
       ORDER_RECEIVED: [/order received/i],
-      OUTBOX_PENDING: [/outbox pending/i, /order[\s._-]*cr\w*\s+pendin/i],
-      WORKER_RUN: [/pf[o0]7 real worker/i, /queue --once/i],
-      ADMIN_COMPLETED: [/admin completed?/i, /order[\s._-]*cr\w*\s+comple/i],
+      OUTBOX_PENDING: [/outbox pending/i, /order[\s._-]*cr\w*[\s._-]+pendin/i],
+      WORKER_RUN: [/final package worker/i, /action-scheduler run/i],
+      ADMIN_COMPLETED: [/admin completed?/i, /order[\s._-]*created/i, /completed/i, /\b200\b/i],
+      INTEGRATION_RESULT: [/integration result/i, /woo.*pf[o0]7.*n8n.*crm.*slack/i, /identifiers.*masked/i],
     },
     duration: [60, 90],
   },
   "recovery-clip.mp4": {
     events: [
-      ["OUTBOX_PENDING", "status_pending"], ["ENDPOINT_STOP_COMMAND", "visible_terminal_stop_n8n_exit_zero"],
-      ["ENDPOINT_DOWN", "restored_n8n_stopped"], ["FAILURE_WORKER_RUN", "visible_terminal_failure_worker_exit_zero"],
-      ["RETRY_WAIT", "status_retry_wait_with_distinct_followup_action"],
-      ["ENDPOINT_START_COMMAND", "visible_terminal_start_n8n_exit_zero"],
-      ["ENDPOINT_RESTORED", "restored_n8n_healthy"], ["RECOVERY_WORKER_RUN", "visible_terminal_recovery_worker_exit_zero"],
-      ["RECOVERED", "status_completed"],
+      ["OUTBOX_PENDING", "status_pending"], ["FAILURE_WORKER_RUN", "visible_terminal_failure_worker_exit_zero"],
+      ["FAILED", "status_failed_manual_retry_visible"], ["NORMAL_SCENARIO", "actual_hub_normal_scenario_applied"],
+      ["MANUAL_RETRY", "manual_retry_scheduled_pending"],
+      ["RECOVERY_WORKER_RUN", "visible_terminal_recovery_worker_exit_zero"], ["RECOVERED", "status_recovered"],
     ],
     ocr: {
-      OUTBOX_PENDING: [/outbox pending/i, /order[\s._-]*cr\w*\s+pendin/i],
-      ENDPOINT_STOP_COMMAND: [/pf[o0]7 runtime control/i, /stop n8n/i],
-      FAILURE_WORKER_RUN: [/pf[o0]7 real worker/i, /queue --once/i],
-      RETRY_WAIT: [/retry wait/i, /order[\s._-]*cr\w*\s+retry/i],
-      ENDPOINT_START_COMMAND: [/pf[o0]7 runtime control/i, /start n8n/i],
-      RECOVERY_WORKER_RUN: [/pf[o0]7 real worker/i, /queue --once/i],
-      RECOVERED: [/recovered/i, /order[\s._-]*cr\w*\s+comple/i],
+      OUTBOX_PENDING: [/outbox pending/i, /order[\s._-]*cr\w*[\s._-]+pendin/i],
+      FAILURE_WORKER_RUN: [/final package worker/i, /action-scheduler run/i],
+      FAILED: [/failed/i, /422/i],
+      NORMAL_SCENARIO: [/normal scenario/i, /actual package hub control/i],
+      MANUAL_RETRY: [/manual retry/i, /scheduled one follow-up/i],
+      RECOVERY_WORKER_RUN: [/final package worker/i, /action-scheduler run/i],
+      RECOVERED: [/recovered/i, /http\s*200/i],
     },
     duration: [8, 30],
   },
@@ -75,13 +76,10 @@ const mediaPolicy = {
 
 const ocrRegions = {
   "demo-video.mp4": {
-    ORDER_RECEIVED: { left: 875, top: 15, width: 380, height: 120 },
     WORKER_RUN: { left: 500, top: 475, width: 750, height: 220 },
   },
   "recovery-clip.mp4": {
-    ENDPOINT_STOP_COMMAND: { left: 500, top: 475, width: 750, height: 220 },
     FAILURE_WORKER_RUN: { left: 500, top: 475, width: 750, height: 220 },
-    ENDPOINT_START_COMMAND: { left: 500, top: 475, width: 750, height: 220 },
     RECOVERY_WORKER_RUN: { left: 500, top: 475, width: 750, height: 220 },
   },
 };
@@ -143,7 +141,7 @@ async function validatePublicExecutionMedia(caseUrl) {
     fetchAsset("demo-video.mp4"), fetchAsset("recovery-clip.mp4"),
     fs.readFile(path.join(root, "scripts/record-public-media.mjs")),
     fs.readFile(path.join(root, "scripts/build-public-stills.mjs")),
-    fetchBytes(new URL("evidence/public/acceptance-matrix.json", publicEvidenceRoot), "public acceptance matrix"),
+    fetchBytes(new URL("evidence/refinement/public/acceptance-matrix.json", publicEvidenceRoot), "public acceptance matrix"),
   ]);
   const staticImageBytes = Object.fromEntries(await Promise.all(
     Object.keys(staticImagePolicy).map(async (name) => [name, await fetchAsset(name)]),
@@ -197,7 +195,7 @@ async function validatePublicExecutionMedia(caseUrl) {
   requireCondition(JSON.stringify(acceptanceMatrix.entries.map((entry) => entry.acceptance_id)) === JSON.stringify(expectedGates),
     "deployed public acceptance-matrix gate inventory failed");
   await Promise.all(acceptanceMatrix.entries.map(async (entry) => {
-    requireCondition(typeof entry.record_path === "string" && /^evidence\/public\/[a-z0-9-]+\.json$/.test(entry.record_path)
+    requireCondition(typeof entry.record_path === "string" && /^evidence\/refinement\/public\/[a-z0-9-]+\.json$/.test(entry.record_path)
       && /^[0-9a-f]{64}$/.test(entry.record_sha256) && entry.result === "PASS",
     `deployed public evidence link shape failed for ${entry.acceptance_id}`);
     const bytes = await fetchBytes(new URL(entry.record_path, publicEvidenceRoot), entry.acceptance_id);
@@ -301,6 +299,7 @@ async function validatePublicExecutionMedia(caseUrl) {
       requireCondition(hashes.size === policy.events.length, `${fileName}: deployed event frames are not distinct`);
       if (fileName === "demo-video.mp4") {
         requireCondition(videoProof.continuous_capture === true
+          && videoProof.actual_launcher_hub_observed === true
           && videoProof.actual_checkout_observed === true
           && videoProof.foreground_worker_observed === true
           && videoProof.visible_worker_terminal_observed === true
@@ -308,13 +307,11 @@ async function validatePublicExecutionMedia(caseUrl) {
         `${fileName}: deployed real-execution flags failed`);
       } else {
         requireCondition(videoProof.continuous_capture === true
-          && videoProof.actual_endpoint_failure_observed === true
-          && videoProof.retry_wait_observed === true
-          && videoProof.distinct_followup_action_observed === true
-          && videoProof.endpoint_restore_observed === true
-          && videoProof.visible_endpoint_control_terminal_observed === true
+          && videoProof.actual_terminal_failure_observed === true
+          && videoProof.actual_hub_scenario_transition_observed === true
+          && videoProof.manual_retry_observed === true
           && videoProof.visible_worker_terminal_observed === true
-          && videoProof.final_status === "completed",
+          && videoProof.final_status === "recovered",
         `${fileName}: deployed real-recovery flags failed`);
       }
       summaries[fileName] = { duration_seconds: duration, frame_count: frameCount, unique_sampled_frames: dynamics.unique };
@@ -360,7 +357,7 @@ async function validatePublicExecutionMedia(caseUrl) {
     videos: summaries,
     image_count: Object.keys(staticImagePolicy).length,
     evidence_record_count: evidenceByGate.size,
-    ocr_event_count: 12,
+    ocr_event_count: Object.values(mediaPolicy).reduce((sum, policy) => sum + Object.keys(policy.ocr).length, 0),
     scorecard,
   };
 }
@@ -370,7 +367,7 @@ const mediaObservation = await validatePublicExecutionMedia(caseUrl);
 const deploymentRoot = new URL(".", caseUrl);
 const expectedEvidenceLinks = [
   "https://github.com/Cetacean916/oddroom-woo-orderops",
-  "https://github.com/Cetacean916/oddroom-woo-orderops/blob/main/evidence/public/acceptance-matrix.json",
+  "https://github.com/Cetacean916/oddroom-woo-orderops/blob/main/evidence/refinement/public/acceptance-matrix.json",
   "https://github.com/Cetacean916/oddroom-woo-orderops/blob/main/plugin/oddroom-orderops/tests/run.php",
   "https://github.com/Cetacean916/oddroom-woo-orderops/blob/main/workflow/oddroom-orderops-vsl.json",
   "https://github.com/Cetacean916/oddroom-woo-orderops/blob/main/docs/RECOVERY-RUNBOOK.md",

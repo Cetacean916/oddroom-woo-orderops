@@ -1,0 +1,31 @@
+{
+  "schema": "pf07.tunnel-route-allowlist.v1",
+  "classification": "PUBLIC_TUNNEL_ROUTE_POLICY",
+  "public_routes": [
+    {"match": "exact", "path": "/", "purpose": "storefront home and WooCommerce query actions"},
+    {"match": "prefix", "path": "/shop", "purpose": "storefront catalog"},
+    {"match": "prefix", "path": "/product", "purpose": "storefront product detail"},
+    {"match": "prefix", "path": "/cart", "purpose": "storefront cart"},
+    {"match": "prefix", "path": "/checkout", "purpose": "synthetic non-payment checkout"},
+    {"match": "prefix", "path": "/my-account", "purpose": "authenticated buyer account"},
+    {"match": "prefix", "path": "/order-received", "purpose": "synthetic order result"},
+    {"match": "prefix", "path": "/wp-content/", "purpose": "reviewed WordPress themes, plugins, and media assets"},
+    {"match": "prefix", "path": "/wp-includes/", "purpose": "WordPress runtime assets"},
+    {"match": "prefix", "path": "/wp-admin", "purpose": "WordPress-authenticated administrator routes"},
+    {"match": "exact", "path": "/wp-login.php", "purpose": "WordPress authentication entry"},
+    {"match": "prefix", "path": "/wp-json/wc/store/", "purpose": "WooCommerce storefront API"}
+  ],
+  "denied_routes": [
+    {"match": "prefix", "path": "/.pf07", "surface": "package-local state"},
+    {"match": "prefix", "path": "/n8n", "surface": "internal automation editor"},
+    {"match": "prefix", "path": "/metrics", "surface": "operational metrics"},
+    {"match": "prefix", "path": "/evidence", "surface": "private evidence"},
+    {"match": "prefix", "path": "/logs", "surface": "runtime logs"},
+    {"match": "prefix", "path": "/docker", "surface": "container API"},
+    {"match": "prefix", "path": "/wp-json/", "surface": "non-storefront WordPress REST APIs"},
+    {"match": "exact", "path": "/wp-cron.php", "surface": "internal scheduler entry"},
+    {"match": "prefix", "path": "/server-status", "surface": "server diagnostics"}
+  ],
+  "public_ports": ["HTTPS_TUNNEL_PROVIDER_ASSIGNED"],
+  "non_public_services": ["MariaDB", "n8n", "Docker API", "task runner broker", "launcher hub", "evidence", "logs", "metrics"]
+}

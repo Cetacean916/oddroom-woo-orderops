@@ -1,0 +1,502 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import gzip
+import hashlib
+import json
+import os
+import shutil
+import stat
+import subprocess
+import tarfile
+import tempfile
+import zipfile
+from pathlib import Path, PurePosixPath
+from typing import Any
+
+
+ROOT = Path(__file__).resolve().parents[1]
+VERSION = "1.0.0"
+RELEASE_TAG = "pf07-v1.0.0"
+DELIVERY_MODE = "GITHUB_RELEASE_ASSETS"
+ALLOWLISTS = (
+    "packaging/windows/package-allowlist.json",
+    "packaging/windows/kvm-test-kit-allowlist.json",
+    "packaging/macos/package-allowlist.json",
+    "packaging/linux/local-package-allowlist.json",
+    "packaging/linux/server-package-allowlist.json",
+)
+ARCHIVE_NAMES = {
+    "pf07-windows-x64": "pf07-windows-x64-1.0.0.zip",
+    "pf07-windows-kvm-test-kit": "pf07-windows-kvm-test-kit-1.0.0.zip",
+    "pf07-macos-universal": "pf07-macos-universal-1.0.0.zip",
+    "pf07-linux-x86_64": "pf07-linux-x86_64-1.0.0.tar.gz",
+    "pf07-linux-server": "pf07-linux-server-1.0.0.tar.gz",
+}
+FORBIDDEN_NAMES = {".git", ".pf07", "__pycache__", "node_modules", "runtime", "evidence", "secrets"}
+FORBIDDEN_SUFFIXES = {".pyc", ".pyo", ".sqlite", ".sqlite3", ".db", ".log", ".bak", ".orig", ".old"}
+OWNER_HOME_BYTES = b"/" + b"home/" + b"jun" + b"soo"
+FORBIDDEN_TEXT = (
+    OWNER_HOME_BYTES,
+    OWNER_HOME_BYTES.decode("ascii").encode("utf-16le"),
+    "바탕화면/Portfolio".encode("utf-8"),
+    b"runtime/secrets",
+    b"raw-private",
+    b"HUBSPOT_RUNTIME_" + b"TOKEN=",
+    b"SLACK_BOT_" + b"TOKEN=",
+    b"PF07_ADMIN_PASS" + b"WORD=",
+    b"PF07_DB_PASS" + b"WORD=",
+)
+
+
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as source:
+        for block in iter(lambda: source.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def json_bytes(value: Any) -> bytes:
+    return (json.dumps(value, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+
+
+def safe_relative(value: str) -> Path:
+    pure = PurePosixPath(value)
+    if pure.is_absolute() or ".." in pure.parts or not pure.parts:
+        raise SystemExit(f"unsafe package target: {value}")
+    return Path(*pure.parts)
+
+
+def write_bytes(path: Path, payload: bytes, mode: int = 0o644) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(payload)
+    path.chmod(mode)
+
+
+def copy_allowlisted(allowlist: dict[str, Any], candidate: Path) -> None:
+    for item in allowlist["files"]:
+        source = ROOT / item["source"]
+        target = candidate / safe_relative(item["target"])
+        if not source.is_file() or source.is_symlink():
+            raise SystemExit(f"allowlisted source must be a regular file: {item['source']}")
+        expected = item.get("source_sha256")
+        if expected is not None and sha256(source) != expected:
+            raise SystemExit(f"allowlisted source hash drifted; refresh and review: {item['source']}")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source, target)
+        target.chmod(int(item["mode"], 8))
+
+
+def compile_windows_launcher(output: Path) -> dict[str, Any]:
+    gcc = shutil.which("x86_64-w64-mingw32-gcc")
+    windres = shutil.which("x86_64-w64-mingw32-windres")
+    if not gcc or not windres:
+        raise SystemExit("MinGW-w64 x86_64 GCC and windres are required for the real Windows PE launcher")
+    source = ROOT / "packaging/windows/native/PF07-Launcher.c"
+    resource_source = ROOT / "packaging/windows/native/PF07-Launcher.rc"
+    with tempfile.TemporaryDirectory(prefix="pf07-win-build-") as temp_name:
+        temp = Path(temp_name)
+        resource = temp / "PF07-Launcher-res.o"
+        environment = dict(os.environ)
+        environment["SOURCE_DATE_EPOCH"] = "0"
+        subprocess.run(
+            [windres, "--use-temp-file", "-O", "coff", str(resource_source), str(resource)],
+            cwd=ROOT,
+            env=environment,
+            check=True,
+        )
+        subprocess.run(
+            [
+                gcc,
+                "-std=c11",
+                "-Os",
+                "-Wall",
+                "-Wextra",
+                "-Werror",
+                "-municode",
+                "-mwindows",
+                "-static",
+                "-s",
+                "-Wl,--no-insert-timestamp",
+                str(source),
+                str(resource),
+                "-o",
+                str(output),
+            ],
+            cwd=ROOT,
+            env=environment,
+            check=True,
+        )
+    output.chmod(0o755)
+    identity = subprocess.run([gcc, "--version"], text=True, stdout=subprocess.PIPE, check=True).stdout.splitlines()[0]
+    return {
+        "kind": "real-native-gui-adapter",
+        "compiler": identity,
+        "source_sha256": sha256(source),
+        "resource_sha256": sha256(resource_source),
+        "pe_sha256": sha256(output),
+    }
+
+
+def package_entrypoints(artifact_id: str) -> dict[str, Any]:
+    if artifact_id == "pf07-windows-x64":
+        return {"graphical": "PF07-Launcher.exe", "command": "pf07.cmd", "fallback": "START-PF07.cmd"}
+    if artifact_id == "pf07-windows-kvm-test-kit":
+        return {"graphical": "PF07-KVM-TEST.html", "assisted_collector": "RUN-KVM-TEST.cmd"}
+    if artifact_id == "pf07-macos-universal":
+        return {"graphical": "PF07 Launcher.app", "command": "pf07", "fallback": "pf07.command"}
+    if artifact_id == "pf07-linux-x86_64":
+        return {"graphical": "PF07-Launcher", "desktop": "PF07-OrderOps.desktop", "command": "pf07"}
+    return {"server": "server/pf07-server", "command": "pf07"}
+
+
+def candidate_files(candidate: Path, *, exclude_checksums: bool = False) -> list[Path]:
+    return [
+        path
+        for path in sorted(candidate.rglob("*"), key=lambda value: value.relative_to(candidate).as_posix())
+        if path.is_file() and (not exclude_checksums or path.name != "SHA256SUMS.txt")
+    ]
+
+
+def validate_candidate_boundary(candidate: Path, expected: set[str]) -> None:
+    actual = {path.relative_to(candidate).as_posix() for path in candidate_files(candidate)}
+    if actual != expected:
+        missing = sorted(expected - actual)
+        unexpected = sorted(actual - expected)
+        raise SystemExit(f"candidate set mismatch for {candidate.name}; missing={missing}; unexpected={unexpected}")
+    for path in candidate.rglob("*"):
+        relative = path.relative_to(candidate)
+        if path.is_symlink():
+            raise SystemExit(f"symlink is forbidden in package: {relative}")
+        if any(part in FORBIDDEN_NAMES for part in relative.parts):
+            raise SystemExit(f"forbidden package entry name: {relative}")
+        if path.is_file() and path.suffix.lower() in FORBIDDEN_SUFFIXES:
+            raise SystemExit(f"forbidden package file suffix: {relative}")
+    for path in candidate_files(candidate):
+        payload = path.read_bytes()
+        for needle in FORBIDDEN_TEXT:
+            if needle in payload:
+                raise SystemExit(f"forbidden private/source byte in {path.relative_to(candidate)}")
+
+
+def validate_bootstrap_bindings(candidate: Path) -> None:
+    bootstrap_path = candidate / "packaging/common/bootstrap-manifest.json"
+    bindings_path = candidate / "packaging/common/distribution-content-bindings.json"
+    bootstrap = json.loads(bootstrap_path.read_text(encoding="utf-8"))
+    bindings = json.loads(bindings_path.read_text(encoding="utf-8"))
+    require_hash = bootstrap["content_bindings"]["sha256"]
+    if sha256(bindings_path) != require_hash:
+        raise SystemExit("bootstrap content-binding manifest SHA mismatch")
+    if bindings["content_set_sha256"] != bootstrap["content_bindings"]["content_set_sha256"]:
+        raise SystemExit("bootstrap content-set identity mismatch")
+    digest = hashlib.sha256()
+    for item in bindings["files"]:
+        target = candidate / safe_relative(item["package_path"])
+        if not target.is_file() or sha256(target) != item["sha256"] or target.stat().st_size != item["bytes"]:
+            raise SystemExit(f"bootstrap-bound package content mismatch: {item['package_path']}")
+        digest.update(item["package_path"].encode("utf-8") + b"\0" + bytes.fromhex(item["sha256"]))
+    if digest.hexdigest() != bindings["content_set_sha256"]:
+        raise SystemExit("bootstrap content-set digest recomputation failed")
+    seed_path = candidate / bootstrap["distribution_seed"]["manifest"]
+    if sha256(seed_path) != bootstrap["distribution_seed"]["manifest_sha256"]:
+        raise SystemExit("distribution seed manifest SHA mismatch")
+
+
+def write_checksums(candidate: Path) -> None:
+    lines = []
+    for path in candidate_files(candidate, exclude_checksums=True):
+        lines.append(f"{sha256(path)}  {path.relative_to(candidate).as_posix()}")
+    write_bytes(candidate / "SHA256SUMS.txt", ("\n".join(lines) + "\n").encode("utf-8"))
+
+
+def artifact_manifest(
+    allowlist: dict[str, Any],
+    candidate: Path,
+    build_id: str,
+    generated_facts: dict[str, Any],
+) -> dict[str, Any]:
+    bootstrap = json.loads((ROOT / "packaging/common/bootstrap-manifest.json").read_text(encoding="utf-8"))
+    prerequisites = json.loads((ROOT / "packaging/common/prerequisites.json").read_text(encoding="utf-8"))
+    action_contract = json.loads((ROOT / "packaging/common/action-contract.json").read_text(encoding="utf-8"))
+    payload = []
+    for path in candidate_files(candidate):
+        relative = path.relative_to(candidate).as_posix()
+        if relative in {"ARTIFACT-MANIFEST.json", "SHA256SUMS.txt"}:
+            continue
+        payload.append(
+            {
+                "path": relative,
+                "sha256": sha256(path),
+                "bytes": path.stat().st_size,
+                "mode": format(stat.S_IMODE(path.stat().st_mode), "04o"),
+            }
+        )
+    value: dict[str, Any] = {
+        "schema": "pf07.artifact-manifest.v1",
+        "artifact_id": allowlist["artifact_id"],
+        "package_version": VERSION,
+        "release_tag": RELEASE_TAG,
+        "build_id": build_id,
+        "platform": allowlist["platform"],
+        "architecture": allowlist["architecture"],
+        "classification": allowlist["classification"],
+        "root_name": allowlist["root_name"],
+        "entrypoints": package_entrypoints(allowlist["artifact_id"]),
+        "tested_boundary": allowlist["tested_boundary"],
+        "actual_os_runtime_execution": False,
+        "shared_launcher_core": {
+            "version": action_contract["version"],
+            "configuration_schema": action_contract["configuration_schema"],
+            "readiness_schema": action_contract["readiness_schema"],
+            "hub_api_prefix": action_contract["hub_api_prefix"],
+            "sha256": sha256(ROOT / "packaging/common/action-contract.json"),
+        },
+        "runtime_topology": action_contract["runtime_topology"],
+        "locale_roots": bootstrap["package_layout"]["locale_roots"],
+        "prerequisites": prerequisites,
+        "container_images": bootstrap["container_images"],
+        "bootstrap_manifest_sha256": sha256(ROOT / "packaging/common/bootstrap-manifest.json"),
+        "package_allowlist_sha256": sha256(ROOT / next(path for path in ALLOWLISTS if json.loads((ROOT / path).read_text(encoding="utf-8"))["artifact_id"] == allowlist["artifact_id"])),
+        "generated_facts": generated_facts,
+        "payload_file_count": len(payload),
+        "payload": payload,
+        "private_material_included": False,
+    }
+    if allowlist["artifact_id"] == "pf07-macos-universal":
+        value["macos_delivery"] = {
+            "adapter": "portable POSIX executable app entry",
+            "architectures": ["arm64", "x86_64"],
+            "signing": "UNSIGNED",
+            "notarization": "NOT_NOTARIZED",
+            "first_run_recovery": "Finder Control-click > Open > Open",
+            "actual_macos_execution": "NOT_RUN",
+        }
+    if allowlist["artifact_id"] == "pf07-windows-x64":
+        value["windows_delivery"] = {
+            "native_gui": "PF07-Launcher.exe",
+            "adapter": "project-built PE GUI launching same-core PowerShell/Python hub",
+            "actual_owner_kvm_execution": "NOT_RUN",
+        }
+    return value
+
+
+def make_zip(candidate: Path, archive: Path, root_name: str) -> None:
+    with zipfile.ZipFile(archive, "x", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as output:
+        for path in candidate_files(candidate):
+            relative = path.relative_to(candidate).as_posix()
+            info = zipfile.ZipInfo(f"{root_name}/{relative}", date_time=(1980, 1, 1, 0, 0, 0))
+            info.compress_type = zipfile.ZIP_DEFLATED
+            info.create_system = 3
+            info.external_attr = (stat.S_IFREG | stat.S_IMODE(path.stat().st_mode)) << 16
+            output.writestr(info, path.read_bytes())
+
+
+def make_tar_gz(candidate: Path, archive: Path, root_name: str) -> None:
+    with archive.open("xb") as raw:
+        with gzip.GzipFile(filename="", fileobj=raw, mode="wb", mtime=0, compresslevel=9) as compressed:
+            with tarfile.open(fileobj=compressed, mode="w", format=tarfile.PAX_FORMAT) as output:
+                for path in candidate_files(candidate):
+                    relative = path.relative_to(candidate).as_posix()
+                    info = tarfile.TarInfo(f"{root_name}/{relative}")
+                    info.size = path.stat().st_size
+                    info.mode = stat.S_IMODE(path.stat().st_mode)
+                    info.uid = 0
+                    info.gid = 0
+                    info.uname = "root"
+                    info.gname = "root"
+                    info.mtime = 0
+                    with path.open("rb") as source:
+                        output.addfile(info, source)
+
+
+def archive_members(archive: Path) -> list[str]:
+    if archive.suffix == ".zip":
+        with zipfile.ZipFile(archive) as source:
+            return sorted(item.filename for item in source.infolist() if not item.is_dir())
+    with tarfile.open(archive, "r:gz") as source:
+        return sorted(item.name for item in source.getmembers() if item.isfile())
+
+
+def verify_clean_extraction(archive: Path, candidate: Path, root_name: str, verification_root: Path) -> None:
+    target = verification_root / f"PF07 검증 path with spaces {root_name}"
+    target.mkdir(parents=True, exist_ok=False)
+    if archive.suffix == ".zip":
+        with zipfile.ZipFile(archive) as source:
+            source.extractall(target)
+    else:
+        with tarfile.open(archive, "r:gz") as source:
+            source.extractall(target, filter="data")
+    extracted = target / root_name
+    expected = {
+        path.relative_to(candidate).as_posix(): sha256(path)
+        for path in candidate_files(candidate)
+    }
+    actual = {
+        path.relative_to(extracted).as_posix(): sha256(path)
+        for path in candidate_files(extracted)
+    }
+    if actual != expected:
+        raise SystemExit(f"clean Unicode/space extraction mismatch: {archive.name}")
+
+
+def git_identity() -> dict[str, Any]:
+    probe = subprocess.run(
+        ["git", "-C", str(ROOT), "rev-parse", "--show-toplevel"],
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        check=False,
+    )
+    if probe.returncode != 0 or Path(probe.stdout.strip()).resolve() != ROOT.resolve():
+        return {"source_commit": None, "source_tree": None, "state": "REAL_SOURCE_NON_GIT_PRECOMMIT"}
+    commit = subprocess.run(["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True, stdout=subprocess.PIPE, check=True).stdout.strip()
+    tree = subprocess.run(["git", "-C", str(ROOT), "rev-parse", "HEAD^{tree}"], text=True, stdout=subprocess.PIPE, check=True).stdout.strip()
+    return {"source_commit": commit, "source_tree": tree, "state": "GIT_BOUND"}
+
+
+def build_id() -> str:
+    inputs = [ROOT / path for path in ALLOWLISTS]
+    inputs.extend(
+        [
+            ROOT / "scripts/build-platform-packages",
+            ROOT / "packaging/common/bootstrap-manifest.json",
+            ROOT / "packaging/common/action-contract.json",
+            ROOT / "packaging/common/prerequisites.json",
+            ROOT / "packaging/windows/native/PF07-Launcher.c",
+            ROOT / "packaging/windows/native/PF07-Launcher.rc",
+        ]
+    )
+    digest = hashlib.sha256()
+    for path in sorted(inputs):
+        digest.update(path.relative_to(ROOT).as_posix().encode("utf-8") + b"\0")
+        digest.update(bytes.fromhex(sha256(path)))
+    return "pf07-build-" + digest.hexdigest()[:20]
+
+
+def build_candidate(
+    allowlist_path: str,
+    output: Path,
+    build_identity: str,
+    buyer_binding: dict[str, Any] | None,
+) -> tuple[Path, Path, dict[str, Any]]:
+    allowlist = json.loads((ROOT / allowlist_path).read_text(encoding="utf-8"))
+    if allowlist["package_version"] != VERSION:
+        raise SystemExit(f"version mismatch in {allowlist_path}")
+    candidate = output / "packages" / allowlist["root_name"]
+    candidate.mkdir(parents=True, exist_ok=False)
+    copy_allowlisted(allowlist, candidate)
+    generated_facts: dict[str, Any] = {}
+    if allowlist["artifact_id"] == "pf07-windows-x64":
+        generated_facts["windows_pe"] = compile_windows_launcher(candidate / "PF07-Launcher.exe")
+    elif allowlist["artifact_id"] == "pf07-windows-kvm-test-kit":
+        if buyer_binding is None:
+            raise SystemExit("buyer binding is required before building the KVM kit")
+        write_bytes(candidate / "buyer-package-binding.json", json_bytes(buyer_binding))
+        html_path = candidate / "PF07-KVM-TEST.html"
+        html = html_path.read_text(encoding="utf-8")
+        html = html.replace("__BUYER_ARCHIVE_NAME__", buyer_binding["buyer_archive"])
+        html = html.replace("__BUYER_SHA256__", buyer_binding["buyer_sha256"])
+        html_path.write_text(html, encoding="utf-8")
+        generated_facts["buyer_binding"] = buyer_binding
+    if allowlist["artifact_id"] != "pf07-windows-kvm-test-kit":
+        validate_bootstrap_bindings(candidate)
+    manifest = artifact_manifest(allowlist, candidate, build_identity, generated_facts)
+    write_bytes(candidate / "ARTIFACT-MANIFEST.json", json_bytes(manifest))
+    write_checksums(candidate)
+    expected = {item["target"] for item in allowlist["files"]}
+    expected.update(item["target"] for item in allowlist["generated_outputs"])
+    validate_candidate_boundary(candidate, expected)
+    archive = output / ARCHIVE_NAMES[allowlist["artifact_id"]]
+    if archive.name.endswith(".zip"):
+        make_zip(candidate, archive, allowlist["root_name"])
+    else:
+        make_tar_gz(candidate, archive, allowlist["root_name"])
+    expected_members = sorted(f"{allowlist['root_name']}/{name}" for name in expected)
+    if archive_members(archive) != expected_members:
+        raise SystemExit(f"archive member set mismatch: {archive.name}")
+    row = {
+        "artifact_id": allowlist["artifact_id"],
+        "filename": archive.name,
+        "sha256": sha256(archive),
+        "bytes": archive.stat().st_size,
+        "file_count": len(expected),
+        "platform": allowlist["platform"],
+        "architecture": allowlist["architecture"],
+        "root_name": allowlist["root_name"],
+        "artifact_manifest_sha256": sha256(candidate / "ARTIFACT-MANIFEST.json"),
+        "package_allowlist_sha256": sha256(ROOT / allowlist_path),
+        "tested_boundary": allowlist["tested_boundary"],
+    }
+    return candidate, archive, row
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Build deterministic PF07 platform packages")
+    parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--verification-root", required=True, type=Path)
+    args = parser.parse_args()
+    output = args.output.resolve()
+    verification_root = args.verification_root.resolve()
+    if output.exists():
+        raise SystemExit(f"refusing to overwrite output: {output}")
+    if verification_root.exists():
+        raise SystemExit(f"refusing to overwrite verification root: {verification_root}")
+    output.mkdir(parents=True)
+    verification_root.mkdir(parents=True)
+    identity = build_id()
+    rows: list[dict[str, Any]] = []
+    buyer_binding: dict[str, Any] | None = None
+    for allowlist_path in ALLOWLISTS:
+        candidate, archive, row = build_candidate(allowlist_path, output, identity, buyer_binding)
+        verify_clean_extraction(archive, candidate, row["root_name"], verification_root)
+        rows.append(row)
+        if row["artifact_id"] == "pf07-windows-x64":
+            buyer_binding = {
+                "schema": "pf07.windows-buyer-binding.v1",
+                "package_version": VERSION,
+                "release_tag": RELEASE_TAG,
+                "buyer_archive": row["filename"],
+                "buyer_sha256": row["sha256"],
+                "buyer_bytes": row["bytes"],
+                "buyer_file_count": row["file_count"],
+                "intended_public_url": f"https://github.com/Cetacean916/oddroom-woo-orderops/releases/download/{RELEASE_TAG}/{row['filename']}",
+                "actual_owner_kvm_execution": "NOT_RUN",
+            }
+    aggregate = {
+        "schema": "pf07.artifact-set-manifest.v1",
+        "package_version": VERSION,
+        "release_tag": RELEASE_TAG,
+        "delivery_mode": DELIVERY_MODE,
+        "build_id": identity,
+        "artifact_count": len(rows),
+        "artifacts": rows,
+        "release_manifest_included": False,
+        "release_manifest_reason": "Generated only after reviewed commit, final CI, and draft release asset readback.",
+    }
+    write_bytes(output / "ARTIFACT-MANIFEST.json", json_bytes(aggregate))
+    release_input = {
+        "schema": "pf07.release-manifest-input.v1",
+        "package_version": VERSION,
+        "release_tag": RELEASE_TAG,
+        "public_package_delivery_mode": DELIVERY_MODE,
+        "build_id": identity,
+        "git_identity": git_identity(),
+        "artifact_set_manifest_sha256": sha256(output / "ARTIFACT-MANIFEST.json"),
+        "artifacts": rows,
+        "non_self_referential": True,
+        "final_release_manifest_path": "PF07-RELEASE-MANIFEST.json",
+        "final_release_manifest_is_build_input": False,
+    }
+    write_bytes(output / "PF07-RELEASE-INPUT.json", json_bytes(release_input))
+    top_files = sorted([output / row["filename"] for row in rows] + [output / "ARTIFACT-MANIFEST.json", output / "PF07-RELEASE-INPUT.json"])
+    checksums = "\n".join(f"{sha256(path)}  {path.name}" for path in top_files) + "\n"
+    write_bytes(output / "SHA256SUMS.txt", checksums.encode("utf-8"))
+    print(f"PF07_PLATFORM_BUILD_ID={identity}")
+    print(f"PF07_PLATFORM_ARTIFACTS={len(rows)}")
+    print(f"PF07_PLATFORM_OUTPUT={output}")
+
+
+if __name__ == "__main__":
+    main()

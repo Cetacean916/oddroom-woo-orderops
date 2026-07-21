@@ -1,0 +1,72 @@
+{
+  "schema": "pf07.package-allowlist.v1",
+  "artifact_id": "pf07-windows-kvm-test-kit",
+  "package_version": "1.0.0",
+  "platform": "windows-kvm-test-kit",
+  "architecture": "x86_64",
+  "root_name": "PF07-OrderOps-1.0.0-windows-kvm-test-kit",
+  "classification": "PUBLIC_DISTRIBUTION",
+  "tested_boundary": "ARTIFACT_DRIVEN_OWNER_KVM_WORKFLOW_NOT_EXECUTED",
+  "files": [
+    {
+      "source": "LICENSE",
+      "target": "LICENSE",
+      "mode": "0644",
+      "source_sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643"
+    },
+    {
+      "source": "packaging/windows/kvm-test-kit-allowlist.json",
+      "target": "PACKAGE-ALLOWLIST.json",
+      "mode": "0644",
+      "source_sha256": null,
+      "self_reference": true
+    },
+    {
+      "source": "packaging/windows/kvm/PF07-KVM-Evidence.ps1",
+      "target": "PF07-KVM-Evidence.ps1",
+      "mode": "0644",
+      "source_sha256": "fb53161424545b7776db75bd915321593e0c51ed78a593aa862a7cb1f2a5cc61"
+    },
+    {
+      "source": "packaging/windows/kvm/PF07-KVM-TEST.html",
+      "target": "PF07-KVM-TEST.html",
+      "mode": "0644",
+      "source_sha256": "fa5f7dc598cd8eeffcca54932aa4ba2d6482b3c1d03619b641a2361caa165bb9"
+    },
+    {
+      "source": "packaging/windows/kvm/README.en.md",
+      "target": "README.en.md",
+      "mode": "0644",
+      "source_sha256": "42fb31b518369347a9a0e74520a1e036dcecc3b0e8c38f8c24fafff53ffd3070"
+    },
+    {
+      "source": "packaging/windows/kvm/README.ko.md",
+      "target": "README.ko.md",
+      "mode": "0644",
+      "source_sha256": "633211c730fd3174acaeef15c4d7bd68e33a3fa2ade04944b9a7f7c309f792ab"
+    },
+    {
+      "source": "packaging/windows/kvm/RUN-KVM-TEST.cmd",
+      "target": "RUN-KVM-TEST.cmd",
+      "mode": "0644",
+      "source_sha256": "fdb10a0690ee8d95ab124cdb673a404eb055d12f4a2aa18237228650eb1ab40a"
+    }
+  ],
+  "generated_outputs": [
+    {
+      "target": "buyer-package-binding.json",
+      "kind": "buyer-archive-binding",
+      "mode": "0644"
+    },
+    {
+      "target": "ARTIFACT-MANIFEST.json",
+      "kind": "artifact-manifest",
+      "mode": "0644"
+    },
+    {
+      "target": "SHA256SUMS.txt",
+      "kind": "payload-checksums",
+      "mode": "0644"
+    }
+  ]
+}

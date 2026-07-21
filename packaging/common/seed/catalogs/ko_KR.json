@@ -1,0 +1,12 @@
+{
+  "locale": "ko_KR",
+  "language_name": "한국어",
+  "hub": {
+    "title": "OddRoom OrderOps 실행 허브",
+    "subtitle": "합성 주문으로 상점부터 복구까지 확인하세요.",
+    "start": "데모 시작",
+    "store": "상점 열기",
+    "admin": "관리자 열기",
+    "stop": "데모 중지"
+  }
+}

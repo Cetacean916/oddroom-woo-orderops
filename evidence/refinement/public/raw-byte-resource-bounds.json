@@ -1,0 +1,31 @@
+{
+  "schema_version": "1",
+  "acceptance_id": "GATE-05-RESOURCE-BOUNDS",
+  "run_id": "PF07-REFINEMENT-ACCEPTANCE-RUN",
+  "started_at": "2026-07-21T06:44:18Z",
+  "finished_at": "2026-07-21T06:44:26Z",
+  "source_tree_sha256": "61dd3ab2842d5f1d529db0f74ff191983777f8fa1429337e6a62752af9856c94",
+  "command_or_probe": "recorded redaction of protected acceptance observation",
+  "exit_code": 0,
+  "observations": {
+    "result": "PASS",
+    "exact_byte_valid": true,
+    "maximum_body_bytes": 262144,
+    "oversized_observed_bytes": 262145,
+    "oversized_status": 413,
+    "oversized_workflow_execution_delta": 0,
+    "resource_invalid_external_calls": 0
+  },
+  "artifact_hashes": {},
+  "redaction_state": "PUBLIC_REDACTED",
+  "redaction_transform": {
+    "id": "pf07-public-evidence-redaction",
+    "version": "1",
+    "script_sha256": "85e4f8137dceb273572374edab98fab7f16a99988a63c2335637755a859bdc9a"
+  },
+  "source_acceptance_id": "GATE-05-RESOURCE-BOUNDS",
+  "source_record_sha256": "78a8dffbd228d5c76fd5d0f2ca9a777d06df571a8fd0da0c23a9d46d212d9664",
+  "source_artifact_hashes": {
+    "gate05_resource_trace": "b7a23336d7093396c5f93f4dab28b62fd0eabd9d5a7246d1fb54f3ac072a382a"
+  }
+}

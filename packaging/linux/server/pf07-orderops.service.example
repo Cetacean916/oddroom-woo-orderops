@@ -1,0 +1,16 @@
+[Unit]
+Description=OddRoom OrderOps PF07 package runtime
+Requires=docker.service
+After=docker.service network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/pf07-orderops
+ExecStart=/opt/pf07-orderops/server/pf07-server start
+ExecStop=/opt/pf07-orderops/server/pf07-server stop
+TimeoutStartSec=1200
+TimeoutStopSec=240
+
+[Install]
+WantedBy=multi-user.target

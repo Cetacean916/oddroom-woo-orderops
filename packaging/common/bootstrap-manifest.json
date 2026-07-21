@@ -1,0 +1,317 @@
+{
+  "schema": "pf07.bootstrap-manifest.v2",
+  "package_version": "1.0.0",
+  "release_tag": "pf07-v1.0.0",
+  "delivery_mode": "GITHUB_RELEASE_ASSETS",
+  "default_runtime_mode": "DEMO_MODE",
+  "supported_modes": [
+    "DEMO_MODE",
+    "CONNECTED_MODE"
+  ],
+  "default_locale": "ko_KR",
+  "supported_locales": [
+    "ko_KR",
+    "en_US"
+  ],
+  "package_layout": {
+    "launcher": "launcher",
+    "action_contract": "packaging/common/action-contract.json",
+    "prerequisites": "packaging/common/prerequisites.json",
+    "tunnel_route_allowlist": "packaging/network/tunnel-route-allowlist.json",
+    "runtime_definition": "packaging/common/compose.yaml",
+    "demo_workflow": "packaging/common/workflows/demo-mode.json",
+    "connected_workflow": "packaging/common/workflows/connected-mode.json",
+    "task_runner_definition": "packaging/common/task-runner.Dockerfile",
+    "seed": "packaging/common/seed",
+    "plugin": "payload/oddroom-orderops",
+    "local_state": ".pf07",
+    "locale_roots": {
+      "ko_KR": [
+        "launcher/ui/index.ko.html",
+        "packaging/common/seed/catalogs/ko_KR.json",
+        "payload/oddroom-orderops/assets/images/quiet-utility"
+      ],
+      "en_US": [
+        "launcher/ui/index.en.html",
+        "packaging/common/seed/catalogs/en_US.json",
+        "payload/oddroom-orderops/assets/images/quiet-utility"
+      ]
+    }
+  },
+  "entrypoints": {
+    "shared_graphical_hub": "launcher/bin/pf07-hub",
+    "shared_command": "launcher/bin/pf07",
+    "windows_graphical": "PF07-Launcher.exe",
+    "macos_graphical": "PF07 Launcher.app",
+    "linux_graphical": "PF07-Launcher",
+    "linux_server": "server/pf07-server"
+  },
+  "content_bindings": {
+    "path": "packaging/common/distribution-content-bindings.json",
+    "sha256": "654c1a75b09db8c40bc96a296405d42447c4ef4f59b95d9fb7d9c7294c0fc34c",
+    "content_set_sha256": "02a7ea3686f2e49ab3d7791b2f58569470f263ffef063effa25ebce061448d6d",
+    "includes": [
+      "sanitized deterministic seed",
+      "PF07 plugin",
+      "launcher core and hub UI",
+      "both workflow modes",
+      "both locale roots",
+      "task-runner lock and definitions"
+    ]
+  },
+  "distribution_seed": {
+    "classification": "DISTRIBUTION_SEED",
+    "seed_id": "quiet-utility-1.0.0",
+    "manifest": "packaging/common/seed/seed-manifest.json",
+    "manifest_sha256": "92388ce881106b25617b1820f8eec5111535291313aae1f8d68c83f6567c0257",
+    "contains_runtime_database": false,
+    "contains_credentials": false,
+    "contains_owner_state": false
+  },
+  "bootstrap_stages": [
+    "detect-prerequisites-with-resumable-gui-guidance",
+    "create-package-local-state",
+    "generate-local-demo-credentials",
+    "download-and-sha256-verify-exact-dependencies",
+    "start-one-isolated-compose-project",
+    "install-wordpress-and-pinned-dependencies",
+    "activate-oddroom-orderops",
+    "materialize-deterministic-demo-store",
+    "import-and-activate-one-mode-specific-n8n-workflow",
+    "start-version-matched-external-task-runner",
+    "start-package-owned-worker",
+    "verify-store-admin-n8n-task-runner-and-worker"
+  ],
+  "container_images": {
+    "mariadb": {
+      "repository": "docker.io/library/mariadb",
+      "version": "11.4.12",
+      "manifest_digest": "sha256:a794d9eb009e20de605858a11f32f63b4075cbd197c650436f0e3b457e4caed7",
+      "reference": "mariadb@sha256:a794d9eb009e20de605858a11f32f63b4075cbd197c650436f0e3b457e4caed7",
+      "resolved_platform_digests": {
+        "linux/amd64": "sha256:a6ee0e234c527de59d6a1924703e5512e7a762c74616a443ec9c729b3a9c5154",
+        "linux/arm64/v8": "sha256:1cd9922a5b8c757115954ed8966f00d0c950c742852ab8d56d3d823c2f97034c"
+      }
+    },
+    "wordpress": {
+      "repository": "docker.io/library/wordpress",
+      "image_baseline": "7.0.1-php8.3-apache",
+      "application_target": "7.0.2",
+      "manifest_digest": "sha256:d40b86dbdfcfad808a2029acf6543c670c4a61c29f70b9d24605e7d0b31ab83d",
+      "reference": "wordpress@sha256:d40b86dbdfcfad808a2029acf6543c670c4a61c29f70b9d24605e7d0b31ab83d",
+      "resolved_platform_digests": {
+        "linux/amd64": "sha256:8ac9547ff6da02ddd1d477b1e1e79fbe60af92d86af2d6ae043be3764d958f16",
+        "linux/arm64/v8": "sha256:e5260abaf84e9d4bae56adf1f54ab0b6228ae067f7e8c1f46896ecf0beb1150a"
+      }
+    },
+    "wpcli_and_worker": {
+      "repository": "docker.io/library/wordpress",
+      "wp_cli_version": "2.12.0",
+      "manifest_digest": "sha256:f8aeb68164c6a04f5dcc91da30d8ffa096b0f7fafb7a65f144c2dd62587caca0",
+      "reference": "wordpress@sha256:f8aeb68164c6a04f5dcc91da30d8ffa096b0f7fafb7a65f144c2dd62587caca0",
+      "resolved_platform_digests": {
+        "linux/amd64": "sha256:0587fa20d1fce7880f4137ece2154c92ec948dab920f8d6ca3559a50c354efe8",
+        "linux/arm64/v8": "sha256:846f447063dcc0e6e8e997514cb5272578ffa67dacac7ecea906ec1cad11f87d"
+      }
+    },
+    "n8n": {
+      "repository": "docker.n8n.io/n8nio/n8n",
+      "version": "2.25.7",
+      "manifest_digest": "sha256:761374d4eb841b0a22771d6bd68f0e8d827b4979ae4e490045517b13fc1259dd",
+      "reference": "docker.n8n.io/n8nio/n8n@sha256:761374d4eb841b0a22771d6bd68f0e8d827b4979ae4e490045517b13fc1259dd",
+      "resolved_platform_digests": {
+        "linux/amd64": "sha256:0422bec45654675268a167f784ee9983b7506bcca32f2e4eb43672ace56d5e58",
+        "linux/arm64": "sha256:f58d452ba37df61131b70ebdb4929bf4a469243cb3a9318bd4a9ac8a0cff922d"
+      }
+    },
+    "task_runner_base": {
+      "repository": "docker.io/n8nio/runners",
+      "version": "2.25.7",
+      "manifest_digest": "sha256:d890fe221de44d75e1900eaf83f4499ad63503bfcc97cb04f0abfe5bc48bc0a6",
+      "reference": "n8nio/runners@sha256:d890fe221de44d75e1900eaf83f4499ad63503bfcc97cb04f0abfe5bc48bc0a6",
+      "resolved_platform_digests": {
+        "linux/amd64": "sha256:c070f6b7db175fcc85040623f682b656ac77c77d00705f455cc37e52a7914214",
+        "linux/arm64": "sha256:b1d34e37ce372687520ea45505858749d78423df1f4e73883b5860bc1f4ca6de"
+      }
+    },
+    "task_runner_builder": {
+      "repository": "docker.io/library/node",
+      "manifest_digest": "sha256:a0b9bf06e4e6193cf7a0f58816cc935ff8c2a908f81e6f1a95432d679c54fbfd",
+      "reference": "node@sha256:a0b9bf06e4e6193cf7a0f58816cc935ff8c2a908f81e6f1a95432d679c54fbfd",
+      "resolved_platform_digests": {
+        "linux/amd64": "sha256:4ba75f835bb8802193e4c114572113d4b26f95f6f094f4b5229d2a77773e0afc",
+        "linux/arm64/v8": "sha256:eef73a25205e27bd016ce672af71560ad6b681142ddf00ff63c7b3098eafcd4d"
+      }
+    },
+    "task_runner_derived": {
+      "reference": "pf07-task-runners:2.25.7-json-bigint-1.0.0-pf07v1",
+      "contract_label": "io.pf07.task-runner.contract=n8n-2.25.7-json-bigint-1.0.0-pf07v1",
+      "first_online_run_build_only": true,
+      "dockerfile": "packaging/common/task-runner.Dockerfile",
+      "dockerfile_sha256": "814818e5048c196582230032b900bcd8c34ac8949e983af532f3c60309a90974",
+      "dependency_lock": "packaging/common/task-runner-deps/package-lock.json",
+      "dependency_lock_sha256": "158620aedf2c152be8e6c15166bde5cb48f62da7422f15539995de4dd45884b0",
+      "runner_config_sha256": "a29e4c1970342c27e3e61e1fcb6db650b3270408f37b6077f479934170c94832",
+      "warm_start_requires_rebuild": false
+    }
+  },
+  "application_dependencies": {
+    "wordpress": "7.0.2",
+    "woocommerce": "10.9.4",
+    "action_scheduler": "4.0.0",
+    "oddroom_orderops_plugin": "0.2.0",
+    "oddroom_orderops_schema": "1.1.0",
+    "canonical_payload_schema": "1",
+    "n8n": "2.25.7",
+    "task_runner_dependency_lock": "packaging/common/task-runner-deps/package-lock.json"
+  },
+  "verified_online_dependencies": {
+    "wordpress-7.0.2.zip": {
+      "url": "https://wordpress.org/wordpress-7.0.2.zip",
+      "sha256": "a616580ed2152ae71d81439884b4bcda329c5322f9bd2092ac7a3a68dbcea7a7"
+    },
+    "action-scheduler-4.0.0.zip": {
+      "url": "https://github.com/woocommerce/action-scheduler/releases/download/4.0.0/action-scheduler.zip",
+      "sha256": "7dc68d4bfe8f72c02fe2717ee0580a1a6ae5044fb455793e1bb076dc56d8a4fb"
+    },
+    "woocommerce.10.9.4.zip": {
+      "url": "https://downloads.wordpress.org/plugin/woocommerce.10.9.4.zip",
+      "sha256": "6e58fc3ba9b18d1c9aee6b0227d3c3c09e4fe2c1332823bd2e0ac54ffcff64a9"
+    },
+    "wordpress-7.0.2-ko_KR.zip": {
+      "url": "https://downloads.wordpress.org/translation/core/7.0.2/ko_KR.zip",
+      "sha256": "eb7ed99e224a346340cb992fa7427de32db58e9700c842ea379985d33e02200d"
+    },
+    "woocommerce-10.9.4-ko_KR.zip": {
+      "url": "https://downloads.wordpress.org/translation/plugin/woocommerce/10.9.4/ko_KR.zip",
+      "sha256": "b4de863b0b240f30f382b742027902464933c3e0f9e3b13b6d02586f8e892654"
+    }
+  },
+  "persistent_volume_schema": {
+    "version": "1",
+    "compose_project_source": ".pf07/runtime.env:PF07_COMPOSE_PROJECT",
+    "volumes": [
+      "mariadb_data",
+      "wordpress_data",
+      "n8n_data"
+    ],
+    "business_database_count": 1,
+    "n8n_runtime_identity_count": 1,
+    "shop_instance_id_count": 1
+  },
+  "migration_identities": [
+    "oddroom-orderops-schema-1.1.0",
+    "package-config-v1",
+    "persistent-volume-schema-1"
+  ],
+  "package_owned_resource_names": {
+    "compose_project": "pf07pkg-<12 random hex>",
+    "database": "oddroom_orderops",
+    "wordpress_volume": "<compose-project>_wordpress_data",
+    "mariadb_volume": "<compose-project>_mariadb_data",
+    "n8n_volume": "<compose-project>_n8n_data",
+    "demo_workflow_id": "PF07PackageDemoV1",
+    "connected_workflow_id": "PF07OrderOpsVSL1",
+    "shop_instance_id": "pf07-<UUIDv4>"
+  },
+  "generated_local_material": [
+    "database-password",
+    "database-root-password",
+    "wordpress-admin-password",
+    "webhook-hmac-key",
+    "mode-specific-webhook-path",
+    "n8n-encryption-key",
+    "n8n-runner-auth-token",
+    "shop-instance-id",
+    "run-id",
+    "compose-project-name"
+  ],
+  "credential_generation": {
+    "source": "Python secrets module",
+    "storage": ".pf07/runtime.env mode 0600",
+    "fixed_public_credentials": false,
+    "connected_credentials": ".pf07/connected.env mode 0600 after service tests",
+    "credential_values_in_manifest": false
+  },
+  "reset_behavior": {
+    "confirmation": "RESET PF07 DEMO",
+    "mode_required": "DEMO_MODE",
+    "deletes": [
+      "package-owned synthetic orders",
+      "package-owned PF07 event/outbox rows",
+      "package-owned Action Scheduler jobs for those events"
+    ],
+    "preserves": [
+      "administrator account",
+      "catalog and presentation",
+      "SHOP_INSTANCE_ID",
+      "Compose project",
+      "database and persistent volumes",
+      "configuration"
+    ],
+    "external_records_touched": false,
+    "unrelated_resources_touched": false
+  },
+  "controlled_update": {
+    "confirmation": "UPDATE PF07",
+    "predecessor_requirement": "separate complete extraction with the same package version and artifact ID but a different reviewed build ID",
+    "migration_id": "controlled-pre-release-content-rebind-v1",
+    "state_transfer": "copy package-local configuration and bind the same three package-owned volumes only after predecessor quiescence",
+    "workflow_update": "replace definitions by stable workflow ID without creating duplicate workflow identities",
+    "successor_writer_count": 1,
+    "predecessor_fence": ".pf07/UPDATE-FENCE.json"
+  },
+  "package_local_backup": {
+    "classification": "PACKAGE_LOCAL_BACKUP",
+    "location": "recipient-selected path outside the extracted package",
+    "envelope": "pf07.authenticated-backup-envelope.v1",
+    "cipher": "AES-256-CTR",
+    "authentication": "HMAC-SHA256-ENCRYPT_THEN_MAC",
+    "kdf": "PBKDF2-HMAC-SHA256",
+    "kdf_iterations": 600000,
+    "passphrase_stored": false
+  },
+  "warm_demo_offline": {
+    "requires_one_successful_online_acquisition": true,
+    "verified_download_cache": ".pf07/downloads",
+    "task_runner_image": "pf07-task-runners:2.25.7-json-bigint-1.0.0-pf07v1",
+    "rebuild_on_warm_start": false,
+    "applies_to": ["stop", "start", "rerun", "recover", "reset-demo"],
+    "does_not_claim": ["offline-first-install", "CONNECTED_MODE", "HTTPS_TUNNEL", "package-update"]
+  },
+  "optional_https_tunnel": {
+    "local_mode_dependency": false,
+    "route_allowlist": "packaging/network/tunnel-route-allowlist.json",
+    "route_allowlist_sha256": "9b01a5d619825c93ac4680eff87b2e07eaff6fc11b6673021aea270fbbec4566",
+    "default_provider": "cloudflared quick tunnel",
+    "provider_cli_bundled": false,
+    "provider_executable_version_and_sha_recorded_at_runtime": true,
+    "credential_storage": "no credential for quick tunnel; external protected config is never copied for ngrok",
+    "internal_surfaces_public": false
+  },
+  "state_classes": {
+    "distribution_seed": "public sanitized deterministic files bound above",
+    "package_local_backup": "recipient-created authenticated-encryption archive outside package and public roots",
+    "owner_protected_restore_backup": "never included or consumed by this distribution path"
+  },
+  "external_effects": {
+    "payments": "disabled",
+    "email": "captured-locally",
+    "webhook_target": "package-owned-n8n-private-network",
+    "demo_mode": {
+      "credentials_required": false,
+      "hubspot": "deterministic-package-adapter-only",
+      "slack": "deterministic-package-adapter-only",
+      "external_acceptance_claimed": false
+    },
+    "connected_mode": {
+      "credentials_required": true,
+      "credential_storage": ".pf07/connected.env mode 0600",
+      "connection_tests": [
+        "hubspot-deal-pipeline-read",
+        "slack-auth-test"
+      ],
+      "data_classification": "SYNTHETIC_ONLY"
+    }
+  }
+}

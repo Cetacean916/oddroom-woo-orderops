@@ -89,11 +89,49 @@ def order_shapes(runtime: ProbeRuntime, prefix: str) -> tuple[list[dict], dict]:
 
 
 def gate01(runtime: ProbeRuntime, suffix: str) -> None:
+    baseline = runtime.latest_execution_id()
     created, observed = order_shapes(runtime, f"g01-{suffix}")
+    details = runtime.new_execution_details(baseline, 3)
     rows = {row["order_id"]: row for row in observed["rows"]}
+    by_event: dict[str, list[dict]] = {}
+    for detail in details:
+        event_hash = detail.get("event_key_sha256")
+        if isinstance(event_hash, str):
+            by_event.setdefault(event_hash, []).append(detail)
+    required_hubspot_nodes = {
+        "HubSpot 2026-03 Deal Read",
+        "HubSpot 2026-03 Deal Upsert",
+        "HubSpot 2026-03 Deal Readback",
+    }
     trace_orders = []
     for order in created:
         row = rows[order["order_id"]]
+        matches = by_event.get(runtime.event_key_sha256(row["event_key"]), [])
+        require(len(matches) == 1, "GATE-01 did not observe exactly one installed-workflow execution per order")
+        execution = matches[0]
+        executed_nodes = execution.get("executed_nodes")
+        envelope = execution.get("envelope")
+        final_state = runtime.row_lock_state(row["outbox_id"])
+        require(execution.get("status") == "success" and execution.get("verified_authorized") is True, "GATE-01 signed request was not authenticated")
+        require(
+            execution.get("ingress_raw_body_sha256") == row["stored_payload_hash"]
+            and execution.get("verified_payload_sha256") == row["stored_payload_hash"],
+            "GATE-01 exact stored bytes did not reach authenticated workflow input",
+        )
+        require(isinstance(executed_nodes, list) and required_hubspot_nodes <= set(executed_nodes), "GATE-01 fixed HubSpot 2026-03 deal path did not execute")
+        require(
+            isinstance(envelope, dict)
+            and envelope.get("result") == "completed"
+            and envelope.get("processing_phase") == "completed"
+            and envelope.get("deal_checkpoint_present") is True,
+            "GATE-01 complete workflow envelope or Deal checkpoint is missing",
+        )
+        require(
+            final_state.get("status") == "completed"
+            and final_state.get("phase") == "completed"
+            and final_state.get("deal_checkpoint_sha256") is not None,
+            "GATE-01 WordPress did not persist the completed Deal checkpoint",
+        )
         trace_orders.append({
             "order_id": order["order_id"],
             "product_id": order["product_id"],
@@ -103,6 +141,19 @@ def gate01(runtime: ProbeRuntime, suffix: str) -> None:
             "payload": {
                 "payload_json": row["payload_json"],
                 "stored_payload_hash": row["stored_payload_hash"],
+            },
+            "execution": {
+                "execution_id": execution["execution_id"],
+                "verified_authorized": execution["verified_authorized"],
+                "ingress_raw_body_sha256": execution["ingress_raw_body_sha256"],
+                "verified_payload_sha256": execution["verified_payload_sha256"],
+                "executed_hubspot_nodes": sorted(required_hubspot_nodes & set(executed_nodes)),
+                "envelope_result": envelope["result"],
+                "envelope_phase": envelope["processing_phase"],
+                "envelope_deal_checkpoint_present": envelope["deal_checkpoint_present"],
+                "wordpress_status": final_state["status"],
+                "wordpress_phase": final_state["phase"],
+                "wordpress_deal_checkpoint_present": final_state["deal_checkpoint_sha256"] is not None,
             },
         })
     write_trace(runtime, "normal-order", "gate01_order_variety_trace", {

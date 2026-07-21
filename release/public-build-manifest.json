@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "builder_sha256": "e7b904eefb36e655e1e125656362c9804e020009a5f5a8750a314c4448e6b82c",
-  "allowlist_sha256": "8af20ac0d9947cfc0aec6cd63df22e487615fe634428a6eaed44e72abb4dbcef",
+  "builder_sha256": "2cb55275eb1c02003c03815b6c9f8641c00157af001ca39af298398df2fe165f",
+  "allowlist_sha256": "05d590a74aaf444abdd781854dabba03818f8633c4cbd2d7ace940db487a0748",
   "files": [
     {
       "path": ".env.example",
@@ -11,7 +11,7 @@
     {
       "path": ".github/workflows/ci.yml",
       "mode": "0644",
-      "sha256": "89251a065a33eb4017ecc91a821bb173cd727a8621a4d352e4b53161a23b87ef"
+      "sha256": "dbaaf1d238d5964e4e000510b1ed4f67da07f5fce60bfc0f97b0f9f55195b847"
     },
     {
       "path": ".gitignore",
@@ -34,19 +34,9 @@
       "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643"
     },
     {
-      "path": "package-lock.json",
-      "mode": "0644",
-      "sha256": "6a5193f0142bf5c19d4c0d03b84a486bdc59d6e466ca4c87f2d0797c75c3b08f"
-    },
-    {
-      "path": "package.json",
-      "mode": "0644",
-      "sha256": "50e8af765bc36c9453cadb9146d2392742e0ec761cf57e40a135b58b55a6de9d"
-    },
-    {
       "path": "README.md",
       "mode": "0644",
-      "sha256": "6042c1f68921d5f92e09fc26a1c2243215fbc3eb47daa14278490de217b42dbc"
+      "sha256": "61e069af61b3cb8e6f4235cec2ab2d75df2b7dff7616f646691bdc09e0bd05b3"
     },
     {
       "path": "THIRD_PARTY_NOTICES.md",
@@ -56,7 +46,7 @@
     {
       "path": "case-study/README.md",
       "mode": "0644",
-      "sha256": "17b8a26ff1b987e50d568f8777ba5bc6856d012ec1005a6b9e2a0926a6478f9a"
+      "sha256": "2d642c012db6a1ca06e1a5e4ba318633be435a7503d14ddca0dbb8b851a8eb1f"
     },
     {
       "path": "case-study/architecture.svg",
@@ -194,19 +184,109 @@
       "sha256": "164d91d335879fecfc596a1e55bf2376da28e2bfbdd350d3b5de0ac1fdafdf13"
     },
     {
+      "path": "evidence/refinement/public/acceptance-matrix.json",
+      "mode": "0644",
+      "sha256": "8ec29edad80c081d01a9921e5734b9279d5bb42db074e0cc630dad91fb758dda"
+    },
+    {
+      "path": "evidence/refinement/public/duplicate-suppression.json",
+      "mode": "0644",
+      "sha256": "5041289bb7d76fb342e5662dd11d3bc8e268ec0cd0ccd0bd90e5f50a45210854"
+    },
+    {
+      "path": "evidence/refinement/public/e2e-normal-order.json",
+      "mode": "0644",
+      "sha256": "2cf237c18a351fbb0194356c222f9db22898ebf7648e8f1a78400615f409554c"
+    },
+    {
+      "path": "evidence/refinement/public/e2e-variable-coupon-order.json",
+      "mode": "0644",
+      "sha256": "b0240361152e2fd81409c482048b81c5053c5d347d19f6332556ddf1d87a3e2a"
+    },
+    {
+      "path": "evidence/refinement/public/evidence-manifest.sha256",
+      "mode": "0644",
+      "sha256": "7501ae65d1ad0fc4c9bc3f53ee0b5088f5ad938ad30acfdeee1020bc032c841e"
+    },
+    {
+      "path": "evidence/refinement/public/hmac-rejection.json",
+      "mode": "0644",
+      "sha256": "6952f54dec3d3c2a9f364794686e8377c08e2fab0d10568207edc95afbffaee6"
+    },
+    {
+      "path": "evidence/refinement/public/hpos-compatibility.json",
+      "mode": "0644",
+      "sha256": "4ae64da9b24220e182452ebffbf247604f19ae3c2ed5dd2cae07a511d1fdac51"
+    },
+    {
+      "path": "evidence/refinement/public/operator-outcome-resolution.json",
+      "mode": "0644",
+      "sha256": "2220577f9dbc247b98d48cdb9328bb274fdf90564df476a0bce6e96e4ab56521"
+    },
+    {
+      "path": "evidence/refinement/public/outage-retry.json",
+      "mode": "0644",
+      "sha256": "8f2420a7e2c54acb191ef0469508ba681990dcc393cb8142c6c92d1af625b08f"
+    },
+    {
+      "path": "evidence/refinement/public/partial-failure-recovery.json",
+      "mode": "0644",
+      "sha256": "ac6b08d00f08bafc4988ba1582d6e17592e388b8876e9cb3451734021264e836"
+    },
+    {
+      "path": "evidence/refinement/public/product-quality.json",
+      "mode": "0644",
+      "sha256": "099e142170cd882e0e4aed06995ea6753944f464074c1ab4251bc4b6eedf0214"
+    },
+    {
+      "path": "evidence/refinement/public/raw-byte-resource-bounds.json",
+      "mode": "0644",
+      "sha256": "28cf0a63889e7350fb1f1be51ed542c7cccd7e7c1c86fc8aec9b6cd8caa0a177"
+    },
+    {
+      "path": "evidence/refinement/public/reconciliation-repair.json",
+      "mode": "0644",
+      "sha256": "163ff5401d6d6023a1602c5e58cd2fe5706f4f67073fa48779449921991b876e"
+    },
+    {
+      "path": "evidence/refinement/public/restore-drill.json",
+      "mode": "0644",
+      "sha256": "031e1e52f5e48fb4eb41b74d4fd4a277816efe12ec622fd95f2c5d72dbb8c868"
+    },
+    {
+      "path": "evidence/refinement/public/retry-exhaustion.json",
+      "mode": "0644",
+      "sha256": "b9b71032a0091ec86abb89318cff46094b0c1567f57100535c6e1518a101c2e5"
+    },
+    {
+      "path": "evidence/refinement/public/stale-lease-recovery.json",
+      "mode": "0644",
+      "sha256": "5a054d7c00b8b1411611c030c1f7118c1289d8ee802c6caf5e092809ce73aa88"
+    },
+    {
+      "path": "evidence/refinement/public/state-non-regression.json",
+      "mode": "0644",
+      "sha256": "7da5863bf7f272c7c40d746a6869114b0bac34163fa9ab26b177fa5ea37e6915"
+    },
+    {
+      "path": "evidence/refinement/public/vsl-pass.json",
+      "mode": "0644",
+      "sha256": "38a23612121f554d1ae206a6d8a48f88aba939bc261a8e45a768139dd30263fc"
+    },
+    {
       "path": "fixtures/README.md",
       "mode": "0644",
-      "sha256": "e5a7072a89f8b6e218d9d8e262fe28bf4eafd555ab235cf57502ccdc201a6946"
+      "sha256": "cb460b5d4a2a8b520a6dc2c36e33a2db829784a374d13d5d1c898a5d6ae93543"
     },
     {
       "path": "fixtures/acceptance-fixtures.json",
       "mode": "0644",
-      "sha256": "014fe12e3339f26984170b65cb2793a5a39a5cd3f0e0d50804959301a03a94a7"
+      "sha256": "59d4237a8bc21d9bfae2b00f1bcf24166723066c31f6aa8f0be63c185dbd7e80"
     },
     {
       "path": "fixtures/run",
       "mode": "0755",
-      "sha256": "fab320b1d1e8071a79400bc02626a8fb59ea955d508247cfdd05afccc681f619"
+      "sha256": "e7776f2fd29b23a01fbd9a10738a4b87884e8b2cbaaa37017e7e2decc6b01003"
     },
     {
       "path": "infra/compose.yaml",
@@ -239,9 +319,344 @@
       "sha256": "04ae81d3bb7f1b98280ae61b5d1ca1f020aa6248eec4a5ad6ac1de4aed1afc4e"
     },
     {
+      "path": "launcher/bin/pf07",
+      "mode": "0755",
+      "sha256": "77a62c4a6c643391fba94e324996434854b1097b397ccf01413382aa8097e783"
+    },
+    {
+      "path": "launcher/bin/pf07-hub",
+      "mode": "0755",
+      "sha256": "716a664b6dadb71289f3138cf6267b3832eed53846f2dea8a888ea3f91fcbc03"
+    },
+    {
+      "path": "launcher/pf07_launcher/__init__.py",
+      "mode": "0644",
+      "sha256": "299768f2c0387d18f1342ed23f4ee1d79c6b146a392674365e7519381677a18d"
+    },
+    {
+      "path": "launcher/pf07_launcher/action_contract.py",
+      "mode": "0644",
+      "sha256": "c891324bd015bc608809bb2852531fc9e0a2ac1c0f4e684ed1f4b0ad2e4f68f3"
+    },
+    {
+      "path": "launcher/pf07_launcher/cli.py",
+      "mode": "0644",
+      "sha256": "1abb9c7df4159d451e665e4ec87edb7e4682779651942de73f0f6764f3584a89"
+    },
+    {
+      "path": "launcher/pf07_launcher/core.py",
+      "mode": "0644",
+      "sha256": "e378b15f3cc83803ed23755eb0a30a45006d73d6b40171b43d0d52cfa4347ca3"
+    },
+    {
+      "path": "launcher/pf07_launcher/hub.py",
+      "mode": "0644",
+      "sha256": "86ce942511f6279c4c018f062b96c1994239e5388e07e84ebe80c49b1a9a90cf"
+    },
+    {
+      "path": "launcher/pf07_launcher/tunnel_proxy.py",
+      "mode": "0644",
+      "sha256": "9f491bc072483c08a153c9d805fc31dc724b174391729143c47d351a39ffd215"
+    },
+    {
+      "path": "launcher/ui/app.css",
+      "mode": "0644",
+      "sha256": "74bf695e858bc7bfcfd6447228d9a72c88c512c5f1464415ffbd79ac187f1270"
+    },
+    {
+      "path": "launcher/ui/app.js",
+      "mode": "0644",
+      "sha256": "6b2d5608cf58c9b0ec8681ff18777efe7dbcbdc673d10cd7cf630bcf278981bc"
+    },
+    {
+      "path": "launcher/ui/index.en.html",
+      "mode": "0644",
+      "sha256": "65f541e9c77328d854cb0c00eba72613a13b0c0907a00d576316ddb24722e8ca"
+    },
+    {
+      "path": "launcher/ui/index.ko.html",
+      "mode": "0644",
+      "sha256": "318024d5bd72acff0019d9c8780647b7a96532198fbce64bffb45be9d2c004ce"
+    },
+    {
+      "path": "package-lock.json",
+      "mode": "0644",
+      "sha256": "6a5193f0142bf5c19d4c0d03b84a486bdc59d6e466ca4c87f2d0797c75c3b08f"
+    },
+    {
+      "path": "package.json",
+      "mode": "0644",
+      "sha256": "50e8af765bc36c9453cadb9146d2392742e0ec761cf57e40a135b58b55a6de9d"
+    },
+    {
+      "path": "packaging/common/PACKAGE-README.en.md",
+      "mode": "0644",
+      "sha256": "216e49da5b544583538894d1bb2e1a97412c4701009404bdacc53c83047fe690"
+    },
+    {
+      "path": "packaging/common/PACKAGE-README.ko.md",
+      "mode": "0644",
+      "sha256": "dd90372f5f426493f4c232244a0aafae31cb92300e5aa9556d5c1ea664de75a6"
+    },
+    {
+      "path": "packaging/common/action-contract.json",
+      "mode": "0644",
+      "sha256": "0dbd38c329c31ef9b008ba9daf3c2e8ecc0f93be3a6706cc00dc3de67e0607ca"
+    },
+    {
+      "path": "packaging/common/bootstrap-manifest.json",
+      "mode": "0644",
+      "sha256": "e16957806d79af694d10b363147ba8b7b2a84a36534614655517290fa1a1a471"
+    },
+    {
+      "path": "packaging/common/compose.yaml",
+      "mode": "0644",
+      "sha256": "8e3727972402e751d01bb7e91dee164ea26566b6ca45b050dc11747b423fbc51"
+    },
+    {
+      "path": "packaging/common/distribution-content-bindings.json",
+      "mode": "0644",
+      "sha256": "654c1a75b09db8c40bc96a296405d42447c4ef4f59b95d9fb7d9c7294c0fc34c"
+    },
+    {
+      "path": "packaging/common/n8n-task-runners.json",
+      "mode": "0644",
+      "sha256": "a29e4c1970342c27e3e61e1fcb6db650b3270408f37b6077f479934170c94832"
+    },
+    {
+      "path": "packaging/common/prerequisites.json",
+      "mode": "0644",
+      "sha256": "386996c864076bfa1bccc9f2bd20c31206de5599202fd0b264a890a0b911191f"
+    },
+    {
+      "path": "packaging/common/seed/catalogs/en_US.json",
+      "mode": "0644",
+      "sha256": "d4fdd7d1672b4775142ff726b0c421466686e4888f2e9eed5184a17d59c204fb"
+    },
+    {
+      "path": "packaging/common/seed/catalogs/ko_KR.json",
+      "mode": "0644",
+      "sha256": "39e18a1f3acca16466a75e44a6d5c79a6b53f78da303b3b15b291bb1a6244b5a"
+    },
+    {
+      "path": "packaging/common/seed/seed-manifest.json",
+      "mode": "0644",
+      "sha256": "92388ce881106b25617b1820f8eec5111535291313aae1f8d68c83f6567c0257"
+    },
+    {
+      "path": "packaging/common/task-runner-deps/package-lock.json",
+      "mode": "0644",
+      "sha256": "158620aedf2c152be8e6c15166bde5cb48f62da7422f15539995de4dd45884b0"
+    },
+    {
+      "path": "packaging/common/task-runner-deps/package.json",
+      "mode": "0644",
+      "sha256": "b2f4bdfbc31ec6f2dfc62c2f75b2959a1c0aadc205f4544f1b820d961324f3a3"
+    },
+    {
+      "path": "packaging/common/task-runner.Dockerfile",
+      "mode": "0644",
+      "sha256": "814818e5048c196582230032b900bcd8c34ac8949e983af532f3c60309a90974"
+    },
+    {
+      "path": "packaging/common/workflows/connected-mode.json",
+      "mode": "0644",
+      "sha256": "0f75f755ebdf5650d4bc2468b656faa57255a7e31b93273673408c459834253b"
+    },
+    {
+      "path": "packaging/common/workflows/demo-mode.json",
+      "mode": "0644",
+      "sha256": "2b49050a8b4cf21a9b94f31516d95a6de5e02f251d7d6830ccd45953a9749e99"
+    },
+    {
+      "path": "packaging/linux/PF07-Launcher",
+      "mode": "0755",
+      "sha256": "7b6e1ce9c88268990c7783e12eaeebee070c044893fc9edce3293e458c5c9aa0"
+    },
+    {
+      "path": "packaging/linux/PF07-OrderOps.desktop",
+      "mode": "0644",
+      "sha256": "2e8c6a8ac05cd188f6ff10982bf02070bfc609bd211e29c6b5f36b062be3b2a6"
+    },
+    {
+      "path": "packaging/linux/README.local.en.md",
+      "mode": "0644",
+      "sha256": "55fd3480b880f0442d034f96ffaa1c33de6cb5911e5e3720d73aa9d528829d23"
+    },
+    {
+      "path": "packaging/linux/README.local.ko.md",
+      "mode": "0644",
+      "sha256": "361134184c848a2652a445c995d02e30fcd25fcc23b316aa3721f10311a89f27"
+    },
+    {
+      "path": "packaging/linux/local-package-allowlist.json",
+      "mode": "0644",
+      "sha256": "ab886571037b646a85c6c4653d2f417b9ed0f3afa691c16797f9255b4afaf891"
+    },
+    {
+      "path": "packaging/linux/pf07",
+      "mode": "0755",
+      "sha256": "b77d98e2c1db660a1434a4a56b99a1f44995e1bc0f8677de1b8a8498065e2a85"
+    },
+    {
+      "path": "packaging/linux/server-package-allowlist.json",
+      "mode": "0644",
+      "sha256": "f69607487b659cfcace6160f007fb2b59c603c97233ee6c5cd1bb03cf3ea3849"
+    },
+    {
+      "path": "packaging/linux/server/README.en.md",
+      "mode": "0644",
+      "sha256": "41b6e9de2746061a07b07e5ba65d1f90d4d8dfe92aa6e4950d2d0cb6cf36ada4"
+    },
+    {
+      "path": "packaging/linux/server/README.ko.md",
+      "mode": "0644",
+      "sha256": "c1471bbb74dacfbafa6aed99e29ca4f8ec28734f628954e5900596a3fcaa5061"
+    },
+    {
+      "path": "packaging/linux/server/nginx-pf07.conf.example",
+      "mode": "0644",
+      "sha256": "b6902ef60af84b91c5b4a12699982cc39513435dadc9e47324b02c2ba9924d86"
+    },
+    {
+      "path": "packaging/linux/server/pf07-orderops.service.example",
+      "mode": "0644",
+      "sha256": "fd5799a544299a7a8d82f09d623c7a484f22edc134997797bc322fd9841eaead"
+    },
+    {
+      "path": "packaging/linux/server/pf07-server",
+      "mode": "0755",
+      "sha256": "6c1c022276143e9021c0397590122122c7d997b55f4202d734ddc2d706230a9b"
+    },
+    {
+      "path": "packaging/linux/server/pf07-server.env.example",
+      "mode": "0644",
+      "sha256": "d1fd8f32c179526805e643e3b616ed7effa73358a612998471714b12fc2361cf"
+    },
+    {
+      "path": "packaging/macos/PF07 Launcher.app/Contents/Info.plist",
+      "mode": "0644",
+      "sha256": "547474d5cc2a18b0ef49a45c816f03b09d8db0dd2e802af4036498d07d75b046"
+    },
+    {
+      "path": "packaging/macos/PF07 Launcher.app/Contents/MacOS/PF07-OrderOps",
+      "mode": "0755",
+      "sha256": "af187b1f8334087fb31f14ee49d6d87274b4b954f306aec4a54f759063f243ed"
+    },
+    {
+      "path": "packaging/macos/PF07 Launcher.app/Contents/Resources/architecture.json",
+      "mode": "0644",
+      "sha256": "73a23c686a5b5a5089f5a3566a8d9123739c66dafee5305ae9247831e2d936e0"
+    },
+    {
+      "path": "packaging/macos/README.en.md",
+      "mode": "0644",
+      "sha256": "3c5f62e5a34cf6942e50c15b9896a2a72facc4c044c98391e6f222f34956f92a"
+    },
+    {
+      "path": "packaging/macos/README.ko.md",
+      "mode": "0644",
+      "sha256": "23afb5df666ccc5d3cce8fcb37b2a4ec87b7638e48cc25df7b3772a5ee09ae4d"
+    },
+    {
+      "path": "packaging/macos/package-allowlist.json",
+      "mode": "0644",
+      "sha256": "086dcf05cf7a1a1910c4936709f6f393f40d16a451d1069093ac759d554e2e1c"
+    },
+    {
+      "path": "packaging/macos/pf07",
+      "mode": "0755",
+      "sha256": "b77d98e2c1db660a1434a4a56b99a1f44995e1bc0f8677de1b8a8498065e2a85"
+    },
+    {
+      "path": "packaging/macos/pf07.command",
+      "mode": "0755",
+      "sha256": "81c0d7d6d31f099fcc31f67dd096f5ccc630292363ed2ef8709f06582c34238b"
+    },
+    {
+      "path": "packaging/network/tunnel-route-allowlist.json",
+      "mode": "0644",
+      "sha256": "9b01a5d619825c93ac4680eff87b2e07eaff6fc11b6673021aea270fbbec4566"
+    },
+    {
+      "path": "packaging/windows/README.en.md",
+      "mode": "0644",
+      "sha256": "7c7194c0254ce04e06404620a7e477d3eff52ac5ded47c391a028853d0ef1f3a"
+    },
+    {
+      "path": "packaging/windows/README.ko.md",
+      "mode": "0644",
+      "sha256": "a6c3b4e1552d6de8bc79703e8c0f3cbe16c8b1687198e7c9a8a934ad7da508dc"
+    },
+    {
+      "path": "packaging/windows/START-PF07.cmd",
+      "mode": "0644",
+      "sha256": "b9b5aad6091d28ffd69b04173ebad6ab1cd8a9ac12a1481191f7c6880f35152a"
+    },
+    {
+      "path": "packaging/windows/Start-PF07.ps1",
+      "mode": "0644",
+      "sha256": "ca27eb592be804bdc22e69106c169886d9ec439f6f6e5c8d556cc170bbfddc96"
+    },
+    {
+      "path": "packaging/windows/kvm-test-kit-allowlist.json",
+      "mode": "0644",
+      "sha256": "75d6f05a3b97d0c9090221584bd797efe92476187283c00f46abd3d142bfe40b"
+    },
+    {
+      "path": "packaging/windows/kvm/PF07-KVM-Evidence.ps1",
+      "mode": "0644",
+      "sha256": "fb53161424545b7776db75bd915321593e0c51ed78a593aa862a7cb1f2a5cc61"
+    },
+    {
+      "path": "packaging/windows/kvm/PF07-KVM-TEST.html",
+      "mode": "0644",
+      "sha256": "fa5f7dc598cd8eeffcca54932aa4ba2d6482b3c1d03619b641a2361caa165bb9"
+    },
+    {
+      "path": "packaging/windows/kvm/README.en.md",
+      "mode": "0644",
+      "sha256": "42fb31b518369347a9a0e74520a1e036dcecc3b0e8c38f8c24fafff53ffd3070"
+    },
+    {
+      "path": "packaging/windows/kvm/README.ko.md",
+      "mode": "0644",
+      "sha256": "633211c730fd3174acaeef15c4d7bd68e33a3fa2ade04944b9a7f7c309f792ab"
+    },
+    {
+      "path": "packaging/windows/kvm/RUN-KVM-TEST.cmd",
+      "mode": "0644",
+      "sha256": "fdb10a0690ee8d95ab124cdb673a404eb055d12f4a2aa18237228650eb1ab40a"
+    },
+    {
+      "path": "packaging/windows/native/PF07-Launcher.c",
+      "mode": "0644",
+      "sha256": "dce12ff8a46aa45cd98f0506b90c47eec111675c967eed2435a9fe7fbc4650f6"
+    },
+    {
+      "path": "packaging/windows/native/PF07-Launcher.rc",
+      "mode": "0644",
+      "sha256": "f7bca787c66aeed9a25d3487eadf46c514992bc9f70f745df871b330276f0209"
+    },
+    {
+      "path": "packaging/windows/package-allowlist.json",
+      "mode": "0644",
+      "sha256": "06ac5bd724aafeb3adb6dea9d4c202dfe071437881543caa7292c6d80945d6bf"
+    },
+    {
+      "path": "packaging/windows/pf07.cmd",
+      "mode": "0644",
+      "sha256": "60da4dc4a04840f203ecd90d96e54f7d434e88fcd432b2dd698ec5e6ecb34f57"
+    },
+    {
+      "path": "plugin/oddroom-orderops/assets/css/admin.css",
+      "mode": "0644",
+      "sha256": "25e35d3742d1f9812ba6557b1756478c36235ddee313870112a4bbf29d54b66f"
+    },
+    {
       "path": "plugin/oddroom-orderops/assets/css/storefront.css",
       "mode": "0644",
-      "sha256": "e04aa37c1a81ff7aade933f7c3d550cb847f3442a003ff9f22099b938df46769"
+      "sha256": "d4720a235354a224a143ef36033d6b94d341b00063b289e1081f7c8ead3a9bf8"
     },
     {
       "path": "plugin/oddroom-orderops/assets/fonts/DoHyeon-Regular.woff2",
@@ -259,9 +674,134 @@
       "sha256": "1583b2052998c1e3133c742dae17300ba17de41a0ae46a313a281948ce5e3ab7"
     },
     {
+      "path": "plugin/oddroom-orderops/assets/images/brand/logo-dark.svg",
+      "mode": "0644",
+      "sha256": "6c31fe42ed239c60e4381a60d7836baa6123762eba71a20cc77b3631a18539bb"
+    },
+    {
+      "path": "plugin/oddroom-orderops/assets/images/brand/logo-light.svg",
+      "mode": "0644",
+      "sha256": "df88aa9f31a1356328c2f598f6e498ffa692571fc0aac083d26a414e36533e41"
+    },
+    {
+      "path": "plugin/oddroom-orderops/assets/images/brand/offset-grid-pattern.svg",
+      "mode": "0644",
+      "sha256": "3aed321f42a03ad73dc944e258c15a20eafbbf2968fc48202527e73ffbb35fb5"
+    },
+    {
+      "path": "plugin/oddroom-orderops/assets/images/brand/symbol.svg",
+      "mode": "0644",
+      "sha256": "a48ded6625125a284bd46c17fd92eefc4e0844e7f78ed018798061db2f71dd0f"
+    },
+    {
+      "path": "plugin/oddroom-orderops/assets/images/brand/wordmark-horizontal.svg",
+      "mode": "0644",
+      "sha256": "51b90e0bded56ca5fcf611fabb1643ddc74f66968c5a7d28dd1bc62d054e161c"
+    },
+    {
       "path": "plugin/oddroom-orderops/assets/images/favicon.svg",
       "mode": "0644",
-      "sha256": "b6fb6feb9ed13a6d78c2430b83dc8b53d91d542a631575c354b7fee3306401c7"
+      "sha256": "53b8a06f973b9e119a66c9fab6ab7036c1988835e5ec50c2f81682092520aa38"
+    },
+    {
+      "path": "plugin/oddroom-orderops/assets/images/quiet-utility/home/cta-still.webp",
+      "mode": "0644",
+      "sha256": "827dfdff1d2b793c0806130471d497f24d00278664eb2eff39afa969636683ee"
+    },
+    {
+      "path": "plugin/oddroom-orderops/assets/images/quiet-utility/home/hero-desktop.webp",
+      "mode": "0644",
+      "sha256": "e96425f66876aaf360bc7347feb01a6105fad56e0317004379f4ebad90562bf7"
+    },
+    {
+      "path": "plugin/oddroom-orderops/assets/images/quiet-utility/home/hero-mobile.webp",
+      "mode": "0644",
+      "sha256": "e7ae35a2a19e573b90f03238ed86b933d2cd682049fee28cd0cf7b3506439ba6"
+    },
+    {
+      "path": "plugin/oddroom-orderops/assets/images/quiet-utility/home/operator-scene.webp",
+      "mode": "0644",
+      "sha256": "b30b4f5b8ebf0cc546b3297bb4a552a5fac487d47e361e10baaabb5363ef878e"
+    },
+    {
+      "path": "plugin/oddroom-orderops/assets/images/quiet-utility/home/order-packing.webp",
+      "mode": "0644",
+      "sha256": "6a6faa6e4298c25849edee3286a24dc0b1acead4cf00fcad997c62332c0d6577"
+    },
+    {
+      "path": "plugin/oddroom-orderops/assets/images/quiet-utility/simple/flatlay.webp",
+      "mode": "0644",
+      "sha256": "16644d6ab5b51d795f023b811348fee6c81b315015cb58e455291b356e3beed9"
+    },
+    {
+      "path": "plugin/oddroom-orderops/assets/images/quiet-utility/simple/in-use.webp",
+      "mode": "0644",
+      "sha256": "65f3cc0103fc6200c9c3173378bff02c2c2764a8f623a2482f5657a871f34fa4"
+    },
+    {
+      "path": "plugin/oddroom-orderops/assets/images/quiet-utility/simple/material-detail.webp",
+      "mode": "0644",
+      "sha256": "372e0ad212f5be4b064cba0d82bee5f7e54b6d9365811da92ca32099fc25d15b"
+    },
+    {
+      "path": "plugin/oddroom-orderops/assets/images/quiet-utility/simple/packaging.webp",
+      "mode": "0644",
+      "sha256": "d489489a8017cdaac355d9f818516ea5903d12bc6461416c740f09c776a900e0"
+    },
+    {
+      "path": "plugin/oddroom-orderops/assets/images/quiet-utility/simple/pdp-main.webp",
+      "mode": "0644",
+      "sha256": "8d1d485d433458005bc02d4a34d30cd684fad3ce385b60993e48eb7b8ce17038"
+    },
+    {
+      "path": "plugin/oddroom-orderops/assets/images/quiet-utility/simple/shop-card.webp",
+      "mode": "0644",
+      "sha256": "6788fdc87128464ab0b5dfca5afd18713c85c6b6cdd80cf3e808ffd8bb5c6369"
+    },
+    {
+      "path": "plugin/oddroom-orderops/assets/images/quiet-utility/variable/back.webp",
+      "mode": "0644",
+      "sha256": "7ce0d4a1caa5b67bfbcb1a88796e531fb8513b30f2fb5b00748b1292525bb991"
+    },
+    {
+      "path": "plugin/oddroom-orderops/assets/images/quiet-utility/variable/comparison.webp",
+      "mode": "0644",
+      "sha256": "96736cd63e7eee6dd7a2c87bb716b2d3bea754a40ef43c45855a3515c4790c88"
+    },
+    {
+      "path": "plugin/oddroom-orderops/assets/images/quiet-utility/variable/flatlay.webp",
+      "mode": "0644",
+      "sha256": "f9190604cc8ebdbb86c2009fda07ceae81e7d882fcfb1d6775492728e8b1c3e1"
+    },
+    {
+      "path": "plugin/oddroom-orderops/assets/images/quiet-utility/variable/graphite.webp",
+      "mode": "0644",
+      "sha256": "3647c26b1b5c4bf0204cb7131c13dfda030b60c5b41f51d493087f5cb6a54f8d"
+    },
+    {
+      "path": "plugin/oddroom-orderops/assets/images/quiet-utility/variable/in-use.webp",
+      "mode": "0644",
+      "sha256": "bae416002819cbde522598c370c1a97cce234a33b33d9710434808f63c3f97c3"
+    },
+    {
+      "path": "plugin/oddroom-orderops/assets/images/quiet-utility/variable/pdp-main.webp",
+      "mode": "0644",
+      "sha256": "85970a4db7e1456a2b3983d91e9717012a7691021546adb2b751b57d1077d12f"
+    },
+    {
+      "path": "plugin/oddroom-orderops/assets/images/quiet-utility/variable/sandstone.webp",
+      "mode": "0644",
+      "sha256": "2e74f5d1d94c3a917ad15bc2089a4757c09fde100fa54730eb56bc75cb6d3132"
+    },
+    {
+      "path": "plugin/oddroom-orderops/assets/images/quiet-utility/variable/shop-card.webp",
+      "mode": "0644",
+      "sha256": "4d0c8db56b2cf5b654124d5044733585101a80acb56b323788e36517292dd399"
+    },
+    {
+      "path": "plugin/oddroom-orderops/assets/images/quiet-utility/variable/zipper-detail.webp",
+      "mode": "0644",
+      "sha256": "e4cc2144ac64bdaf02a866e54aef361c9c08cb56c8641de9166a32f62addfec4"
     },
     {
       "path": "plugin/oddroom-orderops/assets/images/shopping-bags-commons.jpg",
@@ -276,7 +816,7 @@
     {
       "path": "plugin/oddroom-orderops/includes/class-oddroom-admin.php",
       "mode": "0644",
-      "sha256": "3c7a42c7747580369fc66f8b9eec9f2395781afe3e4c1f2defcda1acee7e9282"
+      "sha256": "8d766e632125cbd997e0b763dc1f1c573ab2590372a20b4a482cf3fdd5a2593c"
     },
     {
       "path": "plugin/oddroom-orderops/includes/class-oddroom-canonical-payload.php",
@@ -286,7 +826,7 @@
     {
       "path": "plugin/oddroom-orderops/includes/class-oddroom-cli.php",
       "mode": "0644",
-      "sha256": "318f87956f2efa105f4825da1dc4da3a699d36ed51c50d4546ca4e43a3db0fcf"
+      "sha256": "566c0b5c2549977a32e6576d0aed77f9799114f30ab1f6d69a2ce3a24b785cec"
     },
     {
       "path": "plugin/oddroom-orderops/includes/class-oddroom-dependencies.php",
@@ -309,19 +849,24 @@
       "sha256": "9ad3c43466981e1586133b7484df2bffacb2c1edbb14809b228e49ac36e4d04a"
     },
     {
+      "path": "plugin/oddroom-orderops/includes/class-oddroom-package.php",
+      "mode": "0644",
+      "sha256": "649a4229974233064cb54aa0ba4ad51775c5d9e00c48b43f4ac74867a48fcde9"
+    },
+    {
       "path": "plugin/oddroom-orderops/includes/class-oddroom-private-admin.php",
       "mode": "0644",
       "sha256": "dbbd3d95d6b69e014071be5e27ae66d02cf2ae5c5a23a8a8d44222a7b46ed883"
     },
     {
-      "path": "plugin/oddroom-orderops/includes/class-oddroom-recovery.php",
-      "mode": "0644",
-      "sha256": "7bef20f09769cbf7050492ea78c15aa98571542adf3a911715d11a66b34dd85c"
-    },
-    {
       "path": "plugin/oddroom-orderops/includes/class-oddroom-reconciliation.php",
       "mode": "0644",
       "sha256": "7d26bce066a68406b2951d1be0b9493ddd50f8c6ec752384c039131e09db5135"
+    },
+    {
+      "path": "plugin/oddroom-orderops/includes/class-oddroom-recovery.php",
+      "mode": "0644",
+      "sha256": "7bef20f09769cbf7050492ea78c15aa98571542adf3a911715d11a66b34dd85c"
     },
     {
       "path": "plugin/oddroom-orderops/includes/class-oddroom-repository.php",
@@ -351,17 +896,17 @@
     {
       "path": "plugin/oddroom-orderops/includes/class-oddroom-storefront.php",
       "mode": "0644",
-      "sha256": "2f05e3ea4c0d1ad4f89b6d04575285d3efbba94520ec88e71a5aeca3b47263b5"
+      "sha256": "26b5c142f3887b08d2e6ca3a286487af477147d2704102d76d691eebd5257357"
     },
     {
       "path": "plugin/oddroom-orderops/includes/class-oddroom-worker.php",
       "mode": "0644",
-      "sha256": "fb747e993e48b8364626d402346fbc04b510e2ac314ef92ad72fd15b98fb66d0"
+      "sha256": "68011596d17d3c99c5c4f51e693308e58fb236b57a1996e8440bb6476a9c8021"
     },
     {
       "path": "plugin/oddroom-orderops/oddroom-orderops.php",
       "mode": "0644",
-      "sha256": "3e3218165f93d668bbe0d740a15ce9c3db99efd2199e318754ea22e420b4f834"
+      "sha256": "8a9d4076c2e9e65a813ec36bace61e16d7c57214f626e8a1a74a36510ad139a1"
     },
     {
       "path": "plugin/oddroom-orderops/tests/run.php",
@@ -381,17 +926,32 @@
     {
       "path": "release/public-allowlist.json",
       "mode": "0644",
-      "sha256": "8af20ac0d9947cfc0aec6cd63df22e487615fe634428a6eaed44e72abb4dbcef"
+      "sha256": "05d590a74aaf444abdd781854dabba03818f8633c4cbd2d7ace940db487a0748"
+    },
+    {
+      "path": "scripts/acceptance_semantics.py",
+      "mode": "0644",
+      "sha256": "638841929e9ddec65a33aa71e233359766e00139141eab52ac9d9553f4c23ca3"
+    },
+    {
+      "path": "scripts/build-platform-packages",
+      "mode": "0755",
+      "sha256": "231ce51d51af03c82e93d36cb07b20dfb9e38004ded93e9315095f01b1daa74f"
+    },
+    {
+      "path": "scripts/build-public-media-manifest.mjs",
+      "mode": "0644",
+      "sha256": "e12738271c47071ff6d1eaa5d32eebadfc38b7071ed3d7b6a3d057982fea89e9"
     },
     {
       "path": "scripts/build-public-release",
       "mode": "0755",
-      "sha256": "e7b904eefb36e655e1e125656362c9804e020009a5f5a8750a314c4448e6b82c"
+      "sha256": "2cb55275eb1c02003c03815b6c9f8641c00157af001ca39af298398df2fe165f"
     },
     {
       "path": "scripts/build-public-stills.mjs",
       "mode": "0644",
-      "sha256": "12c4d7fcdcf8d7ecb05b5650a1a1ce604893b9edce49f1eb18a7f45c7a9709c7"
+      "sha256": "016a1fbfaa6cdf773a5866fabb12147cbabf798d2ef8de94ad235988ec76c37d"
     },
     {
       "path": "scripts/build-workflow",
@@ -401,32 +961,32 @@
     {
       "path": "scripts/ci",
       "mode": "0755",
-      "sha256": "99530c8964b11d1008d3ccdc7a2ecf1189518cc32d7cb1c4f285ddbf623df394"
+      "sha256": "13a0bbb064b7ad0f0492da89b447c8444f1f07070ad38af642d97e5bae861a8a"
     },
     {
       "path": "scripts/collect-evidence",
       "mode": "0755",
-      "sha256": "bc6aeb92a3c26ac9f61a00f4e6e0374a061207cdab331fbb825aefd9e58b7379"
+      "sha256": "61890b672b1eda650eae98e1f97d976e49d83f533e9a44758407eab4e38e3e66"
     },
     {
       "path": "scripts/derive-gate06-linked-evidence",
       "mode": "0755",
-      "sha256": "f0ad79004312b757648a61ee68fb5c54846becac950a655abd756c31e6b0b12f"
+      "sha256": "dd351c56e5de0492889721956cff891d45bf3b752359e590b1383ab9894c030e"
     },
     {
-      "path": "scripts/acceptance_semantics.py",
-      "mode": "0644",
-      "sha256": "aef4e9610610114ce074bbed0dfce238bc885e6a79947cb465a7b72c3bb1ab7f"
+      "path": "scripts/derive-successor-vsl",
+      "mode": "0755",
+      "sha256": "2992601c1b612fc168380ae8f3f6c39fab51ec52dc7b8d15f3052d19621a43cd"
     },
     {
       "path": "scripts/evidence_contract.py",
       "mode": "0644",
-      "sha256": "8775c036ccf54640750482a4f1bfaa7c90b8ea698358d6721cf0bc78c603d5a7"
+      "sha256": "162b9889a61b419381f6269e94346a62eb415464c7eb56e498ef0bc9d99c9e70"
     },
     {
       "path": "scripts/generate-public-evidence",
       "mode": "0755",
-      "sha256": "3b0acb03398ab18e38428adda75db3f870fe52510093067c4fcd59061830cd46"
+      "sha256": "85e4f8137dceb273572374edab98fab7f16a99988a63c2335637755a859bdc9a"
     },
     {
       "path": "scripts/pf07_probe_runtime.py",
@@ -441,7 +1001,7 @@
     {
       "path": "scripts/probe-core-acceptance",
       "mode": "0755",
-      "sha256": "47ac2c0417c438a554486a682674d87c09392c4a91a636364e9d9bdd8d909a1e"
+      "sha256": "1ff6935090ea99ac6bab600c417396f2f5937fdf84043703bf43c0e080c6162a"
     },
     {
       "path": "scripts/probe-gate06",
@@ -475,18 +1035,33 @@
     },
     {
       "path": "scripts/record-public-media.mjs",
-      "mode": "0755",
-      "sha256": "cbb1bfa65978c6ef2868a2cc6f4654aabc166dda20c7314967605b09c6c02a97"
+      "mode": "0644",
+      "sha256": "6a67a0381f739c4259599b355dfd27b7bbec603040d8ff572af741c43dae4f7c"
     },
     {
-      "path": "scripts/runtime-materialize",
+      "path": "scripts/refinement_evidence_paths.py",
+      "mode": "0644",
+      "sha256": "d510b417470a217faf69e3e56b909a5b0f8b5e3f4637cefde280c2c0f71803bd"
+    },
+    {
+      "path": "scripts/refresh-bootstrap-bindings",
       "mode": "0755",
-      "sha256": "552ac6128418a2d22d4dbf72256bd3d2b1da9767366fb179de13c59e4c645e22"
+      "sha256": "2f393f054b777b3c6d5eff0c58f6130f282636f41f2d9e857f078e83f26112e2"
+    },
+    {
+      "path": "scripts/refresh-package-allowlists",
+      "mode": "0755",
+      "sha256": "8658854a512d937e08999121dc7e3d9e894dbb792198df808a754b5bc2563984"
     },
     {
       "path": "scripts/runtime-import-credentials",
       "mode": "0755",
       "sha256": "e1dffb796f2b6c3557746980736cb0014f3d82d4ebb3eaa66a28fcad3c2cabb8"
+    },
+    {
+      "path": "scripts/runtime-materialize",
+      "mode": "0755",
+      "sha256": "552ac6128418a2d22d4dbf72256bd3d2b1da9767366fb179de13c59e4c645e22"
     },
     {
       "path": "scripts/runtime-wp-install",
@@ -496,12 +1071,17 @@
     {
       "path": "scripts/validate-all",
       "mode": "0755",
-      "sha256": "75d29f80756c3e53d0d29ef0b12d5725633d215f2cf4fbbf5bd670416cd18f00"
+      "sha256": "097b277a18db090cf158cc24af4ffd67fe9e7c4d450afb63c20913ad11d72dd6"
+    },
+    {
+      "path": "scripts/validate-platform-packages",
+      "mode": "0755",
+      "sha256": "f196776e5f53b02e9852294768640670242a031f9468b2d4f5e0caaf61b44734"
     },
     {
       "path": "scripts/validate-public",
       "mode": "0755",
-      "sha256": "37978b9f416dad60f42444499252f4db874009fbe0fcfe1838f680dc3fb9fffa"
+      "sha256": "398bc2a8921f354d2c04a51d60c165e620ef47750edb7a69e771421680557409"
     },
     {
       "path": "scripts/validate-ui",
@@ -516,37 +1096,52 @@
     {
       "path": "tests/public_case_quality.mjs",
       "mode": "0644",
-      "sha256": "fe07a527e4cb55ac89a85b3822e43414321263b08e0f9d8a4196fd9227b8f06d"
+      "sha256": "735272c5b49ef65d63082e30a2299775ee06a92714ac3efc05a44f79bdeda81c"
     },
     {
       "path": "tests/test_acceptance_semantics.py",
       "mode": "0644",
-      "sha256": "cc978ea4df452bf82fdeee1ac041e336ac6f4706e7cc38ab8f16c011c12d32c8"
+      "sha256": "303617e9b08b39dd8c4c9c03934232106955c7557e55e836826fd401e8c6a169"
+    },
+    {
+      "path": "tests/test_backup_envelope.py",
+      "mode": "0644",
+      "sha256": "afadae1e24789f5cb1ee41382de541caff83d82e8d07d886da5bc400b9915cab"
     },
     {
       "path": "tests/test_collect_evidence.py",
       "mode": "0644",
-      "sha256": "487eb8d2fda9343e52a4c5aeae5630ecdcec2ef3da86cefaeb1a46ac7f3606f0"
+      "sha256": "7586f9064bdfea62ada31e6300da4181e7758d8416269a1ac8da65caba533b19"
     },
     {
       "path": "tests/test_evidence_contract.py",
       "mode": "0644",
-      "sha256": "2b389225c454c4335a7e618d4e34d563efec37712a911b04a00fcd39a02a587b"
+      "sha256": "609ce27e350412bd8fa01eb1ff9929fea2f3ae1c8af92951cdef0b049b440ad1"
+    },
+    {
+      "path": "tests/test_launcher_action_contract.py",
+      "mode": "0644",
+      "sha256": "5a810affc65a9b108ec7c48a8e70c7fd50d14a87c3c9d1e0ad2247b10fc6f73a"
+    },
+    {
+      "path": "tests/test_package_state_boundaries.py",
+      "mode": "0644",
+      "sha256": "889be2f283f34219d22843b0aa6db655973a0af72d9b4c092cfa9a6c92df43ca"
     },
     {
       "path": "tests/test_public_builder.py",
       "mode": "0644",
-      "sha256": "4ff4652302c0d545ab5c4512662dcf88cdd40f94310f68e2fa4b21e68c02cb82"
+      "sha256": "b10ce436a1a0eb4484dbfc31aaa5e807e16d15107ac17614a14e38bcfaf1a3fb"
     },
     {
       "path": "tests/test_vsl_contract.py",
       "mode": "0755",
-      "sha256": "a88fde8ac020546df453254b3285ef6c5562466f0f348eb80991ea53e85eeddd"
+      "sha256": "44788d5b2c364f15acf6886624851d075a06f48bad80a58102217e48ffce038e"
     },
     {
       "path": "tests/ui_quality.mjs",
       "mode": "0644",
-      "sha256": "e15eeeba841ad02724da1ff525d561db6a66f1be9e2326009b53732135e7cf4f"
+      "sha256": "71989b342922137d94c321923c8fc7cef7d01bf0273e633ac09d649f2577e678"
     },
     {
       "path": "tests/workflow_resume_semantics.mjs",

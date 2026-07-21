@@ -1,0 +1,93 @@
+{
+  "schema": "pf07.launcher-action-contract.v1",
+  "version": "1.0.0",
+  "shared_core": "launcher/pf07_launcher",
+  "configuration_schema": "pf07.package-config.v1",
+  "readiness_schema": "pf07.launcher-status.v1",
+  "hub_api_prefix": "/api",
+  "platform_seams": [
+    "process-launch",
+    "browser-open",
+    "installer-handoff",
+    "path-discovery",
+    "gui-packaging"
+  ],
+  "prerequisite_states": {
+    "MISSING_PYTHON": "OPEN_OFFICIAL_PYTHON_INSTALLER",
+    "MISSING_RUNTIME": "OPEN_SUPPORTED_RUNTIME_INSTALLER",
+    "RUNTIME_STOPPED": "OPEN_RUNTIME_AND_RECHECK",
+    "MISSING_COMPOSE": "OPEN_SUPPORTED_RUNTIME_INSTALLER",
+    "READY": "START_OR_OPEN_HUB"
+  },
+  "runtime_states": {
+    "FIRST_RUN": "START",
+    "PORT_OCCUPIED": "SELECT_FREE_LOOPBACK_PORT",
+    "STOPPED": "RESTART",
+    "FAILED_HEALTH": "RECOVER_AND_EXPORT_DIAGNOSTICS",
+    "ALREADY_RUNNING": "OPEN_READY_TARGETS",
+    "RERUN_READY": "RECONNECT_EXISTING_RUNTIME"
+  },
+  "required_actions": [
+    "preflight",
+    "start",
+    "status",
+    "open-store",
+    "open-admin",
+    "language",
+    "mode",
+    "connected-setup",
+    "reset-demo",
+    "stop",
+    "restart",
+    "recover",
+    "diagnostics",
+    "evidence-export",
+    "backup",
+    "restore",
+    "update",
+    "tunnel-on",
+    "tunnel-status",
+    "tunnel-off",
+    "open-tunnel-store",
+    "open-tunnel-admin",
+    "uninstall"
+  ],
+  "pkg_005_branches": [
+    "first-run",
+    "rerun",
+    "already-running",
+    "occupied-port",
+    "missing-runtime",
+    "stopped-container",
+    "failed-health",
+    "stop",
+    "restart-recovery",
+    "evidence-export"
+  ],
+  "step_060_branches": [
+    "clean-bootstrap",
+    "rerun-idempotence",
+    "controlled-pre-release-update",
+    "authenticated-encrypted-backup",
+    "quiesced-one-writer-restore",
+    "reset-demo-idempotence",
+    "package-scoped-uninstall",
+    "warm-demo-offline",
+    "connected-mode-external-acceptance",
+    "one-runtime-dual-locale",
+    "linux-server-baseline",
+    "https-tunnel-on-off-and-failure-isolation"
+  ],
+  "runtime_topology": {
+    "business_runtime_count": 1,
+    "wordpress_database_count": 1,
+    "n8n_runtime_identity_count": 1,
+    "compose_project_count": 1,
+    "shop_instance_id_count": 1,
+    "locale_variants": [
+      "ko_KR",
+      "en_US"
+    ],
+    "locale_switch_creates_runtime": false
+  }
+}

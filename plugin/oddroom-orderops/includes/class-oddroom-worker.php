@@ -63,18 +63,33 @@ final class OddRoom_Worker
                 $body,
                 $secret
             );
+            $headers = [
+                'Content-Type' => 'application/json; charset=utf-8',
+                'X-OddRoom-Event-Key' => (string) $claimed->event_key,
+                'X-OddRoom-Timestamp' => (string) $timestamp,
+                'X-OddRoom-Resume-Phase' => $phase,
+                'X-OddRoom-Signature' => $signature,
+                'X-PF07-Package-Mode' => OddRoom_Package::mode(),
+            ];
+            if (OddRoom_Package::mode() === OddRoom_Package::DEMO_MODE) {
+                $scenario = OddRoom_Package::scenario();
+                $attempt = (int) $claimed->attempt_count;
+                $headers['X-PF07-Demo-Scenario'] = $scenario;
+                $headers['X-PF07-Demo-Attempt'] = (string) $attempt;
+                $headers['X-PF07-Demo-Control-Signature'] = OddRoom_Package::controlSignature(
+                    $timestamp,
+                    (string) $claimed->event_key,
+                    $scenario,
+                    $attempt,
+                    $secret
+                );
+            }
             $response = wp_remote_post(OddRoom_Repository::requiredConfig('ODDROOM_ORDEROPS_WEBHOOK_URL'), [
                 'timeout' => 300,
                 'redirection' => 0,
                 'httpversion' => '1.1',
                 'blocking' => true,
-                'headers' => [
-                    'Content-Type' => 'application/json; charset=utf-8',
-                    'X-OddRoom-Event-Key' => (string) $claimed->event_key,
-                    'X-OddRoom-Timestamp' => (string) $timestamp,
-                    'X-OddRoom-Resume-Phase' => $phase,
-                    'X-OddRoom-Signature' => $signature,
-                ],
+                'headers' => $headers,
                 'body' => $body,
                 'data_format' => 'body',
                 'limit_response_size' => OddRoom_Canonical_Payload::MAX_BODY_BYTES,

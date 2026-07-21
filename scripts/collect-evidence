@@ -17,10 +17,11 @@ import sys
 import tempfile
 
 from acceptance_semantics import AcceptanceSemanticError, derive_fixture_observations
+from refinement_evidence_paths import successor_raw_root
 
 
 ROOT = Path(__file__).resolve().parent.parent
-RAW_ROOT = ROOT / "evidence/raw"
+RAW_ROOT = successor_raw_root(ROOT)
 FIXTURE_MANIFEST = ROOT / "fixtures/acceptance-fixtures.json"
 RUNNER = ROOT / "fixtures/run"
 ALLOWED_ARTIFACT_SUFFIXES = {".bin", ".json", ".jsonl", ".log", ".txt"}
@@ -54,7 +55,7 @@ def source_tree_sha256() -> str:
         relative = path.relative_to(ROOT)
         if not path.is_file() or path.is_symlink():
             continue
-        if relative.parts[0] in {"evidence", "reports", "runtime", ".git"}:
+        if relative.parts[0] in {"dist", "evidence", "reports", "runtime", ".git"}:
             continue
         if "node_modules" in relative.parts or "__pycache__" in relative.parts or path.suffix == ".pyc":
             continue

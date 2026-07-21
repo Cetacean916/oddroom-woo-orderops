@@ -1,0 +1,10 @@
+{
+  "name": "oddroom-orderops-task-runner-deps",
+  "version": "1.0.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "dependencies": {
+    "bignumber.js": "9.3.1",
+    "json-bigint": "1.0.0"
+  }
+}

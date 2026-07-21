@@ -1,0 +1,55 @@
+{
+  "schema_version": "1",
+  "acceptance_id": "GATE-06",
+  "run_id": "PF07-REFINEMENT-ACCEPTANCE-RUN",
+  "started_at": "2026-07-21T06:45:48Z",
+  "finished_at": "2026-07-21T06:48:49Z",
+  "source_tree_sha256": "61dd3ab2842d5f1d529db0f74ff191983777f8fa1429337e6a62752af9856c94",
+  "command_or_probe": "recorded redaction of protected acceptance observation",
+  "exit_code": 0,
+  "observations": {
+    "result": "PASS",
+    "automatic_attempt_limit": 6,
+    "retry_delays_seconds": [
+      2,
+      5,
+      10,
+      20,
+      30
+    ],
+    "payload_rebuilt": false,
+    "manual_retry_preserves_payload": true,
+    "outage_transport": "maintained_toxiproxy",
+    "runner_mode": "foreground_wp_cli_without_admin_page_load",
+    "admin_page_load_count": 0,
+    "recovery_completed_before_attempt_six": true,
+    "recovery_attempt_count": 2,
+    "recovery_n8n_execution_count": 1,
+    "recovery_deal_checkpoint_present": true,
+    "automatic_action_ids_distinct": true,
+    "seventh_automatic_action_count": 0,
+    "terminal_automatic_error": "ATTEMPTS_EXHAUSTED",
+    "manual_total_attempt_count": 7,
+    "manual_automatic_attempt_count": 6,
+    "manual_followup_action_count": 0,
+    "slack_first_attempt_calls": 0,
+    "slack_resume_attempt_calls": 1,
+    "slack_total_calls": 1,
+    "slack_payload_immutable": true,
+    "slack_checkpoints_preserved": true
+  },
+  "artifact_hashes": {},
+  "redaction_state": "PUBLIC_REDACTED",
+  "redaction_transform": {
+    "id": "pf07-public-evidence-redaction",
+    "version": "1",
+    "script_sha256": "85e4f8137dceb273572374edab98fab7f16a99988a63c2335637755a859bdc9a"
+  },
+  "source_acceptance_id": "GATE-06",
+  "source_record_sha256": "db7475dcb528bfe3225cc283d70b159d5f4e7533b3728b8f16a319e227f453df",
+  "source_artifact_hashes": {
+    "exhaustion_attempt_trace": "9737e92293b417db977c40cd520b864fbfd35057ce784d9640bd6becefd77595",
+    "outage_proxy_trace": "6b41e2a581285b9a6f0999e492137472dba1caabc15352a81983eac7b28c68cc",
+    "slack_checkpoint_trace": "765ba7e7f3a2c44de825f3f7d7962c594256e92720ac3c9aff733baf029023ba"
+  }
+}

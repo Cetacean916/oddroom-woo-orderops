@@ -1,0 +1,47 @@
+{
+  "schema_version": "1",
+  "acceptance_id": "GATE-10",
+  "run_id": "PF07-REFINEMENT-ACCEPTANCE-RUN",
+  "started_at": "2026-07-21T06:38:28Z",
+  "finished_at": "2026-07-21T06:38:47Z",
+  "source_tree_sha256": "61dd3ab2842d5f1d529db0f74ff191983777f8fa1429337e6a62752af9856c94",
+  "command_or_probe": "recorded redaction of protected acceptance observation",
+  "exit_code": 0,
+  "observations": {
+    "result": "PASS",
+    "https_mode": "ON_DEMAND_HTTPS_TUNNEL",
+    "clean_compose_project": true,
+    "fresh_wordpress_database_and_volume": true,
+    "fresh_n8n_runtime_and_volume": true,
+    "backup_artifact_count": 8,
+    "original_quiescent_before_snapshot": true,
+    "reprovisioned_workflow_credential_bindings": true,
+    "restored_hubspot_credential_smoke": "PASS",
+    "restored_slack_credential_smoke": "PASS",
+    "new_order_created_and_paid": true,
+    "restored_created_n8n_executions": 1,
+    "restored_payment_n8n_executions": 1,
+    "new_deal_count": 1,
+    "payment_slack_posts": 1,
+    "duplicate_additional_slack_posts": 0,
+    "duplicate_n8n_executions": 0,
+    "original_runtime_calls": 0,
+    "active_runtime_after_restore": "RESTORED",
+    "original_outbound_runtime_enabled": false,
+    "restored_webhook_and_queue_enabled": true,
+    "original_services_stopped": true,
+    "formal_backup_manifest_verified": true
+  },
+  "artifact_hashes": {},
+  "redaction_state": "PUBLIC_REDACTED",
+  "redaction_transform": {
+    "id": "pf07-public-evidence-redaction",
+    "version": "1",
+    "script_sha256": "85e4f8137dceb273572374edab98fab7f16a99988a63c2335637755a859bdc9a"
+  },
+  "source_acceptance_id": "GATE-10",
+  "source_record_sha256": "477c1df36ad8c9b62ee81c172251a7dafa4ea7dbc62077f72faec3bc79449379",
+  "source_artifact_hashes": {
+    "gate10_restore_trace": "739242ff5e91207cdd664b1816bbcc904f9e1065a0814f9b2689678541dd7452"
+  }
+}

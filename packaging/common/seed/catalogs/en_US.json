@@ -1,0 +1,12 @@
+{
+  "locale": "en_US",
+  "language_name": "English",
+  "hub": {
+    "title": "OddRoom OrderOps Launch Hub",
+    "subtitle": "Run the storefront-to-recovery path with synthetic orders.",
+    "start": "Start demo",
+    "store": "Open store",
+    "admin": "Open admin",
+    "stop": "Stop demo"
+  }
+}

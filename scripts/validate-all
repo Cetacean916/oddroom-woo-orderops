@@ -10,12 +10,21 @@ import stat
 import subprocess
 import sys
 
+from refinement_evidence_paths import (
+    LEGACY_PUBLIC_MANIFEST_SHA256,
+    LEGACY_RAW_MANIFEST_SHA256,
+    PUBLIC_RUN_ALIAS,
+    SUCCESSOR_PUBLIC_PREFIX,
+    successor_public_root,
+    successor_raw_root,
+)
+
 from evidence_contract import EvidenceContractError, validate_public_lineage
 
 
 ROOT = Path(__file__).resolve().parent.parent
-RAW_ROOT = ROOT / "evidence/raw"
-PUBLIC_ROOT = ROOT / "evidence/public"
+RAW_ROOT = successor_raw_root(ROOT)
+PUBLIC_ROOT = successor_public_root(ROOT)
 COMMON_FIELDS = {
     "schema_version", "acceptance_id", "run_id", "started_at", "finished_at",
     "source_tree_sha256", "command_or_probe", "exit_code", "observations",
@@ -81,7 +90,7 @@ def source_tree_sha256() -> str:
         relative = path.relative_to(ROOT)
         if not path.is_file() or path.is_symlink():
             continue
-        if relative.parts[0] in {"evidence", "reports", "runtime", ".git"}:
+        if relative.parts[0] in {"dist", "evidence", "reports", "runtime", ".git"}:
             continue
         if "node_modules" in relative.parts or "__pycache__" in relative.parts or path.suffix == ".pyc":
             continue
@@ -120,7 +129,14 @@ if len(sys.argv) != 2 or sys.argv[1] not in {"--pre-public", "--final"}:
 mode = sys.argv[1]
 
 if not RAW_ROOT.is_dir() or not PUBLIC_ROOT.is_dir():
-    fail("raw and public evidence roots are required")
+    fail("successor raw-private and public evidence roots are required")
+
+legacy_raw_manifest = ROOT / "evidence/raw/evidence-manifest.sha256"
+legacy_public_manifest = ROOT / "evidence/public/evidence-manifest.sha256"
+if not legacy_raw_manifest.is_file() or sha256_file(legacy_raw_manifest) != LEGACY_RAW_MANIFEST_SHA256:
+    fail("historical v1.0.2 raw evidence manifest changed")
+if not legacy_public_manifest.is_file() or sha256_file(legacy_public_manifest) != LEGACY_PUBLIC_MANIFEST_SHA256:
+    fail("historical v1.0.2 public evidence manifest changed")
 
 source_hash = source_tree_sha256()
 inventory = load_json(RAW_ROOT / "protected-artifact-inventory.json")
@@ -171,6 +187,32 @@ for name in PRE_PUBLIC_RAW:
 if len(run_ids) != 1:
     fail("pre-public records do not share one protected acceptance run")
 
+vsl = load_json(RAW_ROOT / "vsl-pass.json")
+if (
+    COMMON_FIELDS - vsl.keys()
+    or vsl.get("acceptance_id") != "VSL-PASS"
+    or vsl.get("run_id") not in run_ids
+    or vsl.get("source_tree_sha256") != source_hash
+    or vsl.get("exit_code") != 0
+    or vsl.get("redaction_state") != "RAW_PROTECTED"
+):
+    fail("successor VSL record schema or source/run binding failed")
+vsl_observations = vsl.get("observations")
+if not isinstance(vsl_observations, dict) or vsl_observations.get("result") != "PASS":
+    fail("successor VSL observations do not establish PASS")
+if vsl_observations.get("baseline_ids") != [f"VSL-{index:03d}" for index in range(1, 6)]:
+    fail("successor VSL baseline inventory differs")
+for vsl_id in vsl_observations["baseline_ids"]:
+    row = vsl_observations.get(vsl_id)
+    if not isinstance(row, dict) or row.get("result") != "PASS":
+        fail(f"successor VSL row did not pass: {vsl_id}")
+vsl_artifacts = vsl.get("artifact_hashes")
+if not isinstance(vsl_artifacts, dict) or not vsl_artifacts:
+    fail("successor VSL artifact commitments are missing")
+for alias, digest in vsl_artifacts.items():
+    if alias not in artifacts or artifacts[alias].get("sha256") != digest:
+        fail(f"successor VSL artifact is not inventory-bound: {alias}")
+
 fixture_result = subprocess.run(
     [str(ROOT / "fixtures/run"), "--protected"],
     cwd=ROOT,
@@ -204,7 +246,7 @@ if public_manifest != expected_public_manifest:
     fail("public manifest inventory or hashes differ")
 
 public_hash_values = set(public_manifest.values()) | {sha256_file(PUBLIC_ROOT / "evidence-manifest.sha256")}
-for name, raw in raw_records.items():
+for name, raw in {**raw_records, "vsl-pass.json": vsl}.items():
     if set(raw["artifact_hashes"].values()) & public_hash_values:
         fail(f"backward edge from raw to derived public output: {name}")
 
@@ -222,6 +264,14 @@ for name in PRE_PUBLIC_RAW:
         fail(f"public record does not bind the current source tree: {name}")
     public_records[name] = public
 
+public_vsl = load_json(PUBLIC_ROOT / "vsl-pass.json")
+try:
+    validate_public_lineage(public_vsl, vsl, (RAW_ROOT / "vsl-pass.json").read_bytes(), transform_sha)
+except EvidenceContractError as error:
+    fail(f"complete raw-to-public VSL lineage failed: {error}")
+if public_vsl.get("source_tree_sha256") != source_hash:
+    fail("public VSL record does not bind the current source tree")
+
 public_by_gate: dict[str, tuple[str, dict]] = {}
 for gate, raw_name in PRIMARY_GATES.items():
     public_name = raw_name
@@ -233,7 +283,7 @@ entries = matrix.get("entries")
 if (
     matrix.get("schema_version") != "1"
     or matrix.get("acceptance_id") != "ACCEPTANCE-MATRIX"
-    or matrix.get("run_id") != "PF07-ACCEPTANCE-RUN"
+    or matrix.get("run_id") != PUBLIC_RUN_ALIAS
     or matrix.get("source_tree_sha256") != source_hash
     or matrix.get("exit_code") != 0
     or matrix.get("artifact_hashes") != {}
@@ -248,7 +298,7 @@ if [entry.get("acceptance_id") for entry in entries] != sorted(PRIMARY_GATES):
 for entry in entries:
     gate = entry["acceptance_id"]
     public_name, _ = public_by_gate[gate]
-    if entry.get("result") != "PASS" or entry.get("record_path") != f"evidence/public/{public_name}" or entry.get("record_sha256") != sha256_file(PUBLIC_ROOT / public_name):
+    if entry.get("result") != "PASS" or entry.get("record_path") != f"{SUCCESSOR_PUBLIC_PREFIX}/{public_name}" or entry.get("record_sha256") != sha256_file(PUBLIC_ROOT / public_name):
         fail(f"public buyer-proof matrix link failed: {gate}")
 
 claims = (ROOT / "docs/CLAIMS-BOUNDARY.md").read_text(encoding="utf-8")

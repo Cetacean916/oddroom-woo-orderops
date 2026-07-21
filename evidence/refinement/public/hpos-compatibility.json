@@ -1,0 +1,33 @@
+{
+  "schema_version": "1",
+  "acceptance_id": "GATE-09-COMPATIBILITY",
+  "run_id": "PF07-REFINEMENT-ACCEPTANCE-RUN",
+  "started_at": "2026-07-21T06:56:24Z",
+  "finished_at": "2026-07-21T06:57:52Z",
+  "source_tree_sha256": "61dd3ab2842d5f1d529db0f74ff191983777f8fa1429337e6a62752af9856c94",
+  "command_or_probe": "recorded redaction of protected acceptance observation",
+  "exit_code": 0,
+  "observations": {
+    "result": "PASS",
+    "hpos_disabled": "PASS",
+    "hpos_enabled": "PASS",
+    "action_scheduler_version_supported": true,
+    "activation_dependency_rejection": "PASS",
+    "migration_idempotent": true,
+    "uninstall_preserves_by_default": true,
+    "opt_in_removal": "PASS",
+    "scheduler_failure_branches": "PASS"
+  },
+  "artifact_hashes": {},
+  "redaction_state": "PUBLIC_REDACTED",
+  "redaction_transform": {
+    "id": "pf07-public-evidence-redaction",
+    "version": "1",
+    "script_sha256": "85e4f8137dceb273572374edab98fab7f16a99988a63c2335637755a859bdc9a"
+  },
+  "source_acceptance_id": "GATE-09-COMPATIBILITY",
+  "source_record_sha256": "ed49833e8b36ee4afa348baab5be73d79207a9e49e2b062ce5578fc9c2dc1ff9",
+  "source_artifact_hashes": {
+    "gate09_compatibility_trace": "6de93952c110a1c52fe418d4275197b84d4282141cb82857d25c1375cf7afc8b"
+  }
+}

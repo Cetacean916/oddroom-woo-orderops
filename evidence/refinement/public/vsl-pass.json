@@ -1,0 +1,72 @@
+{
+  "schema_version": "1",
+  "acceptance_id": "VSL-PASS",
+  "run_id": "PF07-REFINEMENT-ACCEPTANCE-RUN",
+  "started_at": "2026-07-21T06:39:17Z",
+  "finished_at": "2026-07-21T06:58:09Z",
+  "source_tree_sha256": "61dd3ab2842d5f1d529db0f74ff191983777f8fa1429337e6a62752af9856c94",
+  "command_or_probe": "recorded redaction of protected acceptance observation",
+  "exit_code": 0,
+  "observations": {
+    "result": "PASS",
+    "baseline_ids": [
+      "VSL-001",
+      "VSL-002",
+      "VSL-003",
+      "VSL-004",
+      "VSL-005"
+    ],
+    "VSL-001": {
+      "result": "PASS",
+      "real_order_count": 3,
+      "distinct_payload_hash_count": 3,
+      "immutable_payload_hashes_valid": true
+    },
+    "VSL-002": {
+      "result": "PASS",
+      "concurrent_workers": 3,
+      "row_claim_owners": 1,
+      "order_lease_owners": 1,
+      "deal_count": 1
+    },
+    "VSL-003": {
+      "result": "PASS",
+      "payload_rebuilt": false,
+      "runner_mode": "foreground_wp_cli_without_admin_page_load",
+      "admin_page_load_count": 0,
+      "recovery_deal_checkpoint_present": true
+    },
+    "VSL-004": {
+      "result": "PASS",
+      "admin_scoped_page_count": 1,
+      "clipped_action_failures": 0,
+      "php_fatal_warning_count": 0,
+      "static_admin_contract": "PASS"
+    },
+    "VSL-005": {
+      "result": "PASS",
+      "signed_request_count": 3,
+      "fixed_hubspot_path_execution_count": 3,
+      "completed_envelope_count": 3,
+      "persisted_deal_checkpoint_count": 3,
+      "fixed_hubspot_api_generation": "2026-03"
+    }
+  },
+  "artifact_hashes": {},
+  "redaction_state": "PUBLIC_REDACTED",
+  "redaction_transform": {
+    "id": "pf07-public-evidence-redaction",
+    "version": "1",
+    "script_sha256": "85e4f8137dceb273572374edab98fab7f16a99988a63c2335637755a859bdc9a"
+  },
+  "source_acceptance_id": "VSL-PASS",
+  "source_record_sha256": "5fe9e02e8194543631418a226da6a91c4f6e999d7eee201f614b903812f8f578",
+  "source_artifact_hashes": {
+    "exhaustion_attempt_trace": "9737e92293b417db977c40cd520b864fbfd35057ce784d9640bd6becefd77595",
+    "gate01_order_variety_trace": "6521bc8aa2a06c2c6ee11060e9e61a400714d4dc23feda5c82e1239e5d0c4df2",
+    "gate04_duplicate_trace": "712f8ed3332633eb1152188822f0527b63aa01d691cac7d16a5d9e353c91291c",
+    "gate09_product_quality_trace": "1766b5da9971ecf60d7e92d65348b93e05897fcc989604fdc19d159e6e1f92a8",
+    "outage_proxy_trace": "6b41e2a581285b9a6f0999e492137472dba1caabc15352a81983eac7b28c68cc",
+    "slack_checkpoint_trace": "765ba7e7f3a2c44de825f3f7d7962c594256e92720ac3c9aff733baf029023ba"
+  }
+}

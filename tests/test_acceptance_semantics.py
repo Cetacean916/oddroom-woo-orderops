@@ -51,6 +51,25 @@ with tempfile.TemporaryDirectory(prefix="pf07-semantic-test-") as temporary:
         {"order_id": 2, "product_id": 12, "variation_id": 22, "shape": "variable", "coupon_applied": False, "payload": payload(2, "b@example.com", "B")},
         {"order_id": 3, "product_id": 13, "variation_id": 0, "shape": "coupon", "coupon_applied": True, "payload": payload(3, "c@example.com", "C")},
     ]
+    for execution_id, order in enumerate(normal_orders, start=101):
+        digest = order["payload"]["stored_payload_hash"]
+        order["execution"] = {
+            "execution_id": execution_id,
+            "verified_authorized": True,
+            "ingress_raw_body_sha256": digest,
+            "verified_payload_sha256": digest,
+            "executed_hubspot_nodes": [
+                "HubSpot 2026-03 Deal Read",
+                "HubSpot 2026-03 Deal Readback",
+                "HubSpot 2026-03 Deal Upsert",
+            ],
+            "envelope_result": "completed",
+            "envelope_phase": "completed",
+            "envelope_deal_checkpoint_present": True,
+            "wordpress_status": "completed",
+            "wordpress_phase": "completed",
+            "wordpress_deal_checkpoint_present": True,
+        }
     normal = {"schema_version": 1, "fixture_id": "normal-order", "orders": normal_orders, "admin_order_ids": [1, 2, 3], "storage_order_ids": [1, 2, 3]}
     observed = derive(directory, "normal-order", "gate01_order_variety_trace", normal)
     require(observed["immutable_payload_hashes_valid"] is True and observed["coupon_orders"] == 1, "GATE-01 derivation differs")

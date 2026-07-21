@@ -8,13 +8,13 @@ This bundle defines executable assertions for every protected pre-public accepta
 
 ## Verification modes
 
-Public-safe verification reads only `evidence/public`:
+Public-safe verification reads only `evidence/refinement/public`:
 
 ```bash
 ./fixtures/run --public
 ```
 
-Protected verification additionally checks each required artifact against `evidence/raw/protected-artifact-inventory.json` and its exact local bytes:
+Protected verification additionally checks each required artifact against `evidence/refinement/raw-private/step-090/backend/protected-artifact-inventory.json` and its exact local bytes. The historical `evidence/raw` and `evidence/public` manifests remain immutable:
 
 ```bash
 ./fixtures/run --protected

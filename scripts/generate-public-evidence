@@ -8,15 +8,22 @@ import re
 import subprocess
 import sys
 
+from refinement_evidence_paths import (
+    PUBLIC_RUN_ALIAS,
+    SUCCESSOR_PUBLIC_PREFIX,
+    successor_public_root,
+    successor_raw_root,
+)
+
 
 ROOT = Path(__file__).resolve().parent.parent
-RAW_ROOT = ROOT / "evidence/raw"
-PUBLIC_ROOT = ROOT / "evidence/public"
-PUBLIC_RUN_ALIAS = "PF07-ACCEPTANCE-RUN"
+RAW_ROOT = successor_raw_root(ROOT)
+PUBLIC_ROOT = successor_public_root(ROOT)
 TRANSFORM_ID = "pf07-public-evidence-redaction"
 TRANSFORM_VERSION = "1"
 
 RECORDS = {
+    "vsl-pass.json": "vsl-pass.json",
     "e2e-normal-order.json": "e2e-normal-order.json",
     "e2e-variable-coupon-order.json": "e2e-variable-coupon-order.json",
     "duplicate-suppression.json": "duplicate-suppression.json",
@@ -199,7 +206,7 @@ matrix = {
         {
             "acceptance_id": gate,
             "result": "PASS",
-            "record_path": f"evidence/public/{GATE_INDEX[gate]}",
+            "record_path": f"{SUCCESSOR_PUBLIC_PREFIX}/{GATE_INDEX[gate]}",
             "record_sha256": record_hashes[GATE_INDEX[gate]],
         }
         for gate in sorted(GATE_INDEX)
@@ -210,7 +217,7 @@ write_json(PUBLIC_ROOT / "acceptance-matrix.json", matrix)
 manifest_entries = []
 for path in sorted(PUBLIC_ROOT.glob("*")):
     if path.is_file() and path.name != "evidence-manifest.sha256":
-        manifest_entries.append(f"{sha256_bytes(path.read_bytes())}  evidence/public/{path.name}")
+        manifest_entries.append(f"{sha256_bytes(path.read_bytes())}  {SUCCESSOR_PUBLIC_PREFIX}/{path.name}")
 (PUBLIC_ROOT / "evidence-manifest.sha256").write_text("\n".join(manifest_entries) + "\n", encoding="utf-8")
 (PUBLIC_ROOT / "evidence-manifest.sha256").chmod(0o644)
 

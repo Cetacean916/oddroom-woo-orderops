@@ -1,0 +1,33 @@
+{
+  "schema_version": "1",
+  "acceptance_id": "GATE-04",
+  "run_id": "PF07-REFINEMENT-ACCEPTANCE-RUN",
+  "started_at": "2026-07-21T06:41:18Z",
+  "finished_at": "2026-07-21T06:42:27Z",
+  "source_tree_sha256": "61dd3ab2842d5f1d529db0f74ff191983777f8fa1429337e6a62752af9856c94",
+  "command_or_probe": "recorded redaction of protected acceptance observation",
+  "exit_code": 0,
+  "observations": {
+    "result": "PASS",
+    "concurrent_workers": 3,
+    "row_claim_owners": 1,
+    "order_lease_owners": 1,
+    "manual_retry_conflicts": 1,
+    "immutable_row_count": 1,
+    "deal_count": 1,
+    "slack_post_count": 1,
+    "returned_slack_timestamp_count": 1
+  },
+  "artifact_hashes": {},
+  "redaction_state": "PUBLIC_REDACTED",
+  "redaction_transform": {
+    "id": "pf07-public-evidence-redaction",
+    "version": "1",
+    "script_sha256": "85e4f8137dceb273572374edab98fab7f16a99988a63c2335637755a859bdc9a"
+  },
+  "source_acceptance_id": "GATE-04",
+  "source_record_sha256": "368ce0630750a38baeb46a7cfcd8b916c82e97231bb817e6973902a3fe56c24c",
+  "source_artifact_hashes": {
+    "gate04_duplicate_trace": "712f8ed3332633eb1152188822f0527b63aa01d691cac7d16a5d9e353c91291c"
+  }
+}

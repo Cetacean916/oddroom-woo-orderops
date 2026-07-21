@@ -1,0 +1,157 @@
+{
+  "id": "PF07PackageDemoV1",
+  "name": "PF07 Package Demo Adapter",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "oddroom-orderops-demo-v1",
+        "authentication": "none",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "id": "c11bd7e2-1338-4a30-a078-51e005b15d31",
+      "name": "Signed Package Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -360,
+        0
+      ],
+      "webhookId": "927b3634-8ab1-442b-9445-758aa152b697"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://wordpress/wp-json/oddroom-orderops/v1/demo-adapter",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json; charset=utf-8"
+            },
+            {
+              "name": "X-OddRoom-Event-Key",
+              "value": "={{ $json.headers['x-oddroom-event-key'] }}"
+            },
+            {
+              "name": "X-OddRoom-Timestamp",
+              "value": "={{ $json.headers['x-oddroom-timestamp'] }}"
+            },
+            {
+              "name": "X-OddRoom-Resume-Phase",
+              "value": "={{ $json.headers['x-oddroom-resume-phase'] }}"
+            },
+            {
+              "name": "X-OddRoom-Signature",
+              "value": "={{ $json.headers['x-oddroom-signature'] }}"
+            },
+            {
+              "name": "X-PF07-Package-Mode",
+              "value": "={{ $json.headers['x-pf07-package-mode'] }}"
+            },
+            {
+              "name": "X-PF07-Demo-Scenario",
+              "value": "={{ $json.headers['x-pf07-demo-scenario'] }}"
+            },
+            {
+              "name": "X-PF07-Demo-Attempt",
+              "value": "={{ $json.headers['x-pf07-demo-attempt'] }}"
+            },
+            {
+              "name": "X-PF07-Demo-Control-Signature",
+              "value": "={{ $json.headers['x-pf07-demo-control-signature'] }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "binaryData",
+        "inputDataFieldName": "data",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 10000
+        }
+      },
+      "id": "52351163-79a7-49b7-964f-95394d8bcd3d",
+      "name": "Package Demo Service Edges",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -80,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.body }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode }}",
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "10c203e2-ea74-4580-a1ee-445cde47c293",
+      "name": "Return Verified Demo Envelope",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        200,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Signed Package Webhook": {
+      "main": [
+        [
+          {
+            "node": "Package Demo Service Edges",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Package Demo Service Edges": {
+      "main": [
+        [
+          {
+            "node": "Return Verified Demo Envelope",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "executionTimeout": 60,
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all",
+    "saveManualExecutions": false,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "tags": [],
+  "versionId": "c92229da-f160-47ec-a639-cc9c91697f2a"
+}

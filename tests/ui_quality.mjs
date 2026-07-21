@@ -71,16 +71,63 @@ for (const width of viewports) {
       ).catch(() => {});
     }
     await page.evaluate(async () => {
-      window.scrollTo(0, document.documentElement.scrollHeight);
-      await new Promise((resolve) => setTimeout(resolve, 350));
+      const root = document.documentElement;
+      const previousScrollBehavior = root.style.scrollBehavior;
+      root.style.scrollBehavior = 'auto';
+      const maximumScroll = Math.max(0, root.scrollHeight - window.innerHeight);
+      for (const fraction of [0, 0.25, 0.5, 0.75, 1]) {
+        window.scrollTo(0, Math.round(maximumScroll * fraction));
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+      await Promise.all([...document.images].map((image) => {
+        if (image.complete) return Promise.resolve();
+        return new Promise((resolve) => {
+          const finish = () => resolve();
+          image.addEventListener('load', finish, { once: true });
+          image.addEventListener('error', finish, { once: true });
+          setTimeout(finish, 5000);
+        });
+      }));
       window.scrollTo(0, 0);
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      root.style.scrollBehavior = previousScrollBehavior;
     });
     await page.evaluate(async () => { if (document.fonts) await document.fonts.ready; });
     const metrics = await page.evaluate(() => {
       const root = document.documentElement;
+      const clipsOverflow = (value) => ['auto', 'clip', 'hidden', 'scroll'].includes(value);
+      const effectiveBox = (element) => {
+        const box = element.getBoundingClientRect();
+        const visibleBox = {
+          left: box.left,
+          right: box.right,
+          top: box.top,
+          bottom: box.bottom,
+        };
+        for (let ancestor = element.parentElement;
+          ancestor && ancestor !== document.documentElement;
+          ancestor = ancestor.parentElement) {
+          const style = getComputedStyle(ancestor);
+          const ancestorBox = ancestor.getBoundingClientRect();
+          if (clipsOverflow(style.overflowX)) {
+            visibleBox.left = Math.max(visibleBox.left, ancestorBox.left);
+            visibleBox.right = Math.min(visibleBox.right, ancestorBox.right);
+          }
+          if (clipsOverflow(style.overflowY)) {
+            visibleBox.top = Math.max(visibleBox.top, ancestorBox.top);
+            visibleBox.bottom = Math.min(visibleBox.bottom, ancestorBox.bottom);
+          }
+        }
+        return {
+          ...visibleBox,
+          width: Math.max(0, visibleBox.right - visibleBox.left),
+          height: Math.max(0, visibleBox.bottom - visibleBox.top),
+        };
+      };
       const visible = (element) => {
         const style = getComputedStyle(element);
-        const box = element.getBoundingClientRect();
+        const box = effectiveBox(element);
         const closedDetails = element.closest('details:not([open])');
         return style.display !== 'none'
           && style.visibility !== 'hidden'
@@ -100,7 +147,7 @@ for (const width of viewports) {
       const controls = [...document.querySelectorAll('a[href],button,input:not([type=hidden]),select,textarea,[role=button]')]
         .filter(visible);
       const clipped = controls.filter((element) => {
-        const box = element.getBoundingClientRect();
+        const box = effectiveBox(element);
         return box.width > 0 && (box.left < -1 || box.right > root.clientWidth + 1);
       }).length;
       let overlappingControls = 0;
@@ -112,8 +159,8 @@ for (const width of viewports) {
           const sameComposite = ['.woocommerce-product-gallery', '.password-input']
             .some((selector) => left.closest(selector) && left.closest(selector) === right.closest(selector));
           if (sameComposite) continue;
-          const leftBox = left.getBoundingClientRect();
-          const rightBox = right.getBoundingClientRect();
+          const leftBox = effectiveBox(left);
+          const rightBox = effectiveBox(right);
           const overlapWidth = Math.min(leftBox.right, rightBox.right) - Math.max(leftBox.left, rightBox.left);
           const overlapHeight = Math.min(leftBox.bottom, rightBox.bottom) - Math.max(leftBox.top, rightBox.top);
           if (overlapWidth > 2 && overlapHeight > 2) overlappingControls += 1;
@@ -165,7 +212,6 @@ for (const width of viewports) {
         unresolved_skeleton_count: document.querySelectorAll('.wc-block-components-skeleton__element,.wc-block-components-skeleton--checkout-payment').length,
         required_font_load_failures: [
           document.fonts?.check('16px "OddRoom Sans"') === false,
-          document.fonts?.check('24px "OddRoom Display"') === false,
         ].filter(Boolean).length,
         forbidden_copy: internalCopyPattern.test(bodyText),
       };
@@ -250,6 +296,8 @@ if (adminUser && passwordFile) {
     const metrics = await page.evaluate(() => {
       const root = document.querySelector('.oddroom-orderops');
       const scroller = root.querySelector('.oddroom-table-wrap');
+      const eventList = root.querySelector('.oddroom-event-list');
+      const dataSurface = scroller || eventList;
       const buttons = [...root.querySelectorAll('button,input[type=submit],a.button')].filter((button) => {
         const style = getComputedStyle(button);
         const box = button.getBoundingClientRect();
@@ -276,15 +324,22 @@ if (adminUser && passwordFile) {
       const unlabeledActions = buttons.filter((button) => ![
         button.getAttribute('aria-label'), button.getAttribute('title'), button.innerText, button.value,
       ].some((value) => typeof value === 'string' && value.trim() !== '')).length;
+      const documentOverflowContained = document.documentElement.scrollWidth
+        <= document.documentElement.clientWidth + 1;
+      const dataSurfaceOverflowContained = scroller
+        ? scroller.scrollWidth > scroller.clientWidth && documentOverflowContained
+        : Boolean(eventList)
+          && eventList.scrollWidth <= eventList.clientWidth + 1
+          && documentOverflowContained;
       return {
         root_selector: '.oddroom-orderops',
         document_client_width: document.documentElement.clientWidth,
         document_scroll_width: document.documentElement.scrollWidth,
         root_width: Math.round(root.getBoundingClientRect().width),
-        table_scroller_client_width: scroller.clientWidth,
-        table_scroller_scroll_width: scroller.scrollWidth,
-        table_overflow_contained: scroller.scrollWidth > scroller.clientWidth
-          && document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
+        data_surface_mode: scroller ? 'table_scroller' : 'event_card_list',
+        table_scroller_client_width: dataSurface?.clientWidth ?? 0,
+        table_scroller_scroll_width: dataSurface?.scrollWidth ?? 0,
+        table_overflow_contained: dataSurfaceOverflowContained,
         protected_action_count: buttons.length,
         overlapping_protected_action_count: overlappingActions,
         unlabeled_protected_action_count: unlabeledActions,

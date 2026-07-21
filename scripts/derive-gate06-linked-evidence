@@ -12,9 +12,11 @@ import shutil
 import subprocess
 import tempfile
 
+from refinement_evidence_paths import successor_raw_root
+
 
 ROOT = Path(__file__).resolve().parent.parent
-RAW_ROOT = ROOT / "evidence/raw"
+RAW_ROOT = successor_raw_root(ROOT)
 OUTAGE_RECORD = RAW_ROOT / "outage-retry.json"
 INVENTORY_PATH = RAW_ROOT / "protected-artifact-inventory.json"
 FIXTURE_RUNNER = ROOT / "fixtures/run"

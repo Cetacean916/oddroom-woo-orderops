@@ -4,8 +4,9 @@ from datetime import datetime
 import hashlib
 import re
 
+from refinement_evidence_paths import PUBLIC_RUN_ALIAS
 
-PUBLIC_RUN_ALIAS = "PF07-ACCEPTANCE-RUN"
+
 TRANSFORM_ID = "pf07-public-evidence-redaction"
 TRANSFORM_VERSION = "1"
 PUBLIC_REDACTED_FIELDS = {
@@ -46,7 +47,7 @@ def validate_public_record_shape(record: object, transform_sha256: str) -> None:
     acceptance_id = record.get("acceptance_id")
     _require(
         isinstance(acceptance_id, str)
-        and re.fullmatch(r"GATE-[0-9]{2}(?:-[A-Z0-9-]+)?", acceptance_id) is not None,
+        and re.fullmatch(r"(?:GATE-[0-9]{2}(?:-[A-Z0-9-]+)?|VSL-PASS)", acceptance_id) is not None,
         "public acceptance identity is invalid",
     )
     _require(record.get("run_id") == PUBLIC_RUN_ALIAS, "public run alias is invalid")

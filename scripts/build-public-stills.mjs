@@ -77,7 +77,7 @@ try {
   <header>
     <p class="eyebrow">01 / REAL STOREFRONT EXECUTION</p>
     <h1>설명용 화면이 아니라,<br><em>실제 주문 흐름</em>입니다.</h1>
-    <p class="lead">검증된 73초 연속 영상의 같은 바이트에서 home · product · 합성 checkout 프레임을 추출했습니다.</p>
+    <p class="lead">검증된 ${Math.round(video.duration_seconds)}초 연속 영상의 같은 바이트에서 home · product · 합성 checkout 프레임을 추출했습니다.</p>
   </header>
   <section class="frame wide"><span class="tag">LIVE HOME</span><img src="${frames.LIVE_STOREFRONT}" alt=""></section>
   <section class="grid">
