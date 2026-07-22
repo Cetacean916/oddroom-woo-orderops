@@ -5,7 +5,7 @@
   "plugin_schema_version": "1.1.0",
   "payload_schema_version": "1",
   "file_count": 85,
-  "content_set_sha256": "b9d151967c1fcf7a1d208394d9e49f3e83845214e724507e22f889f9bd18ea54",
+  "content_set_sha256": "1633ca8b684dfd389dff6c6eded3e6a511d6dd2286e5183c26e6a9d485d75067",
   "files": [
     {
       "source": "launcher/bin/pf07",
@@ -22,7 +22,7 @@
     {
       "source": "launcher/pf07_launcher/__init__.py",
       "package_path": "launcher/pf07_launcher/__init__.py",
-      "sha256": "834b43092d49df4f88cf2bdd018afc9e2eaaa7e4dee4d6d826dde132d5237551",
+      "sha256": "1fedbba171d84db1a442a8fbdd5977b9160e347b0be3af8fd5c9a86e9c47cf5f",
       "bytes": 87
     },
     {
@@ -40,7 +40,7 @@
     {
       "source": "launcher/pf07_launcher/core.py",
       "package_path": "launcher/pf07_launcher/core.py",
-      "sha256": "b4edd7fddd7cc56f8978101795013dc75984f377710465fb26103beb05b236c3",
+      "sha256": "9154eec0a253ac77c4058cc7eadb3c9d6b164889322e31b167cde27a0aa56ec0",
       "bytes": 114973
     },
     {
@@ -76,13 +76,13 @@
     {
       "source": "launcher/ui/index.en.html",
       "package_path": "launcher/ui/index.en.html",
-      "sha256": "cd8fb9babc3a2667d9e86c76be15f8e1fa8961a4eb020c568cf84fdd3a4c53f6",
+      "sha256": "deff0c118d2359c8a5cb70e64db4430ee0c46e9bca83528f86d7c5edd73394ef",
       "bytes": 15697
     },
     {
       "source": "launcher/ui/index.ko.html",
       "package_path": "launcher/ui/index.ko.html",
-      "sha256": "e53fbf4164a29a4e753fd09ad662f259ea9dbbc49eaf6fe6eba07b0f779b013d",
+      "sha256": "6892ce676888f958f974211a4fb95a3b4822da686ef33c389c8ad16521704399",
       "bytes": 16172
     },
     {

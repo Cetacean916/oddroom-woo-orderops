@@ -1,10 +1,10 @@
 {
   "schema": "pf07.package-allowlist.v1",
   "artifact_id": "pf07-windows-kvm-test-kit",
-  "package_version": "1.0.1",
+  "package_version": "1.0.2",
   "platform": "windows-kvm-test-kit",
   "architecture": "x86_64",
-  "root_name": "PF07-OrderOps-1.0.1-windows-kvm-test-kit",
+  "root_name": "PF07-OrderOps-1.0.2-windows-kvm-test-kit",
   "classification": "PUBLIC_DISTRIBUTION",
   "tested_boundary": "ARTIFACT_DRIVEN_OWNER_KVM_WORKFLOW_NOT_EXECUTED",
   "files": [

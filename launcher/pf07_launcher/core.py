@@ -32,8 +32,8 @@ from .action_contract import PrerequisiteFacts, RuntimeFacts, classify_prerequis
 
 ADMIN_USER = "pf07-operator"
 ADMIN_EMAIL = "pf07-admin@example.com"
-PACKAGE_VERSION = "1.0.1"
-CONTROLLED_UPDATE_PREDECESSOR_VERSION = "1.0.0"
+PACKAGE_VERSION = "1.0.2"
+CONTROLLED_UPDATE_PREDECESSOR_VERSION = "1.0.1"
 DEFAULT_WORDPRESS_PORT = 19081
 STATE_DIR_NAME = ".pf07"
 UPDATE_FENCE_NAME = "UPDATE-FENCE.json"
@@ -2339,7 +2339,7 @@ def controlled_update(predecessor_name: str, confirmation: str) -> dict[str, Any
             "from_build_id": predecessor_identity["build_id"],
             "to_build_id": current_identity["build_id"],
             "package_version": current_identity["package_version"],
-            "migration_id": "controlled-1.0.0-to-1.0.1-v1",
+            "migration_id": "controlled-1.0.1-to-1.0.2-v1",
             "manifest_migrations": [
                 "oddroom-orderops-schema-1.1.0",
                 "package-config-v1",
