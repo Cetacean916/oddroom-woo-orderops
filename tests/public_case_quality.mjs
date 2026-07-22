@@ -44,13 +44,13 @@ const mediaPolicy = {
       ["ADMIN_COMPLETED", "status_completed"], ["INTEGRATION_RESULT", "masked_integration_correlation_visible"],
     ],
     ocr: {
-      LAUNCH_HUB: [/package launch hub/i, /ready/i, /actual hub controls/i],
+      LAUNCH_HUB: [/final linux package/i, /ready/i, /actual hub.*controls/i],
       CHECKOUT_INPUT: [/checkout/i, /test street/i, /seoul/i],
-      ORDER_RECEIVED: [/order received/i],
-      OUTBOX_PENDING: [/outbox pending/i, /order[\s._-]*cr\w*[\s._-]+pendin/i],
+      ORDER_RECEIVED: [/woocommerce.*actual synthetic order/i],
+      OUTBOX_PENDING: [/actual final admin/i, /order[\s._-]*cr\w*[\s._-]+pendin/i],
       WORKER_RUN: [/final package worker/i, /action-scheduler run/i],
-      ADMIN_COMPLETED: [/admin completed?/i, /order[\s._-]*created/i, /completed/i, /\b200\b/i],
-      INTEGRATION_RESULT: [/integration result/i, /woo.*pf[o0]7.*n8n.*crm.*slack/i, /identifiers.*masked/i],
+      ADMIN_COMPLETED: [/order[\s._-]*created/i, /completed/i, /\b200\b/i],
+      INTEGRATION_RESULT: [/woo.*pf[o0]7.*n(?:8)?n.*crm.*slack/i, /identifiers.*masked/i],
     },
     duration: [60, 90],
   },
@@ -62,11 +62,11 @@ const mediaPolicy = {
       ["RECOVERY_WORKER_RUN", "visible_terminal_recovery_worker_exit_zero"], ["RECOVERED", "status_recovered"],
     ],
     ocr: {
-      OUTBOX_PENDING: [/outbox pending/i, /order[\s._-]*cr\w*[\s._-]+pendin/i],
+      OUTBOX_PENDING: [/same delivered\s+runtime/i, /order[\s._-]*cr\w*[\s._-]+pendin/i],
       FAILURE_WORKER_RUN: [/final package worker/i, /action-scheduler run/i],
-      FAILED: [/failed/i, /422/i],
-      NORMAL_SCENARIO: [/normal scenario/i, /actual package hub control/i],
-      MANUAL_RETRY: [/manual retry/i, /scheduled one follow-up/i],
+      FAILED: [/manual retry now available/i, /422/i],
+      NORMAL_SCENARIO: [/actual package hub control/i, /worker result/i],
+      MANUAL_RETRY: [/actual administrator action/i, /scheduled one follow-up/i],
       RECOVERY_WORKER_RUN: [/final package worker/i, /action-scheduler run/i],
       RECOVERED: [/recovered/i, /http\s*200/i],
     },
@@ -83,6 +83,10 @@ const ocrRegions = {
     RECOVERY_WORKER_RUN: { left: 500, top: 475, width: 750, height: 220 },
   },
 };
+// The isolated recorder places each public evidence caption at the upper-right
+// edge. Keep non-terminal OCR scoped to that caption so unrelated page copy
+// cannot satisfy the event-frame assertion.
+const captionOcrRegion = { left: 840, top: 20, width: 420, height: 150 };
 
 const staticImagePolicy = {
   "main-image.png": [1200, 1200],
@@ -337,10 +341,10 @@ async function validatePublicExecutionMedia(caseUrl) {
     try {
       for (const [fileName, policy] of Object.entries(mediaPolicy)) {
         for (const [eventName, patterns] of Object.entries(policy.ocr)) {
-          const rectangle = ocrRegions[fileName]?.[eventName];
+          const rectangle = ocrRegions[fileName]?.[eventName] || captionOcrRegion;
           const result = await worker.recognize(
             frames.get(`${fileName}:${eventName}`),
-            rectangle ? { rectangle } : {},
+            { rectangle },
           );
           const text = result.data.text.replace(/\s+/g, " ");
           requireCondition(patterns.every((pattern) => pattern.test(text)), `${fileName}: deployed frame text failed for ${eventName}`);
@@ -371,6 +375,7 @@ const expectedEvidenceLinks = [
   "https://github.com/Cetacean916/oddroom-woo-orderops/blob/main/plugin/oddroom-orderops/tests/run.php",
   "https://github.com/Cetacean916/oddroom-woo-orderops/blob/main/workflow/oddroom-orderops-vsl.json",
   "https://github.com/Cetacean916/oddroom-woo-orderops/blob/main/docs/RECOVERY-RUNBOOK.md",
+  "https://github.com/Cetacean916/oddroom-woo-orderops/releases/download/pf07-v1.0.1/PF07-RELEASE-MANIFEST.json",
   new URL("assets/media/pf07/execution-proof.json", deploymentRoot).href,
 ];
 const expectedVideoSources = [
@@ -423,7 +428,7 @@ try {
     });
     const axe = await new AxeBuilder({ page }).analyze();
     const seriousOrCritical = axe.violations.filter((item) => ["serious", "critical"].includes(item.impact)).length;
-    if (!audit.title.includes("OFFSET") || !audit.h1.includes("OrderOps")) throw new Error(`${width}: selected brand title or heading missing`);
+    if (!audit.title.includes("OFFSET") || !audit.h1.includes("OFFSET / ORDER SYSTEM")) throw new Error(`${width}: selected brand title or heading missing`);
     if (audit.scrollWidth > audit.viewportWidth + 1 || audit.brokenImages || audit.clippedActions) throw new Error(`${width}: layout or asset failure ${JSON.stringify(audit)}`);
     if (JSON.stringify(audit.scorecard) !== JSON.stringify(mediaObservation.scorecard)
       || JSON.stringify(audit.evidenceLinks) !== JSON.stringify(expectedEvidenceLinks)
