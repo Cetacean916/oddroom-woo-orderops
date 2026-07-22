@@ -5,7 +5,7 @@
   "plugin_schema_version": "1.1.0",
   "payload_schema_version": "1",
   "file_count": 85,
-  "content_set_sha256": "691f4443ca29f3a7fb2a29cf6ae4d1294afdf36f21352e33909e8a9da045b59a",
+  "content_set_sha256": "b9d151967c1fcf7a1d208394d9e49f3e83845214e724507e22f889f9bd18ea54",
   "files": [
     {
       "source": "launcher/bin/pf07",
@@ -172,8 +172,8 @@
     {
       "source": "plugin/oddroom-orderops/assets/css/storefront.css",
       "package_path": "payload/oddroom-orderops/assets/css/storefront.css",
-      "sha256": "bcdecd6671210e0cf0419a91dd9b61b0c634a6799ec9563a68199a0c7ecef3f7",
-      "bytes": 38777
+      "sha256": "5d3680561152c2e57c9f483b13dae604ffc0e4b97e565313297e6ecfa5d87fd0",
+      "bytes": 39010
     },
     {
       "source": "plugin/oddroom-orderops/assets/fonts/DoHyeon-Regular.woff2",

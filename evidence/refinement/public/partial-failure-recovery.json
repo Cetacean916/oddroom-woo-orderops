@@ -2,9 +2,9 @@
   "schema_version": "1",
   "acceptance_id": "GATE-07",
   "run_id": "PF07-REFINEMENT-ACCEPTANCE-RUN",
-  "started_at": "2026-07-22T19:56:22Z",
-  "finished_at": "2026-07-22T19:56:22Z",
-  "source_tree_sha256": "fc5f4afbe09e2d6ca9148fce6e7158f141449acfb5812c66fc8feae16f30efdf",
+  "started_at": "2026-07-22T21:40:34Z",
+  "finished_at": "2026-07-22T21:43:47Z",
+  "source_tree_sha256": "f4c03b41e2e988396aa101356e2abd6c94e2e0a3fec4242a61873f719d7e25e5",
   "command_or_probe": "recorded redaction of protected acceptance observation",
   "exit_code": 0,
   "observations": {
@@ -30,8 +30,8 @@
     "script_sha256": "aaa1efd7f518423acdb6aad17d094427e473b48ecd424153e54ff959e7b5bae0"
   },
   "source_acceptance_id": "GATE-07",
-  "source_record_sha256": "3399c2b4b245b8a431aedba38a5995d409bb0b431b7660d0c254d682facd039b",
+  "source_record_sha256": "7107a3e5559a9ba97399d1e291448d856536960e4c5221a4cad00aa1ea5950ae",
   "source_artifact_hashes": {
-    "slack_checkpoint_trace": "902d97a41845c3d901617729eea9f9cf2851a2a525c5c722736f8509c32df2ba"
+    "slack_checkpoint_trace": "45d665e2f7edca9e81ef64d4286c30f49923c38323a75ba385c9abcb99531468"
   }
 }
