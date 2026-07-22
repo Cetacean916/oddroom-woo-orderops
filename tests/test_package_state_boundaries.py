@@ -85,6 +85,34 @@ class PackageStateBoundaryTest(unittest.TestCase):
                     core.start()
             self.assertFalse((root / ".pf07").exists())
 
+    def test_start_reconnects_ready_runtime_without_reprovisioning(self) -> None:
+        with tempfile.TemporaryDirectory() as directory_name:
+            root = Path(directory_name)
+            state = root / ".pf07"
+            state.mkdir()
+            (state / "runtime.env").write_text("PF07_COMPOSE_PROJECT=pf07-test\n", encoding="utf-8")
+            ready_status = {"ready": True, "runtime_state": "ALREADY_RUNNING"}
+            with (
+                patch.object(core, "package_root", return_value=root),
+                patch.object(core, "_docker_preflight") as docker_preflight,
+                patch.object(core, "ensure_runtime", return_value={"PF07_COMPOSE_PROJECT": "pf07-test"}),
+                patch.object(core, "_synchronize_runtime_mode", side_effect=lambda values: values),
+                patch.object(core, "status", side_effect=[dict(ready_status), dict(ready_status)]) as status,
+                patch.object(core, "_set_operation") as set_operation,
+                patch.object(core, "_prepare_verified_downloads") as prepare_downloads,
+                patch.object(core, "_compose") as compose,
+            ):
+                result = core.start()
+
+            self.assertEqual("RERUN_READY", result["start_disposition"])
+            self.assertEqual(2, status.call_count)
+            docker_preflight.assert_called_once_with({})
+            set_operation.assert_called_once_with(
+                "ready", "이미 실행 중인 상점과 관리자 화면에 다시 연결했습니다.", "PASS"
+            )
+            prepare_downloads.assert_not_called()
+            compose.assert_not_called()
+
     def test_first_run_diagnostics_does_not_create_identity(self) -> None:
         with tempfile.TemporaryDirectory() as directory_name:
             root = Path(directory_name)

@@ -11,6 +11,15 @@
         overlay.remove();
       }
     });
+    document.querySelectorAll('td[scope]').forEach((cell) => cell.removeAttribute('scope'));
+    document.querySelectorAll('.woocommerce-billing-fields > h3').forEach((heading) => {
+      const replacement = document.createElement('h2');
+      for (const attribute of heading.attributes) {
+        replacement.setAttribute(attribute.name, attribute.value);
+      }
+      replacement.innerHTML = heading.innerHTML;
+      heading.replaceWith(replacement);
+    });
   };
 
   normalizeOwnedSurface();

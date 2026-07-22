@@ -5,7 +5,7 @@
   "plugin_schema_version": "1.1.0",
   "payload_schema_version": "1",
   "file_count": 85,
-  "content_set_sha256": "d1075056a0814ba5aa5a6d7a10dcdabf8f59f628abadf51e62ed816e129317de",
+  "content_set_sha256": "1c1849870f2bf4e08f95a16ac3a04b7506fdafebc8af0a2a7da11f514807191f",
   "files": [
     {
       "source": "launcher/bin/pf07",
@@ -40,14 +40,14 @@
     {
       "source": "launcher/pf07_launcher/core.py",
       "package_path": "launcher/pf07_launcher/core.py",
-      "sha256": "e476f1b518876e7c11f19bf260c7ddf7fe2c66cb6bccd123da670af7d5b10ee3",
-      "bytes": 114546
+      "sha256": "b4edd7fddd7cc56f8978101795013dc75984f377710465fb26103beb05b236c3",
+      "bytes": 114973
     },
     {
       "source": "launcher/pf07_launcher/hub.py",
       "package_path": "launcher/pf07_launcher/hub.py",
-      "sha256": "3a20f6d188fd30d97af8ce67baf4260af83af6d1db06175fd2b4de458a72449e",
-      "bytes": 11067
+      "sha256": "650b4fb110cb1008b422a2064906b20f1ecd895442b9b8bee285012475d46071",
+      "bytes": 11135
     },
     {
       "source": "launcher/pf07_launcher/tunnel_proxy.py",
@@ -172,8 +172,8 @@
     {
       "source": "plugin/oddroom-orderops/assets/css/storefront.css",
       "package_path": "payload/oddroom-orderops/assets/css/storefront.css",
-      "sha256": "53749ab4954c17396adb5c55ed6032e298a12411cb66a56708fb00137d341324",
-      "bytes": 37360
+      "sha256": "3002fa4a0658866279d01ee11300b948fd7eed8de820af94a4d6d1b9f58c0475",
+      "bytes": 38502
     },
     {
       "source": "plugin/oddroom-orderops/assets/fonts/DoHyeon-Regular.woff2",
@@ -382,14 +382,14 @@
     {
       "source": "plugin/oddroom-orderops/assets/js/storefront.js",
       "package_path": "payload/oddroom-orderops/assets/js/storefront.js",
-      "sha256": "830ff1f4aba329233f33ab8b8ec2add8b4c748c930ff3ac204ac63d3db154c5a",
-      "bytes": 649
+      "sha256": "6a58cf5cc620b3c134566edfc545ea884a367fd6f555192cadbe7ed9623dad9c",
+      "bytes": 1111
     },
     {
       "source": "plugin/oddroom-orderops/includes/class-oddroom-admin.php",
       "package_path": "payload/oddroom-orderops/includes/class-oddroom-admin.php",
-      "sha256": "a5ab09c07be7cf5252258a5f9ddf0e65f840ccef952819828f68917462ad2184",
-      "bytes": 36447
+      "sha256": "a50aec44ad374cab5ba287719719dfae8fd6a99314089f1a0775109bbc9d077e",
+      "bytes": 36441
     },
     {
       "source": "plugin/oddroom-orderops/includes/class-oddroom-canonical-payload.php",
@@ -484,8 +484,8 @@
     {
       "source": "plugin/oddroom-orderops/includes/class-oddroom-storefront.php",
       "package_path": "payload/oddroom-orderops/includes/class-oddroom-storefront.php",
-      "sha256": "a165cccba1cd0d72cb1dc054036cc23dd355a5fa00b7f1b43e72430c9cc91c37",
-      "bytes": 45854
+      "sha256": "01a89ca0cb2c9b79aa6905075df72977fd01cc411b429d78af829bb8d02596bb",
+      "bytes": 49090
     },
     {
       "source": "plugin/oddroom-orderops/includes/class-oddroom-worker.php",

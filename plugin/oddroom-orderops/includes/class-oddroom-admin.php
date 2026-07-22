@@ -250,7 +250,7 @@ final class OddRoom_Admin
 
     private static function renderHero(array $setup): void
     {
-        echo '<header class="oddroom-hero"><div class="oddroom-brand"><span>OFFSET / ORDEROPS</span><small>OPERATOR CONSOLE</small></div>';
+        echo '<div class="oddroom-hero"><div class="oddroom-brand"><span>OFFSET / ORDEROPS</span><small>OPERATOR CONSOLE</small></div>';
         echo '<div class="oddroom-hero-copy"><p class="oddroom-eyebrow">ORDER OPERATIONS / LIVE STATE</p><h1>'
             . esc_html(self::text('주문 운영', 'Order operations'))
             . '</h1><p>' . esc_html(self::text(
@@ -263,7 +263,7 @@ final class OddRoom_Admin
             . esc_html(self::text('현황', 'Overview')) . '</a><a href="#setup">'
             . esc_html(self::text('설정', 'Setup')) . '</a><a href="#recovery">'
             . esc_html(self::text('복구', 'Recovery')) . '</a><a href="#events">'
-            . esc_html(self::text('이벤트', 'Events')) . '</a></nav></header>';
+            . esc_html(self::text('이벤트', 'Events')) . '</a></nav></div>';
     }
 
     private static function renderSetup(array $setup): void

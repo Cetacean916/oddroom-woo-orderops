@@ -2,9 +2,9 @@
   "schema_version": "1",
   "acceptance_id": "GATE-07",
   "run_id": "PF07-REFINEMENT-ACCEPTANCE-RUN",
-  "started_at": "2026-07-21T23:06:31Z",
-  "finished_at": "2026-07-21T23:06:31Z",
-  "source_tree_sha256": "059f74c3d9fcb859d6ac0d92a8df124bdcad32c0ee52c03cf9c94ed51e78b7a4",
+  "started_at": "2026-07-22T19:02:58Z",
+  "finished_at": "2026-07-22T19:02:58Z",
+  "source_tree_sha256": "9d7223995cbb54db672dedc6c23d20d4da700db97db27c27d2e38b4f984db6c3",
   "command_or_probe": "recorded redaction of protected acceptance observation",
   "exit_code": 0,
   "observations": {
@@ -27,11 +27,11 @@
   "redaction_transform": {
     "id": "pf07-public-evidence-redaction",
     "version": "1",
-    "script_sha256": "85e4f8137dceb273572374edab98fab7f16a99988a63c2335637755a859bdc9a"
+    "script_sha256": "aaa1efd7f518423acdb6aad17d094427e473b48ecd424153e54ff959e7b5bae0"
   },
   "source_acceptance_id": "GATE-07",
-  "source_record_sha256": "e92f5197e1f8d8d550a4b02aa550f9cc88ed3982e57782be0e69a5c0677d6d4c",
+  "source_record_sha256": "ade5ba6fe490aa7cb8488625bcba115c9483cfbf586dd457601b66fb8876fc03",
   "source_artifact_hashes": {
-    "slack_checkpoint_trace": "850be5cebde1eaf44dfa3422663fa499888c611b3e931ed465376429456e931f"
+    "slack_checkpoint_trace": "9b9a46b68ba928f63d72f87109ffe2277e13f31957e77799b21b833690ebbb7b"
   }
 }

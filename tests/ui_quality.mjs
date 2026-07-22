@@ -12,10 +12,12 @@ const viewports = [390, 768, 1440];
 const routes = [
   ['home', '/'],
   ['shop', '/shop/'],
+  ['category', '/product-category/demo-products/'],
   ['product', '/product/offset-dock/'],
   ['cart', '/cart/'],
   ['checkout', '/checkout/'],
   ['account', '/my-account/'],
+  ['tracking', '/order-tracking/'],
 ];
 const evidence = {
   schema_version: 1,
@@ -210,6 +212,11 @@ for (const width of viewports) {
         unlabeled_control_count: unlabeledControls,
         keyboard_inoperable_control_count: keyboardInoperableControls,
         unresolved_skeleton_count: document.querySelectorAll('.wc-block-components-skeleton__element,.wc-block-components-skeleton--checkout-payment').length,
+        visible_h1_count: [...document.querySelectorAll('h1')].filter((heading) => {
+          const style = getComputedStyle(heading);
+          const box = heading.getBoundingClientRect();
+          return style.display !== 'none' && style.visibility !== 'hidden' && box.width > 0 && box.height > 0;
+        }).length,
         required_font_load_failures: [
           document.fonts?.check('16px "Offset Grotesk"') === false,
           document.fonts?.check('32px "Offset Editorial"') === false,
@@ -218,8 +225,8 @@ for (const width of viewports) {
       };
     });
     const axe = await new AxeBuilder({ page }).analyze();
-    const severe = axe.violations
-      .filter((violation) => ['critical', 'serious'].includes(violation.impact))
+    const moderateOrWorse = axe.violations
+      .filter((violation) => ['critical', 'serious', 'moderate'].includes(violation.impact))
       .map((violation) => ({
         rule_id: violation.id,
         impact: violation.impact,
@@ -235,7 +242,8 @@ for (const width of viewports) {
       http_status: response?.status() ?? null,
       expected_path_reached: actualPath === expectedPath,
       ...metrics,
-      critical_or_serious: severe,
+      moderate_or_worse: moderateOrWorse,
+      critical_or_serious: moderateOrWorse.filter((violation) => ['critical', 'serious'].includes(violation.impact)),
       console_errors: [...new Set(consoleErrors)],
       failed_resources: failedResources,
     };
@@ -251,9 +259,10 @@ for (const width of viewports) {
       || observation.keyboard_inoperable_control_count > 0
       || observation.unresolved_skeleton_count > 0
       || observation.required_font_load_failures > 0
+      || observation.visible_h1_count !== 1
       || !observation.korean_locale
       || observation.forbidden_copy
-      || observation.critical_or_serious.length > 0
+      || observation.moderate_or_worse.length > 0
       || observation.console_errors.length > 0
       || observation.failed_resources.length > 0) {
       evidence.failures.push({ surface: name, viewport_width: width });
@@ -353,8 +362,8 @@ if (adminUser && passwordFile) {
       };
     });
     const axe = await new AxeBuilder({ page }).include('.oddroom-orderops').analyze();
-    const severe = axe.violations
-      .filter((violation) => ['critical', 'serious'].includes(violation.impact))
+    const moderateOrWorse = axe.violations
+      .filter((violation) => ['critical', 'serious', 'moderate'].includes(violation.impact))
       .map((violation) => ({
         rule_id: violation.id,
         impact: violation.impact,
@@ -367,7 +376,8 @@ if (adminUser && passwordFile) {
       mode: 'scoped',
       http_status: response?.status() ?? null,
       ...metrics,
-      critical_or_serious: severe,
+      moderate_or_worse: moderateOrWorse,
+      critical_or_serious: moderateOrWorse.filter((violation) => ['critical', 'serious'].includes(violation.impact)),
       console_errors: [...new Set(consoleErrors)],
     };
     evidence.admin.push(observation);
@@ -376,7 +386,7 @@ if (adminUser && passwordFile) {
       || observation.horizontally_clipped_action_count > 0
       || observation.overlapping_protected_action_count > 0
       || observation.unlabeled_protected_action_count > 0
-      || observation.critical_or_serious.length > 0
+      || observation.moderate_or_worse.length > 0
       || observation.console_errors.length > 0) {
       evidence.failures.push({ surface: 'admin', viewport_width: width });
     }

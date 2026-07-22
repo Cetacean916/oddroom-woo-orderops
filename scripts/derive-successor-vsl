@@ -194,9 +194,7 @@ record = {
 }
 
 RAW_ROOT.mkdir(parents=True, exist_ok=True)
-scratch_root = Path(os.environ.get("PF07_SCRATCH_ROOT", tempfile.gettempdir())).expanduser().resolve()
-scratch_root.mkdir(parents=True, exist_ok=True)
-with tempfile.TemporaryDirectory(prefix="pf07-successor-vsl-", dir=scratch_root) as temporary:
+with tempfile.TemporaryDirectory(prefix=".pf07-successor-vsl-", dir=RAW_ROOT) as temporary:
     stage_root = Path(temporary)
     record_stage = stage_root / TARGET.name
     record_stage.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

@@ -259,8 +259,9 @@
       "required_artifacts": ["gate09_product_quality_trace"],
       "assertions": [
         {"path": "viewport_count", "operator": "eq", "expected": 3},
-        {"path": "storefront_page_count", "operator": "eq", "expected": 6},
+        {"path": "storefront_page_count", "operator": "eq", "expected": 8},
         {"path": "admin_scoped_page_count", "operator": "eq", "expected": 1},
+        {"path": "moderate_or_worse_violations", "operator": "eq", "expected": 0},
         {"path": "serious_or_critical_violations", "operator": "eq", "expected": 0},
         {"path": "page_overflow_failures", "operator": "eq", "expected": 0},
         {"path": "clipped_action_failures", "operator": "eq", "expected": 0},
@@ -274,6 +275,7 @@
         {"path": "keyboard_operability_failures", "operator": "eq", "expected": 0},
         {"path": "font_load_failures", "operator": "eq", "expected": 0},
         {"path": "unresolved_skeleton_failures", "operator": "eq", "expected": 0},
+        {"path": "visible_h1_failures", "operator": "eq", "expected": 0},
         {"path": "image_alt_failures", "operator": "eq", "expected": 0},
         {"path": "failed_resource_count", "operator": "eq", "expected": 0},
         {"path": "unexpected_http_or_route_failures", "operator": "eq", "expected": 0},

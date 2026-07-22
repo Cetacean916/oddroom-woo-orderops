@@ -909,6 +909,14 @@ def start() -> dict[str, Any]:
     values = _synchronize_runtime_mode(ensure_runtime())
     with _operation_lock():
         try:
+            if package_state_existed:
+                current = status()
+                if current["ready"]:
+                    _set_operation("ready", "이미 실행 중인 상점과 관리자 화면에 다시 연결했습니다.", "PASS")
+                    result = status()
+                    if result["ready"]:
+                        result["start_disposition"] = "RERUN_READY"
+                        return result
             _set_operation("preflight", "Docker 실행 환경을 확인하는 중입니다.")
             _docker_preflight(values)
             # Populate the host-owned, read-only download cache before Compose

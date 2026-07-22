@@ -43,6 +43,11 @@ body:not(.wp-admin) {
   text-rendering: optimizeLegibility;
 }
 
+html[lang^="ko"] body:not(.wp-admin) {
+  word-break: keep-all;
+  overflow-wrap: normal;
+}
+
 .oddroom-hero h1,
 .oddroom-manifesto h2,
 .oddroom-section > header h2,
@@ -196,12 +201,16 @@ body.home .entry-content > .oddroom-home {
 }
 
 body.home .wp-block-post-title,
-body.woocommerce-shop .woocommerce-products-header {
+body.woocommerce-shop .woocommerce-products-header,
+body.tax-product_cat .woocommerce-products-header,
+body.oddroom-order-tracking .wp-block-post-title {
   display: none;
 }
 
 body.woocommerce-shop .wp-block-query-title,
-body.woocommerce-shop main > .alignwide.wp-block-query-title {
+body.woocommerce-shop main > .alignwide.wp-block-query-title,
+body.tax-product_cat .wp-block-query-title,
+body.tax-product_cat main > .alignwide.wp-block-query-title {
   display: none !important;
 }
 
@@ -892,6 +901,8 @@ body:not(.wp-admin) .wc-block-cart,
 body:not(.wp-admin) .wc-block-checkout,
 body:not(.wp-admin) .woocommerce-account main,
 body:not(.wp-admin) .woocommerce-shop main,
+body:not(.wp-admin).tax-product_cat main,
+body:not(.wp-admin).oddroom-order-tracking main,
 body:not(.wp-admin) .single-product main,
 body:not(.wp-admin) .wp-block-woocommerce-product-collection,
 body:not(.wp-admin) .woocommerce-shop .wp-block-group.alignwide {
@@ -908,6 +919,23 @@ body.woocommerce-checkout main,
 body.woocommerce-account main {
   padding-top: 38px !important;
   padding-bottom: 110px !important;
+}
+
+body.tax-product_cat main,
+body.oddroom-order-tracking main {
+  padding-top: 38px !important;
+  padding-bottom: 110px !important;
+}
+
+body.oddroom-order-tracking .woocommerce {
+  max-width: 760px !important;
+}
+
+body.oddroom-order-tracking .woocommerce-form-track-order {
+  margin-top: 0;
+  padding: clamp(28px, 5vw, 56px);
+  border: 1px solid var(--offset-ink);
+  background: var(--offset-white);
 }
 
 body:not(.wp-admin) .woocommerce-result-count,
@@ -986,7 +1014,7 @@ body:not(.wp-admin) .woocommerce ul.products li.product .button:hover {
 /* Product detail */
 body:not(.wp-admin) .woocommerce-breadcrumb,
 body:not(.wp-admin) .wc-block-breadcrumbs {
-  margin: 0 0 34px !important;
+  margin: 0 auto 34px !important;
   color: var(--offset-soft-ink);
   font-size: 10px !important;
   letter-spacing: .04em;
@@ -1026,9 +1054,12 @@ body.single-product main > .wp-block-columns.alignwide > .wp-block-column:last-c
 }
 
 body.single-product .wp-block-woocommerce-product-image-gallery,
-body.single-product .woocommerce-product-gallery,
-body.single-product .woocommerce-product-gallery__wrapper {
+body.single-product .woocommerce-product-gallery {
   width: 100% !important;
+  max-width: none !important;
+}
+
+body.single-product .woocommerce-product-gallery__wrapper {
   max-width: none !important;
 }
 
@@ -1460,8 +1491,12 @@ body:not(.wp-admin) .woocommerce-MyAccount-navigation li {
     font-size: 6px;
   }
 
-  .oddroom-nav-utility li:first-child {
-    display: none;
+  .oddroom-nav-utility ul {
+    gap: 13px;
+  }
+
+  .oddroom-frontbar .oddroom-nav-utility a {
+    font-size: 11px;
   }
 
   .oddroom-hero-visual {
@@ -1635,7 +1670,18 @@ body:not(.wp-admin) .woocommerce-MyAccount-navigation li {
   }
 
   .oddroom-commerce-intro--compact .oddroom-commerce-marker {
-    bottom: 28px;
+    position: static;
+    margin: -2px 0 12px;
+    text-align: right;
+  }
+
+  body.oddroom-order-tracking .woocommerce-form-track-order .form-row {
+    float: none;
+    width: 100%;
+  }
+
+  body.oddroom-order-tracking .woocommerce-form-track-order .form-row input {
+    width: 100%;
   }
 
   .oddroom-coupon-banner {

@@ -11,13 +11,12 @@ from pathlib import Path
 import re
 import shlex
 import shutil
-import stat
 import subprocess
 import sys
 import tempfile
 
 from acceptance_semantics import AcceptanceSemanticError, derive_fixture_observations
-from refinement_evidence_paths import successor_raw_root
+from refinement_evidence_paths import public_candidate_source_sha256, successor_raw_root
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -47,23 +46,6 @@ def sha256_bytes(value: bytes) -> str:
 
 def sha256_file(path: Path) -> str:
     return sha256_bytes(path.read_bytes())
-
-
-def source_tree_sha256() -> str:
-    lines: list[str] = []
-    for path in sorted(ROOT.rglob("*")):
-        relative = path.relative_to(ROOT)
-        if not path.is_file() or path.is_symlink():
-            continue
-        if relative.parts[0] in {"dist", "evidence", "reports", "runtime", ".git"}:
-            continue
-        if "node_modules" in relative.parts or "__pycache__" in relative.parts or path.suffix == ".pyc":
-            continue
-        if relative.as_posix() == "release/public-build-manifest.json":
-            continue
-        mode = "0755" if path.stat().st_mode & stat.S_IXUSR else "0644"
-        lines.append(f"{relative.as_posix()}\t{mode}\t{sha256_file(path)}")
-    return sha256_bytes(("\n".join(lines) + "\n").encode("utf-8"))
 
 
 def now_utc() -> str:
@@ -140,6 +122,10 @@ if not args.replace and record_path.exists():
 
 scratch_root = Path(os.environ.get("PF07_SCRATCH_ROOT", tempfile.gettempdir()))
 scratch_root.mkdir(parents=True, exist_ok=True)
+try:
+    source_identity_before = public_candidate_source_sha256(ROOT)
+except (OSError, ValueError, json.JSONDecodeError) as error:
+    fail(f"public candidate source identity is unavailable: {error}")
 started_at = now_utc()
 with tempfile.TemporaryDirectory(prefix="pf07-evidence-", dir=scratch_root) as temporary:
     output_dir = Path(temporary)
@@ -207,13 +193,20 @@ with tempfile.TemporaryDirectory(prefix="pf07-evidence-", dir=scratch_root) as t
         destinations[alias] = destination
 
     artifact_hashes = {alias: prepared[alias][1] for alias in required_aliases}
+    try:
+        source_identity_after = public_candidate_source_sha256(ROOT)
+    except (OSError, ValueError, json.JSONDecodeError) as error:
+        fail(f"public candidate source identity is unavailable after probe: {error}")
+    if source_identity_after != source_identity_before:
+        fail("public candidate source identity changed while the probe was running")
+
     record = {
         "schema_version": "1",
         "acceptance_id": fixture["acceptance_id"],
         "run_id": run_id,
         "started_at": started_at,
         "finished_at": finished_at,
-        "source_tree_sha256": source_tree_sha256(),
+        "source_tree_sha256": source_identity_after,
         "command_or_probe": serialized_command,
         "exit_code": 0,
         "observations": {"result": "PASS", **observations},

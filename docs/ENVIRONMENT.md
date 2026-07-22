@@ -61,6 +61,9 @@ The acceptance storefront runs with WordPress locale `ko_KR`. Bootstrap installs
 - Public/storefront mode: `full_document`
 - PF07 administrator mode: `scoped`, root selector `.oddroom-orderops`, including every PF07-owned notice, details/action surface, and table inside that root
 - Required viewports: `390`, `768`, and `1440` CSS pixels
-- Failure threshold: zero `critical` or `serious` violations; no manual PF07-introduced reclassification
+- Required storefront routes: home, shop, category, product, cart, checkout, account, and guest order tracking
+- Failure threshold: zero `moderate`, `serious`, or `critical` violations; no manual PF07-introduced reclassification
+- Heading threshold: exactly one visible `h1` on every required storefront route at every required viewport
+- Evidence source identity: SHA-256 of the deny-by-default public allowlist's current non-evidence files, with normalized `0644`/`0755` modes; every protected record in one run and every generated public record must match that exact candidate identity
 
 The validation also records document `scrollWidth` versus `clientWidth`, broken image responses, clipped primary actions, console errors, and keyboard reachability. The intentionally wide administrator data table must scroll only inside `.oddroom-table-wrap`; page-level horizontal overflow remains a failure.

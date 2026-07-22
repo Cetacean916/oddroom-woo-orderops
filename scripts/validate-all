@@ -6,7 +6,6 @@ import hashlib
 import json
 from pathlib import Path
 import re
-import stat
 import subprocess
 import sys
 
@@ -15,6 +14,7 @@ from refinement_evidence_paths import (
     LEGACY_RAW_MANIFEST_SHA256,
     PUBLIC_RUN_ALIAS,
     SUCCESSOR_PUBLIC_PREFIX,
+    public_candidate_source_sha256,
     successor_public_root,
     successor_raw_root,
 )
@@ -84,23 +84,6 @@ def parse_time(value: object, label: str) -> None:
         fail(f"{label} is not RFC3339-compatible")
 
 
-def source_tree_sha256() -> str:
-    lines: list[str] = []
-    for path in sorted(ROOT.rglob("*")):
-        relative = path.relative_to(ROOT)
-        if not path.is_file() or path.is_symlink():
-            continue
-        if relative.parts[0] in {"dist", "evidence", "reports", "runtime", ".git"}:
-            continue
-        if "node_modules" in relative.parts or "__pycache__" in relative.parts or path.suffix == ".pyc":
-            continue
-        if relative.as_posix() == "release/public-build-manifest.json":
-            continue
-        mode = "0755" if path.stat().st_mode & stat.S_IXUSR else "0644"
-        lines.append(f"{relative.as_posix()}\t{mode}\t{sha256_file(path)}")
-    return sha256_bytes(("\n".join(lines) + "\n").encode("utf-8"))
-
-
 def parse_manifest(path: Path) -> dict[str, str]:
     entries: dict[str, str] = {}
     for line in path.read_text(encoding="utf-8").splitlines():
@@ -138,7 +121,7 @@ if not legacy_raw_manifest.is_file() or sha256_file(legacy_raw_manifest) != LEGA
 if not legacy_public_manifest.is_file() or sha256_file(legacy_public_manifest) != LEGACY_PUBLIC_MANIFEST_SHA256:
     fail("historical v1.0.2 public evidence manifest changed")
 
-source_hash = source_tree_sha256()
+source_hash = public_candidate_source_sha256(ROOT)
 inventory = load_json(RAW_ROOT / "protected-artifact-inventory.json")
 artifacts = inventory.get("artifacts")
 if inventory.get("schema_version") != 1 or not isinstance(artifacts, dict) or not artifacts:
