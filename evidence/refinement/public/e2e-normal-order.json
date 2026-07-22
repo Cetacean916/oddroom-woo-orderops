@@ -2,9 +2,9 @@
   "schema_version": "1",
   "acceptance_id": "GATE-01",
   "run_id": "PF07-REFINEMENT-ACCEPTANCE-RUN",
-  "started_at": "2026-07-21T22:55:13Z",
-  "finished_at": "2026-07-21T22:55:46Z",
-  "source_tree_sha256": "059f74c3d9fcb859d6ac0d92a8df124bdcad32c0ee52c03cf9c94ed51e78b7a4",
+  "started_at": "2026-07-22T23:24:17Z",
+  "finished_at": "2026-07-22T23:24:50Z",
+  "source_tree_sha256": "06426537792092ecaebfd1214ce7f7008488dadbdbf6aea109057f6e5139d012",
   "command_or_probe": "recorded redaction of protected acceptance observation",
   "exit_code": 0,
   "observations": {
@@ -25,11 +25,11 @@
   "redaction_transform": {
     "id": "pf07-public-evidence-redaction",
     "version": "1",
-    "script_sha256": "85e4f8137dceb273572374edab98fab7f16a99988a63c2335637755a859bdc9a"
+    "script_sha256": "aaa1efd7f518423acdb6aad17d094427e473b48ecd424153e54ff959e7b5bae0"
   },
   "source_acceptance_id": "GATE-01",
-  "source_record_sha256": "05c28e2f8e27e9dee8f9de7070328fc849ea76181d67ad498834d5ed0d5da0b2",
+  "source_record_sha256": "b2848fccd37f8f3f7a3e2da89fc1e58b6ac5db8b24ec1a78c183463257abe383",
   "source_artifact_hashes": {
-    "gate01_order_variety_trace": "3daf4428c2a6fa8c763b00b2b3267fea7904d8ac0108f3d91b57f80faaab1f30"
+    "gate01_order_variety_trace": "1e2286b1c8a001ec43566b9a4134b9a20b367d08a212320772c78c90bf4f0e3c"
   }
 }

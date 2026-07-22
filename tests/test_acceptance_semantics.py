@@ -277,7 +277,7 @@ with tempfile.TemporaryDirectory(prefix="pf07-semantic-test-") as temporary:
 
     storefront = []
     for viewport in (390, 768, 1440):
-        for page in ("home", "shop", "product", "cart", "checkout", "account"):
+        for page in ("home", "shop", "category", "product", "cart", "checkout", "account", "tracking"):
             storefront.append({
                 "page": page,
                 "viewport_width": viewport,
@@ -285,6 +285,7 @@ with tempfile.TemporaryDirectory(prefix="pf07-semantic-test-") as temporary:
                 "mode": "full_document",
                 "http_status": 200,
                 "expected_path_reached": True,
+                "moderate_or_worse": [],
                 "critical_or_serious": [],
                 "page_overflow_px": 0,
                 "horizontally_clipped_control_count": 0,
@@ -300,6 +301,8 @@ with tempfile.TemporaryDirectory(prefix="pf07-semantic-test-") as temporary:
                 "keyboard_inoperable_control_count": 0,
                 "required_font_load_failures": 0,
                 "unresolved_skeleton_count": 0,
+                "visible_h1_count": 1,
+                "split_korean_word_count": 0,
             })
     admin = [{
         "page": "admin",
@@ -308,6 +311,7 @@ with tempfile.TemporaryDirectory(prefix="pf07-semantic-test-") as temporary:
         "mode": "scoped",
         "root_selector": ".oddroom-orderops",
         "http_status": 200,
+        "moderate_or_worse": [],
         "critical_or_serious": [],
         "console_errors": [],
         "table_overflow_contained": True,
@@ -325,12 +329,53 @@ with tempfile.TemporaryDirectory(prefix="pf07-semantic-test-") as temporary:
     observed = derive(directory, "product-quality", "gate09_product_quality_trace", product)
     require(
         observed["viewport_count"] == 3
+        and observed["storefront_page_count"] == 8
+        and observed["moderate_or_worse_violations"] == 0
+        and observed["visible_h1_failures"] == 0
+        and observed["split_korean_word_failures"] == 0
         and observed["console_error_failures"] == 0
         and observed["placeholder_or_internal_copy_failures"] == 0
         and observed["layout_overlap_failures"] == 0
         and observed["korean_locale_failures"] == 0,
         "GATE-09 product derivation differs",
     )
+    moderate_product = copy.deepcopy(product)
+    moderate_product["ui_evidence"]["storefront"][0]["moderate_or_worse"] = [{
+        "rule_id": "heading-order",
+        "impact": "moderate",
+        "targets": ["main h3"],
+    }]
+    observed = derive(directory, "product-quality", "gate09_product_quality_trace", moderate_product)
+    require(
+        observed["moderate_or_worse_violations"] == 1
+        and observed["serious_or_critical_violations"] == 0,
+        "GATE-09 moderate accessibility defects are not independently derived",
+    )
+    invalid_heading_product = copy.deepcopy(product)
+    invalid_heading_product["ui_evidence"]["storefront"][0]["visible_h1_count"] = 0
+    observed = derive(directory, "product-quality", "gate09_product_quality_trace", invalid_heading_product)
+    require(observed["visible_h1_failures"] == 1, "GATE-09 visible-H1 failures are not derived")
+    missing_heading_product = copy.deepcopy(product)
+    del missing_heading_product["ui_evidence"]["storefront"][0]["visible_h1_count"]
+    try:
+        derive(directory, "product-quality", "gate09_product_quality_trace", missing_heading_product)
+    except AcceptanceSemanticError:
+        pass
+    else:
+        raise SystemExit("FAIL: GATE-09 accepted a storefront observation without visible-H1 evidence")
+    split_word_product = copy.deepcopy(product)
+    split_word_product["ui_evidence"]["storefront"][0]["split_korean_word_count"] = 1
+    observed = derive(directory, "product-quality", "gate09_product_quality_trace", split_word_product)
+    require(observed["split_korean_word_failures"] == 1, "GATE-09 split Korean words are not derived")
+    duplicate_pair_product = copy.deepcopy(product)
+    duplicate_pair_product["ui_evidence"]["storefront"][0]["page"] = duplicate_pair_product["ui_evidence"]["storefront"][1]["page"]
+    duplicate_pair_product["ui_evidence"]["storefront"][0]["viewport_width"] = duplicate_pair_product["ui_evidence"]["storefront"][1]["viewport_width"]
+    try:
+        derive(directory, "product-quality", "gate09_product_quality_trace", duplicate_pair_product)
+    except AcceptanceSemanticError:
+        pass
+    else:
+        raise SystemExit("FAIL: GATE-09 accepted a missing viewport-route pair hidden by a duplicate pair")
 
     restore = {
         "schema_version": 1,

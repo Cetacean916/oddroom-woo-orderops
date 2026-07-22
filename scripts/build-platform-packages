@@ -17,8 +17,8 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "1.0.1"
-RELEASE_TAG = "pf07-v1.0.1"
+VERSION = "1.0.2"
+RELEASE_TAG = "pf07-v1.0.2"
 DELIVERY_MODE = "GITHUB_RELEASE_ASSETS"
 ALLOWLISTS = (
     "packaging/windows/package-allowlist.json",
@@ -28,11 +28,11 @@ ALLOWLISTS = (
     "packaging/linux/server-package-allowlist.json",
 )
 ARCHIVE_NAMES = {
-    "pf07-windows-x64": "pf07-windows-x64-1.0.1.zip",
-    "pf07-windows-kvm-test-kit": "pf07-windows-kvm-test-kit-1.0.1.zip",
-    "pf07-macos-universal": "pf07-macos-universal-1.0.1.zip",
-    "pf07-linux-x86_64": "pf07-linux-x86_64-1.0.1.tar.gz",
-    "pf07-linux-server": "pf07-linux-server-1.0.1.tar.gz",
+    "pf07-windows-x64": "pf07-windows-x64-1.0.2.zip",
+    "pf07-windows-kvm-test-kit": "pf07-windows-kvm-test-kit-1.0.2.zip",
+    "pf07-macos-universal": "pf07-macos-universal-1.0.2.zip",
+    "pf07-linux-x86_64": "pf07-linux-x86_64-1.0.2.tar.gz",
+    "pf07-linux-server": "pf07-linux-server-1.0.2.tar.gz",
 }
 FORBIDDEN_NAMES = {".git", ".pf07", "__pycache__", "node_modules", "runtime", "evidence", "secrets"}
 FORBIDDEN_SUFFIXES = {".pyc", ".pyo", ".sqlite", ".sqlite3", ".db", ".log", ".bak", ".orig", ".old"}

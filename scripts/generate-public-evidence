@@ -11,6 +11,7 @@ import sys
 from refinement_evidence_paths import (
     PUBLIC_RUN_ALIAS,
     SUCCESSOR_PUBLIC_PREFIX,
+    public_candidate_source_sha256,
     successor_public_root,
     successor_raw_root,
 )
@@ -130,6 +131,25 @@ protected_pattern = re.compile(
     re.IGNORECASE,
 )
 
+protected_run_ids: set[str] = set()
+protected_source_hashes: set[str] = set()
+for raw_name in RECORDS:
+    raw = read_json(RAW_ROOT / raw_name)
+    run_id = raw.get("run_id")
+    source_hash = raw.get("source_tree_sha256")
+    if not isinstance(run_id, str) or not isinstance(source_hash, str):
+        fail(f"raw run or source identity is missing: {raw_name}")
+    protected_run_ids.add(run_id)
+    protected_source_hashes.add(source_hash)
+try:
+    expected_source_hash = public_candidate_source_sha256(ROOT)
+except (OSError, ValueError, json.JSONDecodeError) as error:
+    fail(f"current public candidate source identity is unavailable: {error}")
+if len(protected_run_ids) != 1:
+    fail("protected records do not share one successor run identity")
+if protected_source_hashes != {expected_source_hash}:
+    fail("protected records are not bound to the current public candidate source identity")
+
 public_records: dict[str, dict] = {}
 for raw_name, public_name in RECORDS.items():
     raw_path = RAW_ROOT / raw_name
@@ -182,8 +202,8 @@ record_hashes = {
 started = min(record["started_at"] for record in public_records.values())
 finished = max(record["finished_at"] for record in public_records.values())
 source_hashes = {record["source_tree_sha256"] for record in public_records.values()}
-if len(source_hashes) != 1:
-    fail("public records do not bind one deterministic source tree")
+if source_hashes != {expected_source_hash}:
+    fail("public records do not bind the current public candidate source identity")
 
 matrix = {
     "schema_version": "1",

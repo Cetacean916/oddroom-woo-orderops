@@ -2,16 +2,17 @@
   "schema_version": "1",
   "acceptance_id": "GATE-09",
   "run_id": "PF07-REFINEMENT-ACCEPTANCE-RUN",
-  "started_at": "2026-07-21T22:51:35Z",
-  "finished_at": "2026-07-21T22:52:23Z",
-  "source_tree_sha256": "059f74c3d9fcb859d6ac0d92a8df124bdcad32c0ee52c03cf9c94ed51e78b7a4",
+  "started_at": "2026-07-22T23:43:41Z",
+  "finished_at": "2026-07-22T23:44:41Z",
+  "source_tree_sha256": "06426537792092ecaebfd1214ce7f7008488dadbdbf6aea109057f6e5139d012",
   "command_or_probe": "recorded redaction of protected acceptance observation",
   "exit_code": 0,
   "observations": {
     "result": "PASS",
     "viewport_count": 3,
-    "storefront_page_count": 6,
+    "storefront_page_count": 8,
     "admin_scoped_page_count": 1,
+    "moderate_or_worse_violations": 0,
     "serious_or_critical_violations": 0,
     "page_overflow_failures": 0,
     "clipped_action_failures": 0,
@@ -25,6 +26,8 @@
     "keyboard_operability_failures": 0,
     "font_load_failures": 0,
     "unresolved_skeleton_failures": 0,
+    "visible_h1_failures": 0,
+    "split_korean_word_failures": 0,
     "image_alt_failures": 0,
     "failed_resource_count": 0,
     "unexpected_http_or_route_failures": 0,
@@ -35,11 +38,11 @@
   "redaction_transform": {
     "id": "pf07-public-evidence-redaction",
     "version": "1",
-    "script_sha256": "85e4f8137dceb273572374edab98fab7f16a99988a63c2335637755a859bdc9a"
+    "script_sha256": "aaa1efd7f518423acdb6aad17d094427e473b48ecd424153e54ff959e7b5bae0"
   },
   "source_acceptance_id": "GATE-09",
-  "source_record_sha256": "94175b646f6ba9d2492e0b4f6793244f39e4d3fcd69f08b482797fa13be6f663",
+  "source_record_sha256": "34ec26c7c116f7ba8b02235b280b128e4049653beccc56d8204b63be5a4ac783",
   "source_artifact_hashes": {
-    "gate09_product_quality_trace": "dcdf61f994340813a30306391e354a28ff52b7f950518daa4c66e2b36f5836c7"
+    "gate09_product_quality_trace": "3c1050d162e5678eb3675b29010dc3a816fbb78fa1c1ea74e19e9fd9ac159367"
   }
 }

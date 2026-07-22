@@ -5,7 +5,7 @@
   "plugin_schema_version": "1.1.0",
   "payload_schema_version": "1",
   "file_count": 85,
-  "content_set_sha256": "d1075056a0814ba5aa5a6d7a10dcdabf8f59f628abadf51e62ed816e129317de",
+  "content_set_sha256": "1633ca8b684dfd389dff6c6eded3e6a511d6dd2286e5183c26e6a9d485d75067",
   "files": [
     {
       "source": "launcher/bin/pf07",
@@ -22,7 +22,7 @@
     {
       "source": "launcher/pf07_launcher/__init__.py",
       "package_path": "launcher/pf07_launcher/__init__.py",
-      "sha256": "834b43092d49df4f88cf2bdd018afc9e2eaaa7e4dee4d6d826dde132d5237551",
+      "sha256": "1fedbba171d84db1a442a8fbdd5977b9160e347b0be3af8fd5c9a86e9c47cf5f",
       "bytes": 87
     },
     {
@@ -40,14 +40,14 @@
     {
       "source": "launcher/pf07_launcher/core.py",
       "package_path": "launcher/pf07_launcher/core.py",
-      "sha256": "e476f1b518876e7c11f19bf260c7ddf7fe2c66cb6bccd123da670af7d5b10ee3",
-      "bytes": 114546
+      "sha256": "9154eec0a253ac77c4058cc7eadb3c9d6b164889322e31b167cde27a0aa56ec0",
+      "bytes": 114973
     },
     {
       "source": "launcher/pf07_launcher/hub.py",
       "package_path": "launcher/pf07_launcher/hub.py",
-      "sha256": "3a20f6d188fd30d97af8ce67baf4260af83af6d1db06175fd2b4de458a72449e",
-      "bytes": 11067
+      "sha256": "650b4fb110cb1008b422a2064906b20f1ecd895442b9b8bee285012475d46071",
+      "bytes": 11135
     },
     {
       "source": "launcher/pf07_launcher/tunnel_proxy.py",
@@ -76,13 +76,13 @@
     {
       "source": "launcher/ui/index.en.html",
       "package_path": "launcher/ui/index.en.html",
-      "sha256": "cd8fb9babc3a2667d9e86c76be15f8e1fa8961a4eb020c568cf84fdd3a4c53f6",
+      "sha256": "deff0c118d2359c8a5cb70e64db4430ee0c46e9bca83528f86d7c5edd73394ef",
       "bytes": 15697
     },
     {
       "source": "launcher/ui/index.ko.html",
       "package_path": "launcher/ui/index.ko.html",
-      "sha256": "e53fbf4164a29a4e753fd09ad662f259ea9dbbc49eaf6fe6eba07b0f779b013d",
+      "sha256": "6892ce676888f958f974211a4fb95a3b4822da686ef33c389c8ad16521704399",
       "bytes": 16172
     },
     {
@@ -172,8 +172,8 @@
     {
       "source": "plugin/oddroom-orderops/assets/css/storefront.css",
       "package_path": "payload/oddroom-orderops/assets/css/storefront.css",
-      "sha256": "53749ab4954c17396adb5c55ed6032e298a12411cb66a56708fb00137d341324",
-      "bytes": 37360
+      "sha256": "5d3680561152c2e57c9f483b13dae604ffc0e4b97e565313297e6ecfa5d87fd0",
+      "bytes": 39010
     },
     {
       "source": "plugin/oddroom-orderops/assets/fonts/DoHyeon-Regular.woff2",
@@ -382,14 +382,14 @@
     {
       "source": "plugin/oddroom-orderops/assets/js/storefront.js",
       "package_path": "payload/oddroom-orderops/assets/js/storefront.js",
-      "sha256": "830ff1f4aba329233f33ab8b8ec2add8b4c748c930ff3ac204ac63d3db154c5a",
-      "bytes": 649
+      "sha256": "6a58cf5cc620b3c134566edfc545ea884a367fd6f555192cadbe7ed9623dad9c",
+      "bytes": 1111
     },
     {
       "source": "plugin/oddroom-orderops/includes/class-oddroom-admin.php",
       "package_path": "payload/oddroom-orderops/includes/class-oddroom-admin.php",
-      "sha256": "a5ab09c07be7cf5252258a5f9ddf0e65f840ccef952819828f68917462ad2184",
-      "bytes": 36447
+      "sha256": "a50aec44ad374cab5ba287719719dfae8fd6a99314089f1a0775109bbc9d077e",
+      "bytes": 36441
     },
     {
       "source": "plugin/oddroom-orderops/includes/class-oddroom-canonical-payload.php",
@@ -484,8 +484,8 @@
     {
       "source": "plugin/oddroom-orderops/includes/class-oddroom-storefront.php",
       "package_path": "payload/oddroom-orderops/includes/class-oddroom-storefront.php",
-      "sha256": "a165cccba1cd0d72cb1dc054036cc23dd355a5fa00b7f1b43e72430c9cc91c37",
-      "bytes": 45854
+      "sha256": "01a89ca0cb2c9b79aa6905075df72977fd01cc411b429d78af829bb8d02596bb",
+      "bytes": 49090
     },
     {
       "source": "plugin/oddroom-orderops/includes/class-oddroom-worker.php",

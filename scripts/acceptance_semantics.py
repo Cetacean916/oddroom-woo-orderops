@@ -529,21 +529,31 @@ def _product_quality(path: Path) -> dict:
     admin = ui["admin"]
     _require(isinstance(storefront, list) and isinstance(admin, list) and isinstance(ui["failures"], list), "GATE-09 UI collections are invalid")
     _require(ui["failures"] == [], "GATE-09 UI runner reported failures")
-    viewports = {item.get("viewport_width") for item in storefront if isinstance(item, dict)}
-    pages = {item.get("page") for item in storefront if isinstance(item, dict)}
-    _require(viewports == {390, 768, 1440} and pages == {"home", "shop", "product", "cart", "checkout", "account"} and len(storefront) == 18, "GATE-09 storefront coverage differs")
+    viewports = {390, 768, 1440}
+    pages = {"home", "shop", "category", "product", "cart", "checkout", "account", "tracking"}
+    observed_pairs = [
+        (item.get("page"), item.get("viewport_width"))
+        for item in storefront
+        if isinstance(item, dict)
+    ]
+    expected_pairs = {(page, viewport) for page in pages for viewport in viewports}
+    _require(
+        set(observed_pairs) == expected_pairs
+        and len(observed_pairs) == len(expected_pairs),
+        "GATE-09 storefront coverage differs",
+    )
     _require({item.get("viewport_width") for item in admin if isinstance(item, dict)} == {390, 768, 1440} and len(admin) == 3, "GATE-09 admin coverage differs")
     storefront_fields = {
         "page", "viewport_width", "url_alias", "mode", "http_status", "expected_path_reached",
-        "critical_or_serious", "page_overflow_px", "horizontally_clipped_control_count",
+        "moderate_or_worse", "critical_or_serious", "page_overflow_px", "horizontally_clipped_control_count",
         "broken_image_count", "image_without_alt_count", "placeholder_asset_count", "console_errors",
         "failed_resources", "korean_locale", "forbidden_copy", "overlapping_control_count",
         "unlabeled_control_count", "keyboard_inoperable_control_count", "required_font_load_failures",
-        "unresolved_skeleton_count",
+        "unresolved_skeleton_count", "visible_h1_count", "split_korean_word_count",
     }
     admin_fields = {
         "page", "viewport_width", "url_alias", "mode", "root_selector", "http_status",
-        "critical_or_serious", "console_errors", "table_overflow_contained",
+        "moderate_or_worse", "critical_or_serious", "console_errors", "table_overflow_contained",
         "horizontally_clipped_action_count", "overlapping_protected_action_count",
         "unlabeled_protected_action_count",
     }
@@ -556,6 +566,7 @@ def _product_quality(path: Path) -> dict:
         _require(item["mode"] == "scoped" and item["root_selector"] == ".oddroom-orderops" and item["http_status"] == 200, "GATE-09 admin scope observation failed")
         _require(item["url_alias"] == "PF07_ADMIN", "GATE-09 admin URL alias is invalid")
     all_surfaces = storefront + admin
+    moderate = sum(len(item.get("moderate_or_worse", [])) for item in all_surfaces)
     severe = sum(len(item.get("critical_or_serious", [])) for item in all_surfaces)
     overflow = sum(int(item.get("page_overflow_px", 0) > 1) for item in storefront)
     clipped = sum(_integer(item.get("horizontally_clipped_control_count", item.get("horizontally_clipped_action_count", 0)), "GATE-09 clipped controls") for item in all_surfaces)
@@ -568,6 +579,8 @@ def _product_quality(path: Path) -> dict:
     keyboard = sum(_integer(item.get("keyboard_inoperable_control_count", 0), "GATE-09 keyboard controls") for item in storefront)
     fonts = sum(_integer(item.get("required_font_load_failures", 0), "GATE-09 font loads") for item in storefront)
     skeletons = sum(_integer(item.get("unresolved_skeleton_count", 0), "GATE-09 skeletons") for item in storefront)
+    headings = sum(int(_integer(item.get("visible_h1_count"), "GATE-09 visible H1 count") != 1) for item in storefront)
+    split_korean_words = sum(_integer(item.get("split_korean_word_count"), "GATE-09 split Korean words") for item in storefront)
     alt = sum(_integer(item.get("image_without_alt_count", 0), "GATE-09 image alt") for item in storefront)
     resources = sum(len(item.get("failed_resources", [])) for item in storefront)
     route = sum(int(item.get("http_status") != 200 or item.get("expected_path_reached") is not True) for item in storefront)
@@ -586,9 +599,10 @@ def _product_quality(path: Path) -> dict:
     _exact(log, {"started_at_utc", "finished_at_utc", "pf07_attributable_entries"}, "GATE-09 PHP log window")
     _require(isinstance(log["started_at_utc"], str) and isinstance(log["finished_at_utc"], str) and isinstance(log["pf07_attributable_entries"], list), "GATE-09 PHP log window is invalid")
     return {
-        "viewport_count": len(viewports),
-        "storefront_page_count": len(pages),
+        "viewport_count": len({viewport for _page, viewport in observed_pairs}),
+        "storefront_page_count": len({page for page, _viewport in observed_pairs}),
         "admin_scoped_page_count": len({item.get("page") for item in admin}),
+        "moderate_or_worse_violations": moderate,
         "serious_or_critical_violations": severe,
         "page_overflow_failures": overflow,
         "clipped_action_failures": clipped,
@@ -602,6 +616,8 @@ def _product_quality(path: Path) -> dict:
         "keyboard_operability_failures": keyboard,
         "font_load_failures": fonts,
         "unresolved_skeleton_failures": skeletons,
+        "visible_h1_failures": headings,
+        "split_korean_word_failures": split_korean_words,
         "image_alt_failures": alt,
         "failed_resource_count": resources,
         "unexpected_http_or_route_failures": route,

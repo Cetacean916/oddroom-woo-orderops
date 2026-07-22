@@ -29,7 +29,7 @@ def snapshot(root: Path) -> dict[str, bytes]:
 
 with tempfile.TemporaryDirectory(prefix="pf07-collector-test-") as temporary:
     project = Path(temporary) / "project"
-    for directory in ("scripts", "fixtures", str(EVIDENCE_RELATIVE / "artifacts")):
+    for directory in ("scripts", "fixtures", "release", str(EVIDENCE_RELATIVE / "artifacts")):
         (project / directory).mkdir(parents=True, exist_ok=True)
     shutil.copy2(ROOT / "scripts/collect-evidence", project / "scripts/collect-evidence")
     shutil.copy2(ROOT / "scripts/acceptance_semantics.py", project / "scripts/acceptance_semantics.py")
@@ -88,6 +88,18 @@ print(json.dumps({"observations":{"simple_product_orders":1,"variable_product_or
     probe = project / "scripts/probe-core-acceptance"
     probe.write_text(probe_source, encoding="utf-8")
     probe.chmod(0o755)
+    (project / "release/public-allowlist.json").write_text(json.dumps({
+        "schema_version": 1,
+        "paths": [
+            "fixtures/acceptance-fixtures.json",
+            "fixtures/run",
+            "release/public-allowlist.json",
+            "scripts/acceptance_semantics.py",
+            "scripts/collect-evidence",
+            "scripts/probe-core-acceptance",
+            "scripts/refinement_evidence_paths.py",
+        ],
+    }, indent=2) + "\n", encoding="utf-8")
     collector = project / "scripts/collect-evidence"
     collector.chmod(0o755)
     environment = os.environ.copy()

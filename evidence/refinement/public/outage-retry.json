@@ -2,9 +2,9 @@
   "schema_version": "1",
   "acceptance_id": "GATE-06",
   "run_id": "PF07-REFINEMENT-ACCEPTANCE-RUN",
-  "started_at": "2026-07-21T22:59:23Z",
-  "finished_at": "2026-07-21T23:02:31Z",
-  "source_tree_sha256": "059f74c3d9fcb859d6ac0d92a8df124bdcad32c0ee52c03cf9c94ed51e78b7a4",
+  "started_at": "2026-07-22T23:30:04Z",
+  "finished_at": "2026-07-22T23:33:23Z",
+  "source_tree_sha256": "06426537792092ecaebfd1214ce7f7008488dadbdbf6aea109057f6e5139d012",
   "command_or_probe": "recorded redaction of protected acceptance observation",
   "exit_code": 0,
   "observations": {
@@ -43,13 +43,13 @@
   "redaction_transform": {
     "id": "pf07-public-evidence-redaction",
     "version": "1",
-    "script_sha256": "85e4f8137dceb273572374edab98fab7f16a99988a63c2335637755a859bdc9a"
+    "script_sha256": "aaa1efd7f518423acdb6aad17d094427e473b48ecd424153e54ff959e7b5bae0"
   },
   "source_acceptance_id": "GATE-06",
-  "source_record_sha256": "25b8593f9e41c93d00daf689d4db581321e88f4124cf7b134874bbc7bf99302e",
+  "source_record_sha256": "99b0ce7bdbdf2f5fb20057463f0e65a00fde1f60bb8457e0f0fcae271f430965",
   "source_artifact_hashes": {
-    "exhaustion_attempt_trace": "79d5ee689e599982ea3af9540c3b70966de0ca41fa89a7b5b9d91461f58ca143",
-    "outage_proxy_trace": "64ec194d6201e7d92505e33af97cdfacd561a371efb218430fae0a31108dc295",
-    "slack_checkpoint_trace": "850be5cebde1eaf44dfa3422663fa499888c611b3e931ed465376429456e931f"
+    "exhaustion_attempt_trace": "f38b9148d62f1fd7db9a5153c4fd10e49adc6574a5a298f7b20dc4179ab9ef82",
+    "outage_proxy_trace": "dfe78d2641f47d5b15ed4a019417da19179e562ee06e5c7cf267abd149f3c89f",
+    "slack_checkpoint_trace": "fd65db7dc5651eec7411d5a62abeb083075b1b873da35604a88f2eabfc814249"
   }
 }

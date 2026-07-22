@@ -2,9 +2,9 @@
   "schema_version": "1",
   "acceptance_id": "ACCEPTANCE-MATRIX",
   "run_id": "PF07-REFINEMENT-ACCEPTANCE-RUN",
-  "started_at": "2026-07-21T22:51:35Z",
-  "finished_at": "2026-07-21T23:13:18Z",
-  "source_tree_sha256": "059f74c3d9fcb859d6ac0d92a8df124bdcad32c0ee52c03cf9c94ed51e78b7a4",
+  "started_at": "2026-07-22T23:24:17Z",
+  "finished_at": "2026-07-22T23:45:20Z",
+  "source_tree_sha256": "06426537792092ecaebfd1214ce7f7008488dadbdbf6aea109057f6e5139d012",
   "command_or_probe": "pre-public buyer-proof index over generated public records",
   "exit_code": 0,
   "observations": {
@@ -20,61 +20,61 @@
       "acceptance_id": "GATE-01",
       "result": "PASS",
       "record_path": "evidence/refinement/public/e2e-normal-order.json",
-      "record_sha256": "b3f8d0a0a8a8dfb46a82362b26979a34df04cfc4c613951893f849d3a4962272"
+      "record_sha256": "63768da5b8a249bdacca0c02c3d42e81e50fdda468109a4dcab782975e921975"
     },
     {
       "acceptance_id": "GATE-02",
       "result": "PASS",
       "record_path": "evidence/refinement/public/state-non-regression.json",
-      "record_sha256": "583c85ee08893d5aa5cab471b6ea3ef3129f017a57160a25f722ba94d64e1185"
+      "record_sha256": "2945933f578a170e845bad45be164091b0f2b240117baa5839717bc40256308e"
     },
     {
       "acceptance_id": "GATE-03",
       "result": "PASS",
       "record_path": "evidence/refinement/public/e2e-variable-coupon-order.json",
-      "record_sha256": "19675d8a7b680702b9fffc24b55ffb0e432ffd85bb2ffd01b191480106b98645"
+      "record_sha256": "2edef59c9d37a328c51745b59ebe1d9f1cd3f1bf2b23423483467388bf7d48c1"
     },
     {
       "acceptance_id": "GATE-04",
       "result": "PASS",
       "record_path": "evidence/refinement/public/duplicate-suppression.json",
-      "record_sha256": "80efb21acd9e971e21cec73754bff569fb9077b9a3938f09580c3f543ca6d06e"
+      "record_sha256": "edaf3b7970f8035e58983847d2aec55130e6fa06d0662b7f903368551b7cd5d1"
     },
     {
       "acceptance_id": "GATE-05",
       "result": "PASS",
       "record_path": "evidence/refinement/public/hmac-rejection.json",
-      "record_sha256": "8bc9d81a53917c12782521ea05f601b0d6d401fc3b176991c4498f088c427e5e"
+      "record_sha256": "ccfb15f57b51dbba592f106bd979a09f8ba5640c52c998b92ee8c20aeaa1d47c"
     },
     {
       "acceptance_id": "GATE-06",
       "result": "PASS",
       "record_path": "evidence/refinement/public/outage-retry.json",
-      "record_sha256": "9cdcaaa58abebb731f6c7b9b78a26108a62f101acabfdc3a04799de41e80c894"
+      "record_sha256": "66f459d3925da532d36b13141778222c828df9f64742d74bd4b2d7a1c48123ba"
     },
     {
       "acceptance_id": "GATE-07",
       "result": "PASS",
       "record_path": "evidence/refinement/public/partial-failure-recovery.json",
-      "record_sha256": "5ed585d79b303309900ea4e1809aae8e96719b0ecd20ae7aa898736b6a9ce76d"
+      "record_sha256": "ae89360f75bd68338517106f845077f83698f73aa1b6a29669105bfd8c9ef5f9"
     },
     {
       "acceptance_id": "GATE-08",
       "result": "PASS",
       "record_path": "evidence/refinement/public/reconciliation-repair.json",
-      "record_sha256": "8b3ac5e8b57fc730535d8727c5b05819e6609d71f1ee7e10956a522c53e2ac8d"
+      "record_sha256": "3b82b384df760f436b835882690c7e664b68bfa3f6b87f776e936eab47bbec58"
     },
     {
       "acceptance_id": "GATE-09",
       "result": "PASS",
       "record_path": "evidence/refinement/public/product-quality.json",
-      "record_sha256": "02623e56207ad646036b9d383be56f755863a9ec984f8f6273b61b1d7f748d63"
+      "record_sha256": "eec40cf3fe320b590077cd552ca5d12881921d121772deb81b3fb80e34329803"
     },
     {
       "acceptance_id": "GATE-10",
       "result": "PASS",
       "record_path": "evidence/refinement/public/restore-drill.json",
-      "record_sha256": "7ceaf8a7d23d0c52b0fdd38321fc7dfc02d7ffa30586e0cb5b4bdee494da075c"
+      "record_sha256": "38c9728fc877ff1f5ed704b707369df534ce9c600b1a7857b4be8df01ec36084"
     }
   ]
 }

@@ -5,6 +5,7 @@ defined('ABSPATH') || defined('ODDROOM_ORDEROPS_TESTING') || exit;
 final class OddRoom_Storefront
 {
     private const HOME_SHORTCODE = 'oddroom_orderops_home';
+    private const ORDER_TRACKING_PAGE_OPTION = 'oddroom_orderops_order_tracking_page_id';
     private const CHECKOUT_MODE = 'ON_DEMAND_ONLY';
     private const CHECKOUT_LIMIT = 10;
     private const CHECKOUT_WINDOW_SECONDS = 900;
@@ -24,7 +25,9 @@ final class OddRoom_Storefront
         add_action('woocommerce_after_checkout_validation', [self::class, 'rateLimitClassicCheckout'], 10, 2);
         add_filter('rest_pre_dispatch', [self::class, 'rateLimitStoreApiCheckout'], 10, 3);
         add_action('wp_head', [self::class, 'favicon']);
+        add_action('wp', [self::class, 'removeDuplicateSkipLink']);
         add_filter('render_block', [self::class, 'removeThemeChrome'], 10, 2);
+        add_filter('body_class', [self::class, 'bodyClasses']);
     }
 
     public static function assets(): void
@@ -33,13 +36,13 @@ final class OddRoom_Storefront
             'oddroom-orderops-storefront',
             self::assetUrl('css/storefront.css'),
             [],
-            '0.6.0'
+            '0.6.3'
         );
         wp_enqueue_script(
             'oddroom-orderops-storefront',
             self::assetUrl('js/storefront.js'),
             [],
-            '0.6.0',
+            '0.6.3',
             ['in_footer' => true, 'strategy' => 'defer']
         );
     }
@@ -71,7 +74,7 @@ final class OddRoom_Storefront
         echo '</ul></nav>';
         echo '<a class="oddroom-wordmark" href="' . esc_url(home_url('/')) . '" aria-label="OFFSET ' . esc_attr(self::text('홈', 'home')) . '"><strong>OFFSET</strong><span>OBJECTS / ORDER SYSTEM</span></a>';
         echo '<nav class="oddroom-nav-utility" aria-label="' . esc_attr(self::text('계정과 장바구니', 'Account and cart')) . '"><ul>';
-        echo '<li><a href="' . esc_url(wc_get_page_permalink('myaccount')) . '">' . esc_html(self::text('주문 조회', 'Account')) . '</a></li>';
+        echo '<li><a href="' . esc_url(self::orderTrackingUrl()) . '">' . esc_html(self::text('주문 조회', 'Order lookup')) . '</a></li>';
         echo '<li><a href="' . esc_url(wc_get_cart_url()) . '">' . esc_html(self::text('장바구니', 'Cart')) . '</a></li>';
         echo '</ul></nav></header>';
         self::commerceIntro();
@@ -80,7 +83,7 @@ final class OddRoom_Storefront
     public static function home(): string
     {
         $shop = wc_get_page_permalink('shop');
-        $account = wc_get_page_permalink('myaccount');
+        $orderTracking = self::orderTrackingUrl();
         $heroDesktop = self::assetUrl('images/quiet-utility/home/hero-desktop.webp');
         $heroMobile = self::assetUrl('images/quiet-utility/home/hero-mobile.webp');
         $packing = self::assetUrl('images/quiet-utility/home/order-packing.webp');
@@ -139,7 +142,7 @@ final class OddRoom_Storefront
                 <div class="oddroom-cta-copy"><p class="oddroom-kicker">START WITH AN OBJECT</p>
                 <h2 id="oddroom-cta-title"><?php echo esc_html(self::text('직접 고르고, 주문하고, 운영을 확인하세요.', 'Choose it. Order it. Follow the operation.')); ?></h2>
                 <p><?php echo esc_html(self::text('합성 구매자 정보와 비금전 결제 수단만 사용합니다. 실제 결제·이메일·외부 전송은 발생하지 않습니다.', 'The demo uses synthetic buyer information and a non-monetary payment method. No real payment, email, or external delivery occurs.')); ?></p>
-                <div class="oddroom-hero-actions"><a class="oddroom-button oddroom-button-primary" href="<?php echo esc_url($shop); ?>"><?php echo esc_html(self::text('컬렉션에서 시작', 'Start with the collection')); ?></a><a class="oddroom-button oddroom-button-ghost" href="<?php echo esc_url($account); ?>"><?php echo esc_html(self::text('주문 기록 보기', 'View order records')); ?></a></div></div>
+                <div class="oddroom-hero-actions"><a class="oddroom-button oddroom-button-primary" href="<?php echo esc_url($shop); ?>"><?php echo esc_html(self::text('컬렉션에서 시작', 'Start with the collection')); ?></a><a class="oddroom-button oddroom-button-ghost" href="<?php echo esc_url($orderTracking); ?>"><?php echo esc_html(self::text('주문 기록 보기', 'Look up an order')); ?></a></div></div>
             </section>
         </div>
         <?php
@@ -148,16 +151,29 @@ final class OddRoom_Storefront
 
     public static function commerceIntro(): void
     {
-        if (!(is_shop() || is_product() || is_cart() || is_checkout() || is_account_page())) {
+        $isCategory = is_product_category();
+        $isTracking = self::isOrderTrackingPage();
+        if (!(is_shop() || $isCategory || is_product() || is_cart() || is_checkout() || is_account_page() || $isTracking)) {
             return;
         }
         $product = is_product() ? wc_get_product(get_queried_object_id()) : null;
-        $title = is_shop() ? self::text('직접 실행하는 데모 상품', 'Demo products you can run')
-            : (is_product() && $product instanceof WC_Product ? $product->get_name()
-                : (is_cart() ? self::text('합성 주문 장바구니', 'Synthetic order cart')
-                    : (is_checkout() ? self::text('실제 결제 없는 주문서', 'Checkout with no real payment') : self::text('합성 주문 조회', 'Synthetic order history'))));
+        if (is_shop()) {
+            $title = self::text('직접 실행하는 데모 상품', 'Demo products you can run');
+        } elseif ($isCategory) {
+            $title = single_term_title('', false);
+        } elseif ($product instanceof WC_Product) {
+            $title = $product->get_name();
+        } elseif (is_cart()) {
+            $title = self::text('합성 주문 장바구니', 'Synthetic order cart');
+        } elseif ($isTracking) {
+            $title = self::text('합성 주문 조회', 'Synthetic order lookup');
+        } elseif (is_checkout()) {
+            $title = self::text('실제 결제 없는 주문서', 'Checkout with no real payment');
+        } else {
+            $title = self::text('합성 주문 조회', 'Synthetic order history');
+        }
         $classes = 'oddroom-commerce-intro';
-        if (!is_shop()) {
+        if (!(is_shop() || $isCategory)) {
             $classes .= ' oddroom-commerce-intro--compact';
         }
         if (is_product()) {
@@ -166,15 +182,18 @@ final class OddRoom_Storefront
         $marker = is_product() && $product instanceof WC_Product
             ? ($product->get_sku() === 'OFFSET-DOCK' ? 'OBJECT 01' : 'OBJECT 02')
             : '01—02';
+        $headingTag = is_shop() || $isCategory || is_product() || $isTracking || (is_checkout() && !is_order_received_page()) ? 'h1' : 'p';
         echo '<section id="oddroom-main" class="' . esc_attr($classes) . '" aria-label="' . esc_attr(self::text('OFFSET 데모 화면 안내', 'OFFSET demo screen guidance')) . '">';
-        echo '<p class="oddroom-kicker">OFFSET / WORKING COMMERCE DEMO</p><p class="oddroom-commerce-title"><strong>' . esc_html($title) . '</strong><span>01—02</span></p>';
+        echo '<p class="oddroom-kicker">OFFSET / WORKING COMMERCE DEMO</p><' . $headingTag . ' class="oddroom-commerce-title"><strong>' . esc_html($title) . '</strong><span>01—02</span></' . $headingTag . '>';
         echo '<p class="oddroom-commerce-marker">' . esc_html($marker) . '</p>';
         echo '<p class="oddroom-commerce-copy">' . esc_html(self::text('제품 선택부터 주문 기록과 복구까지 실제로 이어지는 비금전 커머스 화면입니다.', 'A non-monetary commerce surface that runs from product selection through order records and recovery.'));
         if (is_checkout()) {
             echo ' ' . esc_html(self::text('이름은 Synthetic / Buyer, 이메일은 소문자 @example.com 주소를 입력하세요.', 'Use Synthetic / Buyer and a lowercase @example.com email address.'));
+        } elseif ($isTracking) {
+            echo ' ' . esc_html(self::text('주문 완료 화면의 주문 번호와 주문에 사용한 @example.com 이메일을 입력하세요.', 'Enter the order number and the @example.com email used at checkout.'));
         }
         echo '</p>';
-        if (is_shop()) {
+        if (is_shop() || $isCategory) {
             echo '<aside class="oddroom-coupon-banner"><span>' . esc_html(self::text('데모 주문 혜택', 'Demo order benefit')) . '</span><strong>OFFSET10</strong><span>'
                 . esc_html(self::text('결제 단계에서 10% 쿠폰 적용', 'Apply 10% at checkout'))
                 . '</span></aside>';
@@ -192,7 +211,21 @@ final class OddRoom_Storefront
         if (is_admin()) {
             return;
         }
-        echo '<footer class="oddroom-demo-footer" aria-label="' . esc_attr(self::text('데모 이용 범위', 'Demo usage boundary')) . '"><div class="oddroom-footer-brand"><strong>OFFSET</strong><span>OBJECTS / ORDER SYSTEM</span></div><div><strong>' . esc_html(self::text('스토어', 'Store')) . '</strong><a href="' . esc_url(wc_get_page_permalink('shop')) . '">' . esc_html(self::text('전체 컬렉션', 'Full collection')) . '</a><a href="' . esc_url(wc_get_cart_url()) . '">' . esc_html(self::text('장바구니', 'Cart')) . '</a></div><div><strong>' . esc_html(self::text('운영', 'Operations')) . '</strong><a href="' . esc_url(wc_get_page_permalink('myaccount')) . '">' . esc_html(self::text('주문 기록', 'Order records')) . '</a><a href="' . esc_url(home_url('/#offset-system')) . '">' . esc_html(self::text('시스템 구조', 'System flow')) . '</a></div><div class="oddroom-footer-boundary"><strong>DEMO BOUNDARY</strong><span>' . esc_html(self::text('실제 결제 없음', 'No real payment')) . '</span><span>' . esc_html(self::text('합성 데이터 전용', 'Synthetic data only')) . '</span><span>0 KRW</span></div><p>© OFFSET / ORDEROPS PORTFOLIO DEMO</p></footer>';
+        echo '<footer class="oddroom-demo-footer" aria-label="' . esc_attr(self::text('데모 이용 범위', 'Demo usage boundary')) . '"><div class="oddroom-footer-brand"><strong>OFFSET</strong><span>OBJECTS / ORDER SYSTEM</span></div><div><strong>' . esc_html(self::text('스토어', 'Store')) . '</strong><a href="' . esc_url(wc_get_page_permalink('shop')) . '">' . esc_html(self::text('전체 컬렉션', 'Full collection')) . '</a><a href="' . esc_url(wc_get_cart_url()) . '">' . esc_html(self::text('장바구니', 'Cart')) . '</a></div><div><strong>' . esc_html(self::text('운영', 'Operations')) . '</strong><a href="' . esc_url(self::orderTrackingUrl()) . '">' . esc_html(self::text('주문 조회', 'Order lookup')) . '</a><a href="' . esc_url(home_url('/#offset-system')) . '">' . esc_html(self::text('시스템 구조', 'System flow')) . '</a></div><div class="oddroom-footer-boundary"><strong>DEMO BOUNDARY</strong><span>' . esc_html(self::text('실제 결제 없음', 'No real payment')) . '</span><span>' . esc_html(self::text('합성 데이터 전용', 'Synthetic data only')) . '</span><span>0 KRW</span></div><p>© OFFSET / ORDEROPS PORTFOLIO DEMO</p></footer>';
+    }
+
+    public static function removeDuplicateSkipLink(): void
+    {
+        remove_action('wp_enqueue_scripts', 'wp_enqueue_block_template_skip_link');
+        remove_action('wp_footer', 'the_block_template_skip_link');
+    }
+
+    public static function bodyClasses(array $classes): array
+    {
+        if (self::isOrderTrackingPage()) {
+            $classes[] = 'oddroom-order-tracking';
+        }
+        return $classes;
     }
 
     public static function favicon(): void
@@ -322,6 +355,7 @@ final class OddRoom_Storefront
         $variable = self::ensureVariableProduct($images, $categoryId);
         $couponId = self::ensureCoupon();
         $homeId = self::ensureHomePage();
+        $orderTrackingId = self::ensureOrderTrackingPage();
         self::localizeCommercePages();
 
         update_option('show_on_front', 'page');
@@ -329,7 +363,7 @@ final class OddRoom_Storefront
         update_option('blog_public', '0');
         update_option('blogname', self::text('OFFSET 주문 시스템', 'OFFSET Order System'));
         update_option('blogdescription', self::text('WooCommerce 주문 전달과 복구를 직접 실행하는 합성 데모', 'A synthetic demo for WooCommerce order delivery and recovery'));
-        update_option('timezone_string', 'UTC');
+        update_option('timezone_string', 'Asia/Seoul');
         update_option('woocommerce_currency', 'KRW');
         update_option('woocommerce_price_num_decimals', '2');
         update_option('woocommerce_default_country', 'KR');
@@ -369,6 +403,7 @@ final class OddRoom_Storefront
         flush_rewrite_rules(false);
         return [
             'home_page_id' => $homeId,
+            'order_tracking_page_id' => $orderTrackingId,
             'simple_product_id' => $simpleId,
             'variable_product_id' => $variable['product_id'],
             'variation_ids' => $variable['variation_ids'],
@@ -513,6 +548,43 @@ final class OddRoom_Storefront
         return (int) $result;
     }
 
+    private static function ensureOrderTrackingPage(): int
+    {
+        $pageId = (int) get_option(self::ORDER_TRACKING_PAGE_OPTION, 0);
+        $existing = $pageId > 0 ? get_post($pageId) : get_page_by_path('order-tracking', OBJECT, 'page');
+        $post = [
+            'post_title' => self::text('합성 주문 조회', 'Synthetic order lookup'),
+            'post_name' => 'order-tracking',
+            'post_content' => '[woocommerce_order_tracking]',
+            'post_status' => 'publish',
+            'post_type' => 'page',
+        ];
+        if ($existing instanceof WP_Post) {
+            $post['ID'] = $existing->ID;
+            $result = wp_update_post($post, true);
+        } else {
+            $result = wp_insert_post($post, true);
+        }
+        if (is_wp_error($result) || (int) $result < 1) {
+            throw new RuntimeException('Order tracking page setup failed.');
+        }
+        update_option(self::ORDER_TRACKING_PAGE_OPTION, (int) $result, false);
+        return (int) $result;
+    }
+
+    private static function isOrderTrackingPage(): bool
+    {
+        $pageId = (int) get_option(self::ORDER_TRACKING_PAGE_OPTION, 0);
+        return $pageId > 0 && is_page($pageId);
+    }
+
+    private static function orderTrackingUrl(): string
+    {
+        $pageId = (int) get_option(self::ORDER_TRACKING_PAGE_OPTION, 0);
+        $url = $pageId > 0 ? get_permalink($pageId) : false;
+        return is_string($url) && $url !== '' ? $url : wc_get_page_permalink('myaccount');
+    }
+
     private static function ensureStoreImages(): array
     {
         $specs = [
@@ -600,6 +672,7 @@ final class OddRoom_Storefront
         $product->set_virtual(true);
         $product->set_status('publish');
         $product->set_catalog_visibility('visible');
+        $product->set_menu_order(0);
         $product->set_image_id($images['simple_main']);
         $product->set_gallery_image_ids([
             $images['simple_flatlay'],
@@ -633,6 +706,7 @@ final class OddRoom_Storefront
         $product->set_sku('OFFSET-FOLDLINE');
         $product->set_status('publish');
         $product->set_catalog_visibility('visible');
+        $product->set_menu_order(1);
         $product->set_image_id($images['variable_main']);
         $product->set_gallery_image_ids([
             $images['variable_comparison'],

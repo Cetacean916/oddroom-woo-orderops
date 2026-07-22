@@ -63,8 +63,8 @@ const artifactManifestBytes = await fsp.readFile(artifactManifestPath);
 const artifactManifest = JSON.parse(artifactManifestBytes.toString("utf8"));
 if (artifactManifest.schema !== "pf07.artifact-manifest.v1"
   || artifactManifest.artifact_id !== "pf07-linux-x86_64"
-  || artifactManifest.package_version !== "1.0.1"
-  || artifactManifest.build_id !== "pf07-build-13003091bee3a5201dba"
+  || artifactManifest.package_version !== "1.0.2"
+  || artifactManifest.build_id !== "pf07-build-8d152d90b0eb87accc95"
   || artifactManifest.actual_os_runtime_execution !== false
   || artifactManifest.tested_boundary !== "ACTUAL_LINUX_LOCAL_EXECUTION_REQUIRED_ON_CANONICAL_CI_BYTES_IN_STEP_090") {
   throw new Error("final Linux package identity or execution boundary failed");

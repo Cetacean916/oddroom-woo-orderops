@@ -28,6 +28,8 @@ DEPENDENCIES = (ROOT / "plugin/oddroom-orderops/includes/class-oddroom-dependenc
 STOREFRONT = (ROOT / "plugin/oddroom-orderops/includes/class-oddroom-storefront.php").read_text(encoding="utf-8")
 PRIVATE_ADMIN = (ROOT / "plugin/oddroom-orderops/includes/class-oddroom-private-admin.php").read_text(encoding="utf-8")
 STOREFRONT_CSS = (ROOT / "plugin/oddroom-orderops/assets/css/storefront.css").read_text(encoding="utf-8")
+UI_QUALITY = (ROOT / "tests/ui_quality.mjs").read_text(encoding="utf-8")
+HUB = (ROOT / "launcher/pf07_launcher/hub.py").read_text(encoding="utf-8")
 EVENTS = (ROOT / "plugin/oddroom-orderops/includes/class-oddroom-events.php").read_text(encoding="utf-8")
 RECONCILIATION = (ROOT / "plugin/oddroom-orderops/includes/class-oddroom-reconciliation.php").read_text(encoding="utf-8")
 REPOSITORY = (ROOT / "plugin/oddroom-orderops/includes/class-oddroom-repository.php").read_text(encoding="utf-8")
@@ -45,9 +47,13 @@ FIXTURE_MANIFEST = json.loads((ROOT / "fixtures/acceptance-fixtures.json").read_
 FIXTURE_RUNNER = (ROOT / "fixtures/run").read_text(encoding="utf-8")
 ACCEPTANCE_SEMANTICS = (ROOT / "scripts/acceptance_semantics.py").read_text(encoding="utf-8")
 EVIDENCE_COLLECTOR = (ROOT / "scripts/collect-evidence").read_text(encoding="utf-8")
+PUBLIC_EVIDENCE_GENERATOR = (ROOT / "scripts/generate-public-evidence").read_text(encoding="utf-8")
+SUCCESSOR_VSL_DERIVER = (ROOT / "scripts/derive-successor-vsl").read_text(encoding="utf-8")
+REFINEMENT_EVIDENCE_PATHS = (ROOT / "scripts/refinement_evidence_paths.py").read_text(encoding="utf-8")
 MEDIA_RECORDER = (ROOT / "scripts/record-public-media.mjs").read_text(encoding="utf-8")
 STILL_BUILDER = (ROOT / "scripts/build-public-stills.mjs").read_text(encoding="utf-8")
 PUBLIC_VALIDATOR = (ROOT / "scripts/validate-public").read_text(encoding="utf-8")
+ALL_VALIDATOR = (ROOT / "scripts/validate-all").read_text(encoding="utf-8")
 CI_SCRIPT = (ROOT / "scripts/ci").read_text(encoding="utf-8")
 
 
@@ -370,6 +376,42 @@ require('.oddroom-hero h1' in STOREFRONT_CSS
         and 'font-family: "Offset Editorial", "Noto Serif KR", serif;' in STOREFRONT_CSS
         and '--offset-line: #d8d6cf;' in STOREFRONT_CSS,
         "buyer storefront reference-led typography or restrained design token is absent")
+require('html[lang^="ko"] body:not(.wp-admin) {' in STOREFRONT_CSS
+        and 'word-break: keep-all;' in STOREFRONT_CSS
+        and 'overflow-wrap: normal;' in STOREFRONT_CSS
+        and 'html[lang^="ko"] body:not(.wp-admin) :where(' in STOREFRONT_CSS
+        and '.wc-block-product a,' in STOREFRONT_CSS
+        and 'word-break: keep-all !important;' in STOREFRONT_CSS
+        and 'overflow-wrap: normal !important;' in STOREFRONT_CSS,
+        "Korean storefront prose can break between syllables")
+require('body.single-product .woocommerce-product-gallery__wrapper {\n  max-width: none !important;\n}' in STOREFRONT_CSS
+        and not re.search(
+            r"woocommerce-product-gallery__wrapper\s*\{[^}]*width:\s*100%\s*!important",
+            STOREFRONT_CSS,
+            re.DOTALL,
+        ),
+        "product gallery overrides the FlexSlider track width")
+require('margin: 0 auto 34px !important;' in STOREFRONT_CSS,
+        "commerce breadcrumb is not centered on the storefront content shell")
+require("[woocommerce_order_tracking]" in STOREFRONT
+        and "self::orderTrackingUrl()" in STOREFRONT
+        and "is_product_category()" in STOREFRONT
+        and "update_option('timezone_string', 'Asia/Seoul')" in STOREFRONT,
+        "guest order lookup, category shell, or site-local timezone repair is absent")
+require("remove_action('wp_enqueue_scripts', 'wp_enqueue_block_template_skip_link')" in STOREFRONT
+        and "<header class=\"oddroom-hero\"" not in ADMIN,
+        "duplicate skip link or nested admin banner landmark remains")
+require("['category', '/product-category/demo-products/']" in UI_QUALITY
+        and "['tracking', '/order-tracking/']" in UI_QUALITY
+        and "['critical', 'serious', 'moderate']" in UI_QUALITY
+        and "visible_h1_count !== 1" in UI_QUALITY,
+        "UI validation does not cover exposed commerce routes and moderate accessibility defects")
+require("expected_pairs = {(page, viewport) for page in pages for viewport in viewports}" in ACCEPTANCE_SEMANTICS
+        and "set(observed_pairs) == expected_pairs" in ACCEPTANCE_SEMANTICS
+        and "len(observed_pairs) == len(expected_pairs)" in ACCEPTANCE_SEMANTICS,
+        "GATE-09 evidence semantics do not require every viewport-route pair exactly once")
+require("probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)" in HUB,
+        "hub port probe rejects a clean restart while the previous socket is in TIME_WAIT")
 require("normalizeMoney((string) $item->get_total())" in REPOSITORY
         and "normalizeMoney((string) $order->get_total())" in REPOSITORY
         and "toMinorUnits" in EVENTS and "toMinorUnits" in RECONCILIATION
@@ -460,6 +502,7 @@ require("gate09_compatibility_trace" in GATE09_COMPATIBILITY_PROBE
         "Gate-09 compatibility probe omits the isolated scheduler branch check")
 require("tests/ui_quality.mjs" in GATE09_PRODUCT_PROBE
         and "plugin-php-tests" in GATE09_PRODUCT_PROBE
+        and "split_korean_word_count" in UI_QUALITY
         and "pf07_attributable_entries" in GATE09_PRODUCT_PROBE
         and "gate09_product_quality_trace" in GATE09_PRODUCT_PROBE
         and 'require(bool(runtime_root_raw), "PF07_RUNTIME_ROOT is required")' in GATE09_PRODUCT_PROBE
@@ -497,14 +540,27 @@ require(shared_aliases == {"exhaustion_attempt_trace", "slack_checkpoint_trace"}
         "independent acceptance runs can overwrite each other's artifact aliases")
 require("recorded observation differs from artifact-derived truth" in FIXTURE_RUNNER
         and "derive_fixture_observations" in FIXTURE_RUNNER
-        and "protected record is not bound to its exact executable probe" in FIXTURE_RUNNER,
+        and "protected record is not bound to its exact executable probe" in FIXTURE_RUNNER
+        and "protected fixture records do not share one successor run identity" in FIXTURE_RUNNER
+        and "public_candidate_source_sha256(ROOT)" in FIXTURE_RUNNER,
         "protected fixture validation can trust self-declared PASS observations")
 require("probe command differs from the exact fixture-bound executable" in EVIDENCE_COLLECTOR
         and "probe observation differs from artifact-derived truth" in EVIDENCE_COLLECTOR
         and 'environment["PF07_FIXTURE_ID"] = fixture["id"]' in EVIDENCE_COLLECTOR
         and "os.replace(stage, destination)" in EVIDENCE_COLLECTOR
-        and "fcntl.flock" in EVIDENCE_COLLECTOR,
+        and "fcntl.flock" in EVIDENCE_COLLECTOR
+        and "public candidate source identity changed while the probe was running" in EVIDENCE_COLLECTOR,
         "evidence collection is not exact-command-bound, semantic, locked, and atomically promoted")
+require("protected records do not share one successor run identity" in PUBLIC_EVIDENCE_GENERATOR
+        and "protected records are not bound to the current public candidate source identity" in PUBLIC_EVIDENCE_GENERATOR
+        and "def public_candidate_source_sha256" in REFINEMENT_EVIDENCE_PATHS
+        and 'excluded_roots = {"dist", "evidence", "reports", "runtime", ".git"}' in REFINEMENT_EVIDENCE_PATHS,
+        "public evidence generation does not bind one protected run to the exact non-self-referential public candidate source")
+require('TemporaryDirectory(prefix=".pf07-successor-vsl-", dir=RAW_ROOT)' in SUCCESSOR_VSL_DERIVER,
+        "successor VSL atomic promotion can cross a filesystem boundary")
+require("public_candidate_source_sha256(ROOT)" in ALL_VALIDATOR
+        and "def source_tree_sha256" not in ALL_VALIDATOR,
+        "complete validator does not use the canonical public-candidate source identity")
 for fixture_id in (
     "normal-order", "variable-input", "state-non-regression",
     "concurrent-duplicate-suppression", "hmac-rejection",

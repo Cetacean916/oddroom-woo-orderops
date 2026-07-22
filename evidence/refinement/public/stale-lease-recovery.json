@@ -2,9 +2,9 @@
   "schema_version": "1",
   "acceptance_id": "GATE-06-LEASE",
   "run_id": "PF07-REFINEMENT-ACCEPTANCE-RUN",
-  "started_at": "2026-07-21T23:02:32Z",
-  "finished_at": "2026-07-21T23:06:30Z",
-  "source_tree_sha256": "059f74c3d9fcb859d6ac0d92a8df124bdcad32c0ee52c03cf9c94ed51e78b7a4",
+  "started_at": "2026-07-22T23:33:24Z",
+  "finished_at": "2026-07-22T23:37:31Z",
+  "source_tree_sha256": "06426537792092ecaebfd1214ce7f7008488dadbdbf6aea109057f6e5139d012",
   "command_or_probe": "recorded redaction of protected acceptance observation",
   "exit_code": 0,
   "observations": {
@@ -21,11 +21,11 @@
   "redaction_transform": {
     "id": "pf07-public-evidence-redaction",
     "version": "1",
-    "script_sha256": "85e4f8137dceb273572374edab98fab7f16a99988a63c2335637755a859bdc9a"
+    "script_sha256": "aaa1efd7f518423acdb6aad17d094427e473b48ecd424153e54ff959e7b5bae0"
   },
   "source_acceptance_id": "GATE-06-LEASE",
-  "source_record_sha256": "c651b19c0bf100c78f86dbc7c998a6aa4b967b3d1f4ec57bb8779bbdeccb86e4",
+  "source_record_sha256": "a054619d9577ef289ea0acaafe65ba1ebef15ede73134cf584918f39dc5fb6aa",
   "source_artifact_hashes": {
-    "gate06_lease_trace": "9a9808eb84e90b16ce7efe78346d4ef5df3aaf4f38e85273d02711319c6d031c"
+    "gate06_lease_trace": "d444f651ab1f85b7c1e8cab49200084dd487f6edefa8e75818348d2d79755777"
   }
 }

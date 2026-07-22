@@ -20,6 +20,7 @@ from refinement_evidence_paths import (
     LEGACY_PUBLIC_MANIFEST_SHA256,
     PUBLIC_RUN_ALIAS,
     SUCCESSOR_PUBLIC_PREFIX,
+    public_candidate_source_sha256,
     successor_public_root,
 )
 
@@ -182,7 +183,11 @@ for relative, digest in manifest_entries.items():
         fail(f"public evidence identity differs from the fixture contract: {relative}")
     public_records[name] = record
     source_tree_hashes.add(record["source_tree_sha256"])
-if set(public_records) != set(expected_records) or len(source_tree_hashes) != 1:
+try:
+    expected_source_hash = public_candidate_source_sha256(root)
+except (OSError, ValueError, json.JSONDecodeError) as error:
+    fail(f"current public candidate source identity is unavailable: {error}")
+if set(public_records) != set(expected_records) or source_tree_hashes != {expected_source_hash}:
     fail("public evidence records do not form one complete source-bound set")
 
 matrix = json.loads((public_root / "acceptance-matrix.json").read_text(encoding="utf-8"))

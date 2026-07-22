@@ -16,7 +16,12 @@ MANIFEST = ROOT / "fixtures/acceptance-fixtures.json"
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from acceptance_semantics import AcceptanceSemanticError, derive_fixture_observations
-from refinement_evidence_paths import successor_public_root, successor_raw_root
+from refinement_evidence_paths import (
+    PUBLIC_RUN_ALIAS,
+    public_candidate_source_sha256,
+    successor_public_root,
+    successor_raw_root,
+)
 
 
 def fail(message: str) -> None:
@@ -245,6 +250,8 @@ if args.protected:
     inventory = inventory_value
 
 results = []
+record_run_ids: set[str] = set()
+record_source_hashes: set[str] = set()
 for fixture in fixtures:
     fixture_id = fixture["id"]
     record_name = fixture.get("record")
@@ -276,6 +283,12 @@ for fixture in fixtures:
         executable_path = ROOT / executable
         if not executable_path.is_file() or not os.access(executable_path, os.X_OK):
             fail(f"protected probe executable is missing: {fixture_id}")
+    run_id = record.get("run_id")
+    source_hash = record.get("source_tree_sha256")
+    if not isinstance(run_id, str) or not isinstance(source_hash, str):
+        fail(f"record run or source identity is missing: {fixture_id}")
+    record_run_ids.add(run_id)
+    record_source_hashes.add(source_hash)
     observations = record.get("observations")
     if not isinstance(observations, dict):
         fail(f"observations are missing: {fixture_id}")
@@ -326,6 +339,16 @@ for fixture in fixtures:
                     fail(f"recorded observation differs from artifact-derived truth: {fixture_id}:{assertion['path']}")
 
     results.append({"fixture_id": fixture_id, "acceptance_id": fixture["acceptance_id"], "status": "PASS"})
+
+try:
+    expected_source_hash = public_candidate_source_sha256(ROOT)
+except (OSError, ValueError, json.JSONDecodeError) as error:
+    fail(f"current public candidate source identity is unavailable: {error}")
+require(record_source_hashes == {expected_source_hash}, "fixture records are not bound to the current public candidate source identity")
+if args.protected:
+    require(len(record_run_ids) == 1, "protected fixture records do not share one successor run identity")
+else:
+    require(record_run_ids == {PUBLIC_RUN_ALIAS}, "public fixture records do not use the fixed public run alias")
 
 print(json.dumps({
     "status": "PASS",
