@@ -324,7 +324,7 @@ async function validatePublicExecutionMedia(caseUrl) {
     const regeneratedPoster = run("ffmpeg", [
       "-hide_banner", "-loglevel", "error", "-i", path.join(temporaryRoot, poster.source_video),
       "-ss", String(poster.source_at_seconds), "-frames:v", "1",
-      "-vf", "scale=1440:810:force_original_aspect_ratio=decrease,pad=1440:1000:(ow-iw)/2:(oh-ih)/2:color=0x07111f",
+      "-vf", "scale=1440:810:force_original_aspect_ratio=decrease,pad=1440:1000:(ow-iw)/2:(oh-ih)/2:color=0x171714",
       "-map_metadata", "-1", "-f", "image2pipe", "-vcodec", "png", "-",
     ]);
     requireCondition(sha256(regeneratedPoster) === poster.sha256, "deployed poster is not the committed execution frame");
