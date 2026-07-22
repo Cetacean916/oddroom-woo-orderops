@@ -148,6 +148,27 @@ for (const width of viewports) {
       }));
       const controls = [...document.querySelectorAll('a[href],button,input:not([type=hidden]),select,textarea,[role=button]')]
         .filter(visible);
+      let splitKoreanWordCount = 0;
+      if (/^ko(?:-|_)/i.test(document.documentElement.lang)) {
+        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+        for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+          const parent = node.parentElement;
+          if (!parent
+            || !visible(parent)
+            || parent.closest('script,style,.screen-reader-text,.sr-only,[aria-hidden="true"]')) continue;
+          for (const match of node.nodeValue.matchAll(/[가-힣]{2,}/g)) {
+            const range = document.createRange();
+            range.setStart(node, match.index);
+            range.setEnd(node, match.index + match[0].length);
+            const lineTops = new Set(
+              [...range.getClientRects()]
+                .filter((box) => box.width > 0 && box.height > 0)
+                .map((box) => Math.round(box.top)),
+            );
+            if (lineTops.size > 1) splitKoreanWordCount += 1;
+          }
+        }
+      }
       const clipped = controls.filter((element) => {
         const box = effectiveBox(element);
         return box.width > 0 && (box.left < -1 || box.right > root.clientWidth + 1);
@@ -202,6 +223,7 @@ for (const width of viewports) {
         page_overflow_px: Math.max(root.scrollWidth, document.body.scrollWidth) - root.clientWidth,
         document_language: document.documentElement.lang,
         korean_locale: /^ko(?:-|_)/i.test(document.documentElement.lang),
+        split_korean_word_count: splitKoreanWordCount,
         image_count: images.length,
         broken_image_count: images.filter((image) => !image.complete || image.natural_width < 1).length,
         image_without_alt_count: images.filter((image) => !image.alt_present).length,
@@ -260,6 +282,7 @@ for (const width of viewports) {
       || observation.unresolved_skeleton_count > 0
       || observation.required_font_load_failures > 0
       || observation.visible_h1_count !== 1
+      || observation.split_korean_word_count > 0
       || !observation.korean_locale
       || observation.forbidden_copy
       || observation.moderate_or_worse.length > 0

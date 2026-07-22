@@ -2,9 +2,9 @@
   "schema_version": "1",
   "acceptance_id": "GATE-05",
   "run_id": "PF07-REFINEMENT-ACCEPTANCE-RUN",
-  "started_at": "2026-07-22T18:59:37Z",
-  "finished_at": "2026-07-22T18:59:47Z",
-  "source_tree_sha256": "9d7223995cbb54db672dedc6c23d20d4da700db97db27c27d2e38b4f984db6c3",
+  "started_at": "2026-07-22T19:53:05Z",
+  "finished_at": "2026-07-22T19:53:14Z",
+  "source_tree_sha256": "fc5f4afbe09e2d6ca9148fce6e7158f141449acfb5812c66fc8feae16f30efdf",
   "command_or_probe": "recorded redaction of protected acceptance observation",
   "exit_code": 0,
   "observations": {
@@ -24,8 +24,8 @@
     "script_sha256": "aaa1efd7f518423acdb6aad17d094427e473b48ecd424153e54ff959e7b5bae0"
   },
   "source_acceptance_id": "GATE-05",
-  "source_record_sha256": "babd16bd8ba4971a317a4eb4532072920849a89ceec4ac48804f0d46494301d8",
+  "source_record_sha256": "e34f2f21ebaf678f2009b622a9051dda219fd0c4c17db48ecc1ec6e42d1342b4",
   "source_artifact_hashes": {
-    "gate05_hmac_trace": "861a18f317f8235d3b458d93a01731d6845309c03e2f5e3482e1e7fcde950e9d"
+    "gate05_hmac_trace": "a4ef01100019a1725e238e69a94af0e6fb6a6c350b790330734b36035c57aabc"
   }
 }

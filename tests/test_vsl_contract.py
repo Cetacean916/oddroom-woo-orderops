@@ -378,7 +378,11 @@ require('.oddroom-hero h1' in STOREFRONT_CSS
         "buyer storefront reference-led typography or restrained design token is absent")
 require('html[lang^="ko"] body:not(.wp-admin) {' in STOREFRONT_CSS
         and 'word-break: keep-all;' in STOREFRONT_CSS
-        and 'overflow-wrap: normal;' in STOREFRONT_CSS,
+        and 'overflow-wrap: normal;' in STOREFRONT_CSS
+        and 'html[lang^="ko"] body:not(.wp-admin) :where(' in STOREFRONT_CSS
+        and '.wc-block-product a,' in STOREFRONT_CSS
+        and 'word-break: keep-all !important;' in STOREFRONT_CSS
+        and 'overflow-wrap: normal !important;' in STOREFRONT_CSS,
         "Korean storefront prose can break between syllables")
 require('body.single-product .woocommerce-product-gallery__wrapper {\n  max-width: none !important;\n}' in STOREFRONT_CSS
         and not re.search(
@@ -498,6 +502,7 @@ require("gate09_compatibility_trace" in GATE09_COMPATIBILITY_PROBE
         "Gate-09 compatibility probe omits the isolated scheduler branch check")
 require("tests/ui_quality.mjs" in GATE09_PRODUCT_PROBE
         and "plugin-php-tests" in GATE09_PRODUCT_PROBE
+        and "split_korean_word_count" in UI_QUALITY
         and "pf07_attributable_entries" in GATE09_PRODUCT_PROBE
         and "gate09_product_quality_trace" in GATE09_PRODUCT_PROBE
         and 'require(bool(runtime_root_raw), "PF07_RUNTIME_ROOT is required")' in GATE09_PRODUCT_PROBE

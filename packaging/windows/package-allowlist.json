@@ -157,7 +157,7 @@
       "source": "packaging/common/bootstrap-manifest.json",
       "target": "packaging/common/bootstrap-manifest.json",
       "mode": "0644",
-      "source_sha256": "200c2b025e87877a668b505dce44f5f26fa2098b6f157e858615b840a8a85322"
+      "source_sha256": "168cd28f4b0edd44f6313b69ab6e92ec34cac7635aa25ef500641527f8be9e34"
     },
     {
       "source": "packaging/common/compose.yaml",
@@ -169,7 +169,7 @@
       "source": "packaging/common/distribution-content-bindings.json",
       "target": "packaging/common/distribution-content-bindings.json",
       "mode": "0644",
-      "source_sha256": "b5be2409ff6aef2dd07f268043b5e0c41af66f6a1fc5912ffd0b69375d6cb657"
+      "source_sha256": "0f1fc03c4200e4ce12078e38d950dbc01c1f8092eb205b3375601dc5938fabb9"
     },
     {
       "source": "packaging/common/n8n-task-runners.json",
@@ -247,7 +247,7 @@
       "source": "plugin/oddroom-orderops/assets/css/storefront.css",
       "target": "payload/oddroom-orderops/assets/css/storefront.css",
       "mode": "0644",
-      "source_sha256": "3002fa4a0658866279d01ee11300b948fd7eed8de820af94a4d6d1b9f58c0475"
+      "source_sha256": "bcdecd6671210e0cf0419a91dd9b61b0c634a6799ec9563a68199a0c7ecef3f7"
     },
     {
       "source": "plugin/oddroom-orderops/assets/fonts/DoHyeon-Regular.woff2",

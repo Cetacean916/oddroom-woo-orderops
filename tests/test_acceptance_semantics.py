@@ -302,6 +302,7 @@ with tempfile.TemporaryDirectory(prefix="pf07-semantic-test-") as temporary:
                 "required_font_load_failures": 0,
                 "unresolved_skeleton_count": 0,
                 "visible_h1_count": 1,
+                "split_korean_word_count": 0,
             })
     admin = [{
         "page": "admin",
@@ -331,6 +332,7 @@ with tempfile.TemporaryDirectory(prefix="pf07-semantic-test-") as temporary:
         and observed["storefront_page_count"] == 8
         and observed["moderate_or_worse_violations"] == 0
         and observed["visible_h1_failures"] == 0
+        and observed["split_korean_word_failures"] == 0
         and observed["console_error_failures"] == 0
         and observed["placeholder_or_internal_copy_failures"] == 0
         and observed["layout_overlap_failures"] == 0
@@ -361,6 +363,10 @@ with tempfile.TemporaryDirectory(prefix="pf07-semantic-test-") as temporary:
         pass
     else:
         raise SystemExit("FAIL: GATE-09 accepted a storefront observation without visible-H1 evidence")
+    split_word_product = copy.deepcopy(product)
+    split_word_product["ui_evidence"]["storefront"][0]["split_korean_word_count"] = 1
+    observed = derive(directory, "product-quality", "gate09_product_quality_trace", split_word_product)
+    require(observed["split_korean_word_failures"] == 1, "GATE-09 split Korean words are not derived")
     duplicate_pair_product = copy.deepcopy(product)
     duplicate_pair_product["ui_evidence"]["storefront"][0]["page"] = duplicate_pair_product["ui_evidence"]["storefront"][1]["page"]
     duplicate_pair_product["ui_evidence"]["storefront"][0]["viewport_width"] = duplicate_pair_product["ui_evidence"]["storefront"][1]["viewport_width"]

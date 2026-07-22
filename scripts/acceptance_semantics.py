@@ -549,7 +549,7 @@ def _product_quality(path: Path) -> dict:
         "broken_image_count", "image_without_alt_count", "placeholder_asset_count", "console_errors",
         "failed_resources", "korean_locale", "forbidden_copy", "overlapping_control_count",
         "unlabeled_control_count", "keyboard_inoperable_control_count", "required_font_load_failures",
-        "unresolved_skeleton_count", "visible_h1_count",
+        "unresolved_skeleton_count", "visible_h1_count", "split_korean_word_count",
     }
     admin_fields = {
         "page", "viewport_width", "url_alias", "mode", "root_selector", "http_status",
@@ -580,6 +580,7 @@ def _product_quality(path: Path) -> dict:
     fonts = sum(_integer(item.get("required_font_load_failures", 0), "GATE-09 font loads") for item in storefront)
     skeletons = sum(_integer(item.get("unresolved_skeleton_count", 0), "GATE-09 skeletons") for item in storefront)
     headings = sum(int(_integer(item.get("visible_h1_count"), "GATE-09 visible H1 count") != 1) for item in storefront)
+    split_korean_words = sum(_integer(item.get("split_korean_word_count"), "GATE-09 split Korean words") for item in storefront)
     alt = sum(_integer(item.get("image_without_alt_count", 0), "GATE-09 image alt") for item in storefront)
     resources = sum(len(item.get("failed_resources", [])) for item in storefront)
     route = sum(int(item.get("http_status") != 200 or item.get("expected_path_reached") is not True) for item in storefront)
@@ -616,6 +617,7 @@ def _product_quality(path: Path) -> dict:
         "font_load_failures": fonts,
         "unresolved_skeleton_failures": skeletons,
         "visible_h1_failures": headings,
+        "split_korean_word_failures": split_korean_words,
         "image_alt_failures": alt,
         "failed_resource_count": resources,
         "unexpected_http_or_route_failures": route,

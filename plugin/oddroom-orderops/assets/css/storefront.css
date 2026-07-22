@@ -48,6 +48,27 @@ html[lang^="ko"] body:not(.wp-admin) {
   overflow-wrap: normal;
 }
 
+html[lang^="ko"] body:not(.wp-admin) :where(
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  p,
+  li,
+  dt,
+  dd,
+  figcaption,
+  label,
+  .wc-block-product a,
+  .woocommerce-breadcrumb a,
+  .product_meta a
+) {
+  word-break: keep-all !important;
+  overflow-wrap: normal !important;
+}
+
 .oddroom-hero h1,
 .oddroom-manifesto h2,
 .oddroom-section > header h2,
