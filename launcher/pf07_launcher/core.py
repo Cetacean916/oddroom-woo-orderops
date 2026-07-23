@@ -211,7 +211,7 @@ def ensure_runtime() -> dict[str, str]:
             migrated = True
         if "ODDROOM_WEBHOOK_PATH" not in values:
             values["ODDROOM_WEBHOOK_PATH"] = (
-                "oddroom-orderops-connected-v1" if selected_mode() == "CONNECTED_MODE" else "oddroom-orderops-demo-v1"
+                "oddroom-orderops-v1" if selected_mode() == "CONNECTED_MODE" else "oddroom-orderops-demo-v1"
             )
             migrated = True
         for key in ("PF07_HUBSPOT_CONFIGURED", "PF07_SLACK_CONFIGURED"):
@@ -280,7 +280,7 @@ def selected_mode() -> str:
 
 
 def _synchronize_runtime_mode(values: dict[str, str]) -> dict[str, str]:
-    expected = "oddroom-orderops-connected-v1" if selected_mode() == "CONNECTED_MODE" else "oddroom-orderops-demo-v1"
+    expected = "oddroom-orderops-v1" if selected_mode() == "CONNECTED_MODE" else "oddroom-orderops-demo-v1"
     if values.get("ODDROOM_WEBHOOK_PATH") != expected:
         values["ODDROOM_WEBHOOK_PATH"] = expected
         _write_runtime_env(state_dir() / "runtime.env", values)
@@ -1151,7 +1151,7 @@ def set_mode(mode: str) -> dict[str, Any]:
     )
     values = ensure_runtime()
     values["ODDROOM_WEBHOOK_PATH"] = (
-        "oddroom-orderops-connected-v1" if mode == "CONNECTED_MODE" else "oddroom-orderops-demo-v1"
+        "oddroom-orderops-v1" if mode == "CONNECTED_MODE" else "oddroom-orderops-demo-v1"
     )
     _write_runtime_env(state_dir() / "runtime.env", values)
     running = status()["services"]

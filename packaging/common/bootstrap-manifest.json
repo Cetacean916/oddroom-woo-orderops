@@ -48,8 +48,8 @@
   },
   "content_bindings": {
     "path": "packaging/common/distribution-content-bindings.json",
-    "sha256": "85e3bda8291324e4dda9d5539846ed45d7578a70c51a5617286117bac111ee73",
-    "content_set_sha256": "1633ca8b684dfd389dff6c6eded3e6a511d6dd2286e5183c26e6a9d485d75067",
+    "sha256": "a340cb22ef62f3ac935cb7fd8957f079ec8060e4c90f45c49e3609a9d562e17b",
+    "content_set_sha256": "9ebc66a4a418345424a283bd24a523ba558201293181dd6a018fe54555425f71",
     "includes": [
       "sanitized deterministic seed",
       "PF07 plugin",

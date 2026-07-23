@@ -72,6 +72,17 @@ class LauncherActionContractTest(unittest.TestCase):
         self.assertIn('self.server.ui_root / "fonts" / "PretendardVariable.woff2"', hub)
         self.assertIn('"font/woff2"', hub)
 
+    def test_connected_launcher_path_matches_the_published_workflow_webhook(self) -> None:
+        workflow = json.loads(
+            (ROOT / "packaging/common/workflows/connected-mode.json").read_text(encoding="utf-8")
+        )
+        webhook = next(node for node in workflow["nodes"] if node["type"] == "n8n-nodes-base.webhook")
+        self.assertEqual("oddroom-orderops-v1", webhook["parameters"]["path"])
+
+        core = (ROOT / "launcher/pf07_launcher/core.py").read_text(encoding="utf-8")
+        self.assertGreaterEqual(core.count('"oddroom-orderops-v1"'), 3)
+        self.assertNotIn("oddroom-orderops-connected-v1", core)
+
 
 if __name__ == "__main__":
     unittest.main()

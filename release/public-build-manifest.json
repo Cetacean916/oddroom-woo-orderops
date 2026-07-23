@@ -186,92 +186,92 @@
     {
       "path": "evidence/refinement/public/acceptance-matrix.json",
       "mode": "0644",
-      "sha256": "7889048afabb960e3c84f684c47944930445def1cadf8bc9d03865d793f18b34"
+      "sha256": "d6311f58940879e1f8f69b9bc4d25a1bfd4e584ed403560a09e6ff0db74cda29"
     },
     {
       "path": "evidence/refinement/public/duplicate-suppression.json",
       "mode": "0644",
-      "sha256": "edaf3b7970f8035e58983847d2aec55130e6fa06d0662b7f903368551b7cd5d1"
+      "sha256": "7369aa2febb496959223469192f30b955ec2d00e626caeeceee845cce6b1b0a9"
     },
     {
       "path": "evidence/refinement/public/e2e-normal-order.json",
       "mode": "0644",
-      "sha256": "63768da5b8a249bdacca0c02c3d42e81e50fdda468109a4dcab782975e921975"
+      "sha256": "212d099ffc3f1f79432988d9dd9931acf8357ee700c127838ef238238995e092"
     },
     {
       "path": "evidence/refinement/public/e2e-variable-coupon-order.json",
       "mode": "0644",
-      "sha256": "2edef59c9d37a328c51745b59ebe1d9f1cd3f1bf2b23423483467388bf7d48c1"
+      "sha256": "fc24c42a2ed2d2dc3d1f7b1b0c32df9a727e02666f284a4aca94c20e5a4b3c71"
     },
     {
       "path": "evidence/refinement/public/evidence-manifest.sha256",
       "mode": "0644",
-      "sha256": "2571c369cfd68334c40062b640ea94344ff55ed76340fd1db7b4bb505dd3eda4"
+      "sha256": "5951e1e0f491eab468c03274ef5ef3048d8e668ddc1e702b7369a6192f66f997"
     },
     {
       "path": "evidence/refinement/public/hmac-rejection.json",
       "mode": "0644",
-      "sha256": "ccfb15f57b51dbba592f106bd979a09f8ba5640c52c998b92ee8c20aeaa1d47c"
+      "sha256": "567900a853254ddb00f671e9a52a79fb4161f3c9375f9749018bd60087a0db2c"
     },
     {
       "path": "evidence/refinement/public/hpos-compatibility.json",
       "mode": "0644",
-      "sha256": "ba406013ad62488caba5cbfd023b35dceea914eedae8984bfad6dcde25c18e3b"
+      "sha256": "7e98e9e0acb03df76c40d9c8d9d404cab549fede3ec19a98f43c78cd68931c08"
     },
     {
       "path": "evidence/refinement/public/operator-outcome-resolution.json",
       "mode": "0644",
-      "sha256": "3f41c31a448df3db0ab7383d899e938d21fa67997fea2601d17fe74b6b88e717"
+      "sha256": "8484c76cc2ba0e53765a17f68721b585c794992cce63aa39b142e3575b5d7d05"
     },
     {
       "path": "evidence/refinement/public/outage-retry.json",
       "mode": "0644",
-      "sha256": "66f459d3925da532d36b13141778222c828df9f64742d74bd4b2d7a1c48123ba"
+      "sha256": "835005628fe795e83870b0e625112d895a876b12c61b4d5440679738211b3efa"
     },
     {
       "path": "evidence/refinement/public/partial-failure-recovery.json",
       "mode": "0644",
-      "sha256": "ae89360f75bd68338517106f845077f83698f73aa1b6a29669105bfd8c9ef5f9"
+      "sha256": "c5cb8490eb5eab781200490290d24e35b5a385682f6e91325ca88cbaf6b86cd8"
     },
     {
       "path": "evidence/refinement/public/product-quality.json",
       "mode": "0644",
-      "sha256": "eec40cf3fe320b590077cd552ca5d12881921d121772deb81b3fb80e34329803"
+      "sha256": "3ba674e4b06068d66731f824282f049dcd1a15803ab479ddca516ba959d1653c"
     },
     {
       "path": "evidence/refinement/public/raw-byte-resource-bounds.json",
       "mode": "0644",
-      "sha256": "8f9681f614d361a275a331dc5339fd74fe06221bde82db46a6afdc8da81507e7"
+      "sha256": "e69f30e5ba70856f0a8e14c8a4422b8c359c34b3c4b97b0c0cdaff9ed271e6da"
     },
     {
       "path": "evidence/refinement/public/reconciliation-repair.json",
       "mode": "0644",
-      "sha256": "3b82b384df760f436b835882690c7e664b68bfa3f6b87f776e936eab47bbec58"
+      "sha256": "ac90a84bb1143b9f4402f6c0e2134d8730de9446851bf5194010d1a3fc97159e"
     },
     {
       "path": "evidence/refinement/public/restore-drill.json",
       "mode": "0644",
-      "sha256": "38c9728fc877ff1f5ed704b707369df534ce9c600b1a7857b4be8df01ec36084"
+      "sha256": "ea0f27518c9cec17a0b35764c7a07e4d162b8788516addb4b6d819b7f265c814"
     },
     {
       "path": "evidence/refinement/public/retry-exhaustion.json",
       "mode": "0644",
-      "sha256": "079b4a644e5e319471a62ac93446b65e7df1d9f6f0424702e805625ed013f258"
+      "sha256": "533c3084d4943289576306a86e82824a9487993a93254811432582f9d204a7af"
     },
     {
       "path": "evidence/refinement/public/stale-lease-recovery.json",
       "mode": "0644",
-      "sha256": "2dda7c76f21412c66361ff9ec24e0bdf466db2ce538d49ef92b893c66055c68a"
+      "sha256": "e3e18ddc282d7bbdd02c29505cc6f8907a51f7015356837c49cdec5d106633df"
     },
     {
       "path": "evidence/refinement/public/state-non-regression.json",
       "mode": "0644",
-      "sha256": "2945933f578a170e845bad45be164091b0f2b240117baa5839717bc40256308e"
+      "sha256": "a54c9b3d95b1598d25edd95974131b83f00e7a888f075da4f0916773dd83e9da"
     },
     {
       "path": "evidence/refinement/public/vsl-pass.json",
       "mode": "0644",
-      "sha256": "0f83a414ddaee6ee03a45f6e28f3fee9fca36d7fa542f129a2d74675a725f912"
+      "sha256": "aaf58ef29df14588a137894bdd1603af630662090fa4684fc1e5704990acdae7"
     },
     {
       "path": "fixtures/README.md",
@@ -346,7 +346,7 @@
     {
       "path": "launcher/pf07_launcher/core.py",
       "mode": "0644",
-      "sha256": "9154eec0a253ac77c4058cc7eadb3c9d6b164889322e31b167cde27a0aa56ec0"
+      "sha256": "d6b1164dd8aaf46560c372d9af510184ad3c1a98d4a7d3a95468f8bd76a9b390"
     },
     {
       "path": "launcher/pf07_launcher/hub.py",
@@ -411,7 +411,7 @@
     {
       "path": "packaging/common/bootstrap-manifest.json",
       "mode": "0644",
-      "sha256": "d35dcd601256083bb2561f046b3c39cb7aa45752c123e7cd5b6331a3f3292837"
+      "sha256": "0a59c2e549dbfb5b742660fcc9ef67ac1c1726c6acdf2e6cf93b0dd59d2a8e7c"
     },
     {
       "path": "packaging/common/compose.yaml",
@@ -421,7 +421,7 @@
     {
       "path": "packaging/common/distribution-content-bindings.json",
       "mode": "0644",
-      "sha256": "85e3bda8291324e4dda9d5539846ed45d7578a70c51a5617286117bac111ee73"
+      "sha256": "a340cb22ef62f3ac935cb7fd8957f079ec8060e4c90f45c49e3609a9d562e17b"
     },
     {
       "path": "packaging/common/n8n-task-runners.json",
@@ -496,7 +496,7 @@
     {
       "path": "packaging/linux/local-package-allowlist.json",
       "mode": "0644",
-      "sha256": "3fd9558f8dc27986361dab3197289ecc1752899b8bb1e8f928918ef703669989"
+      "sha256": "87df4f7264a8737a463e29dad78138cf2d5c90556d5035d347d745cc2733f1ee"
     },
     {
       "path": "packaging/linux/pf07",
@@ -506,7 +506,7 @@
     {
       "path": "packaging/linux/server-package-allowlist.json",
       "mode": "0644",
-      "sha256": "fd268f784340c9c8c553f249244267445f53455c605bc64bcbf37872c5d4eda1"
+      "sha256": "46073541664f169daaad5a406579f0ab5da19984a4c455b2c8dbad2d913fde49"
     },
     {
       "path": "packaging/linux/server/README.en.md",
@@ -566,7 +566,7 @@
     {
       "path": "packaging/macos/package-allowlist.json",
       "mode": "0644",
-      "sha256": "6ca1cebcfb81dd843a8288b3efd44f305c23e77aaa90e44705b30f92c315d851"
+      "sha256": "74ca53bde2f6144600c48508c90165000fcfe384b0dc8c48f4d0820bb6d0d5ad"
     },
     {
       "path": "packaging/macos/pf07",
@@ -646,7 +646,7 @@
     {
       "path": "packaging/windows/package-allowlist.json",
       "mode": "0644",
-      "sha256": "87bfc62bec3a2cf47af4f7e538645e2eb2c858961acd22510bcd97d3b6f38511"
+      "sha256": "eb7b224dfdd1eb82436fb1e3abe9a5ccb5d7e679f4ca911b47fe118abfd7adf9"
     },
     {
       "path": "packaging/windows/pf07.cmd",
@@ -986,7 +986,7 @@
     {
       "path": "scripts/capture-final-stills.mjs",
       "mode": "0644",
-      "sha256": "47a6d5e274f327527ce5fbf6f39f170f506e15dbf90a0153d0f40bf4c881c7a4"
+      "sha256": "6452c6f9da6de573c31cdcc5ab24e90dc8f71966e4b1513830d9ea574f3e171f"
     },
     {
       "path": "scripts/ci",
@@ -1066,7 +1066,7 @@
     {
       "path": "scripts/record-public-media.mjs",
       "mode": "0644",
-      "sha256": "016d46b4281221df41da5ef9cc06abbafc5c88014322fc5697422e08a05bfce5"
+      "sha256": "0dad9dc966b3e11d069e1e4ec73d237d18d6cd9e6861ddfcec7de4927b14aa2d"
     },
     {
       "path": "scripts/refinement_evidence_paths.py",
@@ -1156,7 +1156,7 @@
     {
       "path": "tests/test_launcher_action_contract.py",
       "mode": "0644",
-      "sha256": "30b176cb4133dcc14ee8b37f8a17209125be104730559973f16b4916b260cdb3"
+      "sha256": "d225a9c1e0cfbbbb40d56732df22e9d637038ef1ad09e05755782ee345c10c2b"
     },
     {
       "path": "tests/test_package_state_boundaries.py",
