@@ -66,10 +66,12 @@ class LauncherActionContractTest(unittest.TestCase):
         self.assertIn('cd -- "$script_dir/.."', wrapper)
         self.assertNotIn('cd -- "$script_dir/../.."', wrapper)
 
-    def test_hub_serves_the_governed_interface_font_from_an_exact_route(self) -> None:
+    def test_hub_serves_the_governed_interface_fonts_from_exact_routes(self) -> None:
         hub = (ROOT / "launcher/pf07_launcher/hub.py").read_text(encoding="utf-8")
         self.assertIn('if path == "/fonts/PretendardVariable.woff2":', hub)
         self.assertIn('self.server.ui_root / "fonts" / "PretendardVariable.woff2"', hub)
+        self.assertIn('if path == "/fonts/NotoSerifKR-Variable-PF07Subset.woff2":', hub)
+        self.assertIn('self.server.ui_root / "fonts" / "NotoSerifKR-Variable-PF07Subset.woff2"', hub)
         self.assertIn('"font/woff2"', hub)
 
     def test_connected_launcher_path_matches_the_published_workflow_webhook(self) -> None:

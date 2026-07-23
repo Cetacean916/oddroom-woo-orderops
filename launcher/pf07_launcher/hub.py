@@ -119,6 +119,12 @@ class HubHandler(BaseHTTPRequestHandler):
         if path == "/fonts/PretendardVariable.woff2":
             self._bytes((self.server.ui_root / "fonts" / "PretendardVariable.woff2").read_bytes(), "font/woff2")
             return
+        if path == "/fonts/NotoSerifKR-Variable-PF07Subset.woff2":
+            self._bytes(
+                (self.server.ui_root / "fonts" / "NotoSerifKR-Variable-PF07Subset.woff2").read_bytes(),
+                "font/woff2",
+            )
+            return
         if path == "/brand-symbol.svg":
             symbol = package_root() / "payload" / "oddroom-orderops" / "assets" / "images" / "brand" / "symbol.svg"
             self._bytes(symbol.read_bytes(), "image/svg+xml")

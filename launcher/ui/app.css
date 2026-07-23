@@ -6,6 +6,14 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: "Offset Editorial";
+  src: url("fonts/NotoSerifKR-Variable-PF07Subset.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 200 900;
+  font-display: swap;
+}
+
 :root {
   color-scheme: light;
   --paper: #f1eee6;
@@ -238,15 +246,16 @@ footer {
 h1 {
   max-width: 18ch;
   margin: 0;
-  font-size: clamp(48px, 5.1vw, 76px);
-  line-height: 1.01;
-  letter-spacing: -.065em;
-  font-weight: 735;
+  font-family: "Offset Editorial", "Noto Serif KR", serif;
+  font-size: clamp(52px, 4.6vw, 68px);
+  line-height: 1.04;
+  letter-spacing: -.04em;
+  font-weight: 400;
 }
 
 h1 span {
   color: var(--olive);
-  font-weight: 650;
+  font-weight: 700;
 }
 
 .lede {
@@ -920,7 +929,7 @@ footer p { margin: 0; }
 
   .hero { padding: 46px 20px 42px; gap: 34px; }
   .hero-index { margin-bottom: 18px; }
-  h1 { font-size: clamp(42px, 12.7vw, 56px); }
+  h1 { font-size: clamp(38px, 10.8vw, 46px); }
   .hero-command { padding-top: 24px; }
   .lede { font-size: 14px; }
   .actions { display: grid; }
