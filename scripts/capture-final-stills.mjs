@@ -44,7 +44,7 @@ const artifactSetBytes = await fsp.readFile(artifactSetPath);
 const artifactSet = JSON.parse(artifactSetBytes.toString("utf8"));
 if (artifactSet.schema !== "pf07.artifact-set-manifest.v1"
   || artifactSet.package_version !== "1.0.2"
-  || artifactSet.build_id !== "pf07-build-8d152d90b0eb87accc95"
+  || artifactSet.build_id !== "pf07-build-b99af2ac12d22b464865"
   || artifactSet.artifact_count !== 5) {
   throw new Error("final artifact-set identity failed");
 }
