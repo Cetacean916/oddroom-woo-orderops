@@ -6,14 +6,6 @@
   font-display: swap;
 }
 
-@font-face {
-  font-family: "Offset Editorial";
-  src: url("fonts/NotoSerifKR-Variable-PF07Subset.woff2") format("woff2");
-  font-style: normal;
-  font-weight: 200 900;
-  font-display: swap;
-}
-
 :root {
   color-scheme: light;
   --paper: #f1eee6;
@@ -193,7 +185,7 @@ footer {
 
 .hero {
   min-height: 0;
-  padding: clamp(54px, 5vw, 78px) clamp(30px, 5vw, 74px) clamp(48px, 5vw, 70px);
+  padding: clamp(48px, 4.5vw, 68px) clamp(30px, 5vw, 74px) clamp(44px, 4.5vw, 62px);
   border-bottom: 1px solid var(--line-strong);
   background-image:
     linear-gradient(rgba(21, 22, 17, .028) 1px, transparent 1px),
@@ -207,22 +199,19 @@ footer {
 
 .hero-copy {
   display: grid;
-  grid-template-columns: minmax(0, 1.12fr) minmax(360px, .88fr);
-  gap: clamp(44px, 6vw, 96px);
+  grid-template-columns: minmax(0, 1fr) minmax(360px, .92fr);
+  gap: clamp(40px, 5vw, 78px);
   align-items: end;
 }
 
 .hero-title-block { min-width: 0; }
 
-.hero-index,
 .command-label {
   color: var(--olive);
   font: 10px/1.4 ui-monospace, SFMono-Regular, Consolas, monospace;
   font-weight: 850;
   letter-spacing: .14em;
 }
-
-.hero-index { margin: 0 0 23px; }
 
 .hero-command {
   min-width: 0;
@@ -246,16 +235,19 @@ footer {
 h1 {
   max-width: 18ch;
   margin: 0;
-  font-family: "Offset Editorial", "Noto Serif KR", serif;
-  font-size: clamp(52px, 4.6vw, 68px);
+  font-family: "Offset Grotesk", "Apple SD Gothic Neo", system-ui, sans-serif;
+  font-size: clamp(46px, 4.4vw, 62px);
   line-height: 1.04;
-  letter-spacing: -.04em;
-  font-weight: 400;
+  letter-spacing: -.055em;
+  font-weight: 650;
 }
 
-h1 span {
-  color: var(--olive);
-  font-weight: 700;
+.hero-summary {
+  max-width: 43ch;
+  margin: 22px 0 0;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.7;
 }
 
 .lede {
@@ -347,9 +339,10 @@ h1 span {
 .status-heading h2 {
   max-width: 8ch;
   margin: 0;
-  font-size: 27px;
+  font-size: 26px;
   line-height: 1.08;
   letter-spacing: -.045em;
+  font-weight: 600;
 }
 
 .status-heading .eyebrow {
@@ -447,7 +440,7 @@ h1 span {
 }
 
 .control-grid article {
-  min-height: 276px;
+  min-height: 256px;
   padding: 34px clamp(22px, 2.6vw, 40px);
   display: flex;
   flex-direction: column;
@@ -456,7 +449,7 @@ h1 span {
 .control-grid article + article { border-left: 1px solid var(--line); }
 
 .control-grid .step {
-  margin: 0 0 34px;
+  margin: 0 0 30px;
   color: var(--orange);
   font: 11px ui-monospace, SFMono-Regular, Consolas, monospace;
   font-weight: 800;
@@ -464,9 +457,10 @@ h1 span {
 
 .control-grid h2 {
   margin: 0;
-  font-size: 21px;
+  font-size: 20px;
   line-height: 1.15;
   letter-spacing: -.035em;
+  font-weight: 650;
 }
 
 .control-grid article > p:not(.step) {
@@ -524,9 +518,10 @@ h1 span {
 
 .credential-panel h2 {
   margin: 0;
-  font-size: 34px;
-  line-height: 1.05;
+  font-size: 30px;
+  line-height: 1.1;
   letter-spacing: -.045em;
+  font-weight: 600;
 }
 
 .credential-panel dl {
@@ -574,9 +569,10 @@ h1 span {
 .panel-heading h2 {
   max-width: 18ch;
   margin: 0;
-  font-size: clamp(32px, 3.4vw, 48px);
+  font-size: clamp(30px, 2.7vw, 40px);
   line-height: 1.06;
-  letter-spacing: -.05em;
+  letter-spacing: -.045em;
+  font-weight: 600;
 }
 
 .panel-heading > p {
@@ -611,7 +607,7 @@ h1 span {
 .connected-form label {
   color: #3f403a;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .control-form select,
@@ -679,7 +675,7 @@ h1 span {
   border-bottom: 1px solid var(--line);
   color: var(--ink);
   font-size: 18px;
-  font-weight: 850;
+  font-weight: 700;
 }
 
 .connected-form label {
@@ -730,9 +726,10 @@ h1 span {
 
 .operations-grid h3 {
   margin: 0 0 8px;
-  font-size: 19px;
+  font-size: 18px;
   line-height: 1.2;
   letter-spacing: -.025em;
+  font-weight: 650;
 }
 
 .operations-result {
@@ -927,9 +924,9 @@ footer p { margin: 0; }
   .rail-nav a:nth-child(odd) { border-left: 0; }
   .rail-nav a:nth-child(n + 3) { border-top: 1px solid #383934; }
 
-  .hero { padding: 46px 20px 42px; gap: 34px; }
-  .hero-index { margin-bottom: 18px; }
-  h1 { font-size: clamp(38px, 10.8vw, 46px); }
+  .hero { padding: 44px 20px 40px; gap: 34px; }
+  h1 { font-size: clamp(38px, 10.6vw, 46px); }
+  .hero-summary { margin-top: 18px; font-size: 14px; }
   .hero-command { padding-top: 24px; }
   .lede { font-size: 14px; }
   .actions { display: grid; }
@@ -941,7 +938,7 @@ footer p { margin: 0; }
   }
 
   .status-heading { padding: 22px 20px; }
-  .status-heading h2 { font-size: 28px; }
+  .status-heading h2 { font-size: 26px; }
   .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .facts div {
     min-height: 78px;
@@ -975,7 +972,7 @@ footer p { margin: 0; }
   }
 
   .credential-panel dl div { grid-template-columns: 72px 1fr; }
-  .panel-heading h2 { font-size: 36px; }
+  .panel-heading h2 { font-size: 32px; }
   .connected-actions .button,
   .control-form .button { width: 100%; }
 
