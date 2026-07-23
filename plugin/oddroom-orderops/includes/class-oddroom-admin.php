@@ -66,15 +66,50 @@ final class OddRoom_Admin
         self::renderNotice();
         self::renderReveal();
 
+        $schedulerReady = (bool) ($identity['initialized'] ?? false);
+        $automationReady = is_array($reachability) && ($reachability['status'] ?? null) === 'REACHED';
+        $reconciliationPassed = is_array($lastReconciliation) && ($lastReconciliation['status'] ?? null) === 'PASS';
         echo '<section id="overview" class="oddroom-stat-grid" aria-label="' . esc_attr(self::text('운영 상태', 'Operations status')) . '">';
-        self::card(self::text('패키지 모드', 'Package mode'), (string) $setup['mode'], 'mode');
-        self::card(self::text('전달 건강', 'Delivery health'), $health === '' ? 'PASS' : $health, $health === '' ? 'pass' : 'hold');
-        self::card(self::text('이벤트 / 임대', 'Events / leases'), $counts['outbox'] . ' / ' . $counts['leases'], 'neutral');
-        self::card('Action Scheduler', ($identity['version'] ?? 'unavailable') . ' · ' . ($identity['source'] ?? 'unavailable'), ($identity['initialized'] ?? false) ? 'pass' : 'hold');
-        self::card('n8n', is_array($reachability) ? (string) ($reachability['status'] ?? 'unknown') : self::text('첫 전달 대기', 'Awaiting first delivery'), is_array($reachability) && ($reachability['status'] ?? null) === 'REACHED' ? 'pass' : 'neutral');
-        self::card(self::text('최근 성공', 'Latest success'), is_array($lastSuccess) ? (string) ($lastSuccess['event_type'] ?? 'unknown') : self::text('아직 없음', 'Not yet observed'), is_array($lastSuccess) ? 'pass' : 'neutral');
-        self::card(self::text('재조정', 'Reconciliation'), is_array($lastReconciliation) ? (string) ($lastReconciliation['status'] ?? 'unknown') : self::text('실행 전', 'Not yet run'), is_array($lastReconciliation) && ($lastReconciliation['status'] ?? null) === 'PASS' ? 'pass' : 'neutral');
-        self::card(self::text('데모 외부 효과', 'Demo service edges'), sprintf('%d / %d / %d', $setup['demo_contacts'], $setup['demo_deals'], $setup['demo_slack_messages']), 'neutral');
+        self::card(self::text('현재 운영', 'Current operation'), self::modeLabel((string) $setup['mode']), 'mode');
+        self::card(
+            self::text('주문 전달 상태', 'Order delivery'),
+            $health === '' ? self::text('정상', 'Healthy') : self::text('확인 필요', 'Needs attention'),
+            $health === '' ? 'pass' : 'hold'
+        );
+        self::card(
+            self::text('주문 기록 · 진행 중', 'Order records · in progress'),
+            sprintf(self::text('%d건 · %d건', '%d · %d'), $counts['outbox'], $counts['leases']),
+            'neutral'
+        );
+        self::card(
+            self::text('백그라운드 작업', 'Background jobs'),
+            $schedulerReady ? self::text('준비됨', 'Ready') : self::text('확인 필요', 'Needs attention'),
+            $schedulerReady ? 'pass' : 'hold'
+        );
+        self::card(
+            self::text('자동화 연결', 'Automation connection'),
+            $automationReady ? self::text('연결됨', 'Connected') : self::text('첫 주문 대기', 'Awaiting first order'),
+            $automationReady ? 'pass' : 'neutral'
+        );
+        self::card(
+            self::text('최근 완료', 'Latest completion'),
+            is_array($lastSuccess)
+                ? self::eventTypeLabel((string) ($lastSuccess['event_type'] ?? ''))
+                : self::text('아직 없음', 'None yet'),
+            is_array($lastSuccess) ? 'pass' : 'neutral'
+        );
+        self::card(
+            self::text('주문 기록 점검', 'Order record check'),
+            is_array($lastReconciliation)
+                ? ($reconciliationPassed ? self::text('정상', 'Healthy') : self::text('확인 필요', 'Needs attention'))
+                : self::text('점검 전', 'Not checked'),
+            $reconciliationPassed ? 'pass' : 'neutral'
+        );
+        self::card(
+            self::text('외부 반영 · 연락처/거래/알림', 'External records · contacts/deals/alerts'),
+            sprintf('%d · %d · %d', $setup['demo_contacts'], $setup['demo_deals'], $setup['demo_slack_messages']),
+            'neutral'
+        );
         echo '</section>';
 
         echo '<div class="oddroom-two-column">';
@@ -83,17 +118,17 @@ final class OddRoom_Admin
         echo '</div>';
 
         echo '<section id="events" class="oddroom-panel oddroom-events-panel">';
-        echo '<div class="oddroom-section-heading"><div><p class="oddroom-eyebrow">EVENT LEDGER</p><h2>'
-            . esc_html(self::text('전달 이벤트', 'Delivery events')) . '</h2><p>'
+        echo '<div class="oddroom-section-heading"><div><p class="oddroom-eyebrow">ORDER ACTIVITY</p><h2>'
+            . esc_html(self::text('주문 처리 내역', 'Order activity')) . '</h2><p>'
             . esc_html(self::text(
-                'WooCommerce 주문에서 n8n·CRM·Slack 효과까지 같은 마스킹 식별자로 추적합니다.',
-                'Trace one masked identity from the WooCommerce order through n8n, CRM, and Slack effects.'
+                '주문이 접수된 뒤 연락처와 거래, 알림이 어디까지 반영됐는지 한눈에 확인하세요.',
+                'See how far contacts, deals, and notifications have been updated for each order.'
             )) . '</p></div><span class="oddroom-count">' . esc_html(sprintf(self::text('%d건', '%d matched'), $total)) . '</span></div>';
         self::renderFilters($filters);
         echo '<div class="oddroom-event-list">';
         if ($rows === []) {
-            echo '<div class="oddroom-empty"><strong>' . esc_html(self::text('표시할 이벤트가 없습니다.', 'No events match these filters.')) . '</strong><p>'
-                . esc_html(self::text('합성 주문을 만들거나 필터를 초기화하세요.', 'Create a synthetic order or clear the filters.')) . '</p></div>';
+            echo '<div class="oddroom-empty"><strong>' . esc_html(self::text('조건에 맞는 주문 처리 내역이 없습니다.', 'No order activity matches these filters.')) . '</strong><p>'
+                . esc_html(self::text('새 데모 주문을 만들거나 조회 조건을 초기화해 보세요.', 'Create a new demo order or clear the search filters.')) . '</p></div>';
         }
         foreach ($rows as $row) {
             self::renderEvent($row);
@@ -251,53 +286,57 @@ final class OddRoom_Admin
     private static function renderHero(array $setup): void
     {
         echo '<div class="oddroom-hero"><div class="oddroom-brand"><span>OFFSET / ORDEROPS</span><small>OPERATOR CONSOLE</small></div>';
-        echo '<div class="oddroom-hero-copy"><p class="oddroom-eyebrow">ORDER OPERATIONS / LIVE STATE</p><h1>'
-            . esc_html(self::text('주문 운영', 'Order operations'))
+        echo '<div class="oddroom-hero-copy"><p class="oddroom-eyebrow">ORDER CONTROL / CURRENT STATUS</p><h1>'
+            . esc_html(self::text('주문 운영 센터', 'Order operations center'))
             . '</h1><p>' . esc_html(self::text(
-                '주문 사실부터 n8n 실행, CRM·Slack 전달, 실패 복구까지 한 화면에서 추적하고 조치합니다.',
-                'Trace and act on order facts, n8n execution, CRM and Slack delivery, and failure recovery from one surface.'
+                '주문이 어디까지 처리됐는지 확인하고, 멈춘 작업을 다시 시작하거나 결과를 확정할 수 있습니다.',
+                'See how far each order has progressed, restart interrupted work, and confirm outcomes from one place.'
             )) . '</p></div>';
-        echo '<div class="oddroom-hero-meta"><span class="oddroom-mode-pill">' . esc_html((string) $setup['mode']) . '</span><span>0 KRW</span><span>'
-            . esc_html(self::text('합성 데이터 전용', 'Synthetic data only')) . '</span></div>';
+        echo '<div class="oddroom-hero-meta"><span class="oddroom-mode-pill">' . esc_html(self::modeLabel((string) $setup['mode'])) . '</span><span>0 KRW</span><span>'
+            . esc_html(self::text('데모 주문 전용', 'Demo orders only')) . '</span></div>';
         echo '<nav aria-label="' . esc_attr(self::text('운영 영역', 'Operator sections')) . '"><a href="#overview">'
             . esc_html(self::text('현황', 'Overview')) . '</a><a href="#setup">'
-            . esc_html(self::text('설정', 'Setup')) . '</a><a href="#recovery">'
-            . esc_html(self::text('복구', 'Recovery')) . '</a><a href="#events">'
-            . esc_html(self::text('이벤트', 'Events')) . '</a></nav></div>';
+            . esc_html(self::text('연동', 'Connections')) . '</a><a href="#recovery">'
+            . esc_html(self::text('처리 설정', 'Processing')) . '</a><a href="#events">'
+            . esc_html(self::text('처리 내역', 'Activity')) . '</a></nav></div>';
     }
 
     private static function renderSetup(array $setup): void
     {
-        echo '<section id="setup" class="oddroom-panel"><div class="oddroom-section-heading"><div><p class="oddroom-eyebrow">SETUP &amp; HEALTH</p><h2>'
-            . esc_html(self::text('연결은 보이고, 비밀은 보이지 않게.', 'Visible connections, hidden secrets.')) . '</h2></div></div>';
+        echo '<section id="setup" class="oddroom-panel"><div class="oddroom-section-heading"><div><p class="oddroom-eyebrow">CONNECTIONS &amp; ACCESS</p><h2>'
+            . esc_html(self::text('연동 상태와 표시 이름', 'Connections and display names')) . '</h2><p>'
+            . esc_html(self::text(
+                '현재 운영 방식과 외부 서비스의 연결 상태를 확인하고, 화면에 표시할 이름을 관리합니다.',
+                'Review how orders are operating and whether external services are connected, then manage their display names.'
+            )) . '</p></div></div>';
         echo '<ol class="oddroom-setup-steps"><li class="is-pass"><span>01</span><div><strong>'
-            . esc_html(self::text('패키지 관리자', 'Package administrator')) . '</strong><p>'
-            . esc_html(self::text('패키지에서 생성되었고 WordPress 로그인이 필요합니다.', 'Generated inside the package; WordPress authentication remains required.')) . '</p></div></li>';
-        echo '<li class="is-pass"><span>02</span><div><strong>DEMO_MODE</strong><p>'
-            . esc_html(self::text('실제 WooCommerce·PF07 outbox·n8n을 사용하고 HubSpot·Slack 가장자리만 결정적 데모 어댑터로 처리합니다.', 'Uses real WooCommerce, PF07 outbox, and n8n; only HubSpot and Slack edges use deterministic demo adapters.')) . '</p></div></li>';
-        echo '<li class="' . ($setup['hubspot_configured'] && $setup['slack_configured'] ? 'is-pass' : 'is-wait') . '"><span>03</span><div><strong>CONNECTED_MODE</strong><p>'
+            . esc_html(self::text('관리자 접근', 'Administrator access')) . '</strong><p>'
+            . esc_html(self::text('이 화면은 로그인한 관리자만 열고 변경할 수 있습니다.', 'Only signed-in administrators can open this screen or make changes.')) . '</p></div></li>';
+        echo '<li class="is-pass"><span>02</span><div><strong>' . esc_html(self::text('데모 운영', 'Demo operation')) . '</strong><p>'
+            . esc_html(self::text('실제 고객 정보나 외부 메시지 없이 주문 처리 과정을 안전하게 확인할 수 있습니다.', 'Review the complete order process without using real customer information or sending external messages.')) . '</p></div></li>';
+        echo '<li class="' . ($setup['hubspot_configured'] && $setup['slack_configured'] ? 'is-pass' : 'is-wait') . '"><span>03</span><div><strong>' . esc_html(self::text('외부 서비스 연결', 'External service connections')) . '</strong><p>'
             . esc_html($setup['hubspot_configured'] && $setup['slack_configured']
-                ? self::text('보호된 자격 증명이 설정되었습니다. 비파괴 연결 테스트 결과를 확인하세요.', 'Protected credentials are configured. Review the non-destructive connection-test results.')
-                : self::text('런처 허브에서 수신자 자격 증명을 입력하고 비파괴 연결 테스트를 통과해야 합니다.', 'Enter recipient credentials in the launch hub and pass non-destructive connection tests.')) . '</p></div></li></ol>';
+                ? self::text('HubSpot과 Slack 연결 정보가 준비되었습니다. 런처 허브에서 연결 상태를 확인할 수 있습니다.', 'HubSpot and Slack connection details are ready. Their status is available in the launch hub.')
+                : self::text('HubSpot과 Slack을 사용하려면 런처 허브에서 연결 정보를 입력해 주세요.', 'To use HubSpot and Slack, enter their connection details in the launch hub.')) . '</p></div></li></ol>';
 
         echo '<form class="oddroom-form" method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="oddroom_orderops_setup">';
         wp_nonce_field('oddroom_orderops_setup');
-        echo '<div class="oddroom-fields"><div class="oddroom-readonly-field"><span>' . esc_html(self::text('운영 모드', 'Operating mode')) . '</span><strong>' . esc_html((string) $setup['mode']) . '</strong></div><label>HubSpot alias<input required maxlength="64" name="hubspot_alias" value="' . esc_attr((string) $setup['hubspot_alias']) . '"></label><label>Slack alias<input required maxlength="64" name="slack_alias" value="' . esc_attr((string) $setup['slack_alias']) . '"></label></div>';
-        submit_button(self::text('설정 저장', 'Save setup'), 'primary', 'submit', false);
+        echo '<div class="oddroom-fields"><div class="oddroom-readonly-field"><span>' . esc_html(self::text('현재 운영', 'Current operation')) . '</span><strong>' . esc_html(self::modeLabel((string) $setup['mode'])) . '</strong></div><label>' . esc_html(self::text('HubSpot 표시 이름', 'HubSpot display name')) . '<input required maxlength="64" name="hubspot_alias" value="' . esc_attr((string) $setup['hubspot_alias']) . '"></label><label>' . esc_html(self::text('Slack 표시 이름', 'Slack display name')) . '<input required maxlength="64" name="slack_alias" value="' . esc_attr((string) $setup['slack_alias']) . '"></label></div>';
+        submit_button(self::text('표시 이름 저장', 'Save display names'), 'primary', 'submit', false);
         echo '<p class="oddroom-boundary">' . esc_html(self::text(
-            '이 화면은 alias와 준비 상태만 보여줍니다. 토큰·비밀·원격 ID 전체값은 표시하지 않습니다.',
-            'This surface shows aliases and readiness only. Tokens, secrets, and full remote identifiers are never displayed.'
+            '이 화면에는 표시 이름과 준비 상태만 나타납니다. 토큰과 비밀번호, 전체 연동 ID는 표시하지 않습니다.',
+            'This screen shows display names and readiness only. Tokens, passwords, and full connection IDs remain hidden.'
         )) . '</p></form>';
 
-        echo '<details class="oddroom-danger"><summary>' . esc_html(self::text('확인 후 데모 초기화', 'Confirmed Reset Demo')) . '</summary><p>'
-            . esc_html(self::text('주문·outbox·데모 어댑터 효과만 삭제합니다. 관리자·상품·런타임 식별자·볼륨은 보존합니다.', 'Deletes orders, outbox rows, and demo-adapter effects only. Administrator, catalog, runtime identity, and volumes remain.')) . '</p>';
+        echo '<details class="oddroom-danger"><summary>' . esc_html(self::text('데모 주문 데이터 비우기', 'Clear demo order data')) . '</summary><p>'
+            . esc_html(self::text('데모 주문과 처리 내역, 전송 결과만 삭제합니다. 관리자 계정과 상품, 시스템 설정은 그대로 유지됩니다.', 'Removes demo orders, processing history, and delivery results. The administrator account, products, and system settings remain.')) . '</p>';
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="oddroom_orderops_reset">';
         wp_nonce_field('oddroom_orderops_reset');
         echo '<label>' . esc_html(self::text('확인 문구', 'Confirmation phrase')) . '<input required autocomplete="off" name="confirmation" placeholder="RESET PF07 DEMO"></label> ';
         if ($setup['mode'] === OddRoom_Package::DEMO_MODE) {
             submit_button(self::text('데모 데이터 초기화', 'Reset demo data'), 'delete', 'submit', false);
         } else {
-            echo '<button class="button button-link-delete" type="button" disabled>' . esc_html(self::text('DEMO_MODE에서 사용', 'Available in DEMO_MODE')) . '</button>';
+            echo '<button class="button button-link-delete" type="button" disabled>' . esc_html(self::text('데모 운영에서 사용 가능', 'Available during demo operation')) . '</button>';
         }
         echo '</form></details></section>';
     }
@@ -305,68 +344,68 @@ final class OddRoom_Admin
     private static function renderRecovery(?array $lastReconciliation): void
     {
         $setup = OddRoom_Package::setupState();
-        echo '<section id="recovery" class="oddroom-panel"><div class="oddroom-section-heading"><div><p class="oddroom-eyebrow">FAILURE → RETRY → RECOVERY</p><h2>'
-            . esc_html(self::text('실제 상태를 만들고 복구하세요.', 'Create and recover real states.')) . '</h2><p>'
-            . esc_html(self::text('다음 전달에 적용할 결정적 데모 시나리오입니다. 결과는 outbox에 실제로 기록됩니다.', 'Choose a deterministic scenario for the next delivery. Its result is written to the real outbox.')) . '</p></div></div>';
+        echo '<section id="recovery" class="oddroom-panel"><div class="oddroom-section-heading"><div><p class="oddroom-eyebrow">NEXT ORDER &amp; RECOVERY</p><h2>'
+            . esc_html(self::text('다음 주문의 처리 방식', 'How the next order will run')) . '</h2><p>'
+            . esc_html(self::text('다음 데모 주문이 바로 완료될지, 재시도나 관리자 확인을 거칠지 선택할 수 있습니다.', 'Choose whether the next demo order completes immediately, retries, or waits for administrator review.')) . '</p></div></div>';
         echo '<form class="oddroom-form" method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="oddroom_orderops_scenario">';
         wp_nonce_field('oddroom_orderops_scenario');
         $demoMode = $setup['mode'] === OddRoom_Package::DEMO_MODE;
-        echo '<label>' . esc_html(self::text('다음 전달 시나리오', 'Next-delivery scenario')) . '<select name="scenario"' . ($demoMode ? '' : ' disabled') . '>';
+        echo '<label>' . esc_html(self::text('다음 주문에 적용할 방식', 'Behavior for the next order')) . '<select name="scenario"' . ($demoMode ? '' : ' disabled') . '>';
         $scenarios = [
-            'normal' => self::text('정상 완료', 'Normal completion'),
-            'fail_once' => self::text('1회 실패 후 자동 복구', 'Fail once, then auto-recover'),
-            'terminal' => self::text('수동 재시도가 필요한 실패', 'Terminal failure requiring manual retry'),
-            'operator_review' => self::text('운영자 결과 확정 대기', 'Operator outcome resolution'),
+            'normal' => self::text('문제 없이 완료', 'Complete normally'),
+            'fail_once' => self::text('한 번 실패한 뒤 자동으로 다시 처리', 'Fail once, then retry automatically'),
+            'terminal' => self::text('관리자가 직접 다시 시작', 'Wait for an administrator to retry'),
+            'operator_review' => self::text('관리자 확인 후 결과 확정', 'Wait for administrator confirmation'),
         ];
         foreach ($scenarios as $value => $label) {
             echo '<option value="' . esc_attr($value) . '"' . selected($setup['scenario'], $value, false) . '>' . esc_html($label) . '</option>';
         }
         echo '</select></label> ';
         if ($demoMode) {
-            submit_button(self::text('시나리오 적용', 'Apply scenario'), 'secondary', 'submit', false);
+            submit_button(self::text('다음 주문에 적용', 'Apply to next order'), 'secondary', 'submit', false);
         } else {
-            echo '<button class="button button-secondary" type="button" disabled>' . esc_html(self::text('DEMO_MODE에서 사용', 'Available in DEMO_MODE')) . '</button>';
+            echo '<button class="button button-secondary" type="button" disabled>' . esc_html(self::text('데모 운영에서 사용 가능', 'Available during demo operation')) . '</button>';
         }
         echo '</form><div class="oddroom-scenario-key"><span><i class="is-normal"></i>' . esc_html(self::text('정상', 'Normal')) . '</span><span><i class="is-retrying"></i>' . esc_html(self::text('재시도', 'Retrying')) . '</span><span><i class="is-failed"></i>' . esc_html(self::text('실패', 'Failed')) . '</span><span><i class="is-recovered"></i>' . esc_html(self::text('복구', 'Recovered')) . '</span></div>';
-        echo '<hr><h3>' . esc_html(self::text('사실 재조정', 'Fact reconciliation')) . '</h3><p>'
-            . esc_html(self::text('7일 주문 사실을 50개 단위로 검사하고 누락 이벤트만 복구합니다.', 'Scans seven days of order facts in deterministic 50-order pages and repairs only missing events.')) . '</p>';
+        echo '<hr><h3>' . esc_html(self::text('누락 주문 기록 점검', 'Check for missing order records')) . '</h3><p>'
+            . esc_html(self::text('최근 7일 주문을 확인해 빠진 처리 기록만 다시 만듭니다.', 'Checks orders from the last seven days and recreates only missing processing records.')) . '</p>';
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="oddroom_orderops_reconcile">';
         wp_nonce_field('oddroom_orderops_reconcile');
-        submit_button(self::text('재조정 실행', 'Run reconciliation'), 'secondary', 'submit', false);
+        submit_button(self::text('주문 기록 점검', 'Check order records'), 'secondary', 'submit', false);
         echo '</form><p class="oddroom-boundary">' . esc_html(is_array($lastReconciliation)
-            ? sprintf(self::text('최근 결과: %s · %s', 'Latest result: %s · %s'), (string) ($lastReconciliation['status'] ?? 'unknown'), (string) ($lastReconciliation['observed_at_utc'] ?? 'unknown'))
-            : self::text('아직 재조정을 실행하지 않았습니다.', 'Reconciliation has not run yet.')) . '</p></section>';
+            ? sprintf(self::text('최근 점검: %s · %s', 'Latest check: %s · %s'), self::reconciliationLabel((string) ($lastReconciliation['status'] ?? '')), (string) ($lastReconciliation['observed_at_utc'] ?? 'unknown'))
+            : self::text('아직 주문 기록을 점검하지 않았습니다.', 'Order records have not been checked yet.')) . '</p></section>';
     }
 
     private static function renderEvent(object $row): void
     {
         $status = self::displayStatus($row);
         echo '<article class="oddroom-event-card status-' . esc_attr($status['class']) . '"><header><div><span class="oddroom-event-type">'
-            . esc_html((string) $row->event_type) . '</span><h3>'
-            . esc_html(sprintf(self::text('주문 #%d · 이벤트 #%d', 'Order #%d · Event #%d'), (int) $row->order_id, (int) $row->id))
+            . esc_html(self::eventTypeLabel((string) $row->event_type)) . '</span><h3>'
+            . esc_html(sprintf(self::text('주문 #%d · 처리 기록 #%d', 'Order #%d · Record #%d'), (int) $row->order_id, (int) $row->id))
             . '</h3><p><code>' . esc_html(self::maskIdentifier($row->event_key)) . '</code> · '
             . esc_html((string) $row->occurred_at_utc) . '</p></div><span class="oddroom-status">' . esc_html($status['label']) . '</span></header>';
         echo '<div class="oddroom-event-metrics">';
-        self::metric(self::text('단계', 'Phase'), (string) $row->processing_phase);
-        self::metric(self::text('시도', 'Attempts'), $row->attempt_count . ' / ' . $row->max_attempts);
-        self::metric(self::text('다음 재시도', 'Next retry'), $row->next_attempt_at ?? '—');
-        self::metric('HTTP', $row->last_http_status ?? '—');
-        echo '</div><details class="oddroom-event-details"><summary>' . esc_html(self::text('상세 흐름과 조치', 'Flow details and actions')) . '</summary>';
+        self::metric(self::text('처리 단계', 'Processing stage'), self::phaseLabel((string) $row->processing_phase));
+        self::metric(self::text('처리 횟수', 'Attempts'), $row->attempt_count . ' / ' . $row->max_attempts);
+        self::metric(self::text('다음 자동 재시도', 'Next automatic retry'), $row->next_attempt_at ?? '—');
+        self::metric(self::text('응답 코드', 'Response code'), $row->last_http_status ?? '—');
+        echo '</div><details class="oddroom-event-details"><summary>' . esc_html(self::text('처리 과정과 관리자 작업', 'Processing details and actions')) . '</summary>';
         echo '<div class="oddroom-correlation"><span>Woo <b>#' . esc_html((string) $row->order_id) . '</b></span><i>→</i><span>PF07 <b>#' . esc_html((string) $row->id) . '</b></span><i>→</i><span>n8n <b>'
             . esc_html($row->adapter_dispatch_state . '/' . ($row->adapter_dispatch_attempt ?? '—')) . '</b></span><i>→</i><span>CRM <b>'
             . esc_html(self::maskIdentifier($row->remote_deal_id)) . '</b></span><i>→</i><span>Slack <b>'
             . esc_html($row->slack_status) . '</b></span></div>';
         $facts = [
-            self::text('상태 / 단계', 'Status / phase') => $row->status . ' / ' . $row->processing_phase,
-            self::text('전체 / 자동 / 수동', 'Total / automatic / manual') => $row->attempt_count . ' / ' . $row->automatic_attempt_count . ' / ' . $row->manual_retry_count,
-            self::text('액션 ID', 'Action ID') => $row->action_id ?? '—',
-            self::text('잠금 나이', 'Lock age') => $row->lock_age_seconds === null ? self::text('없음', 'free') : ((int) $row->lock_age_seconds . 's'),
+            self::text('시스템 상태 / 단계', 'System status / phase') => $row->status . ' / ' . $row->processing_phase,
+            self::text('처리 횟수 (전체 / 자동 / 수동)', 'Attempts (total / automatic / manual)') => $row->attempt_count . ' / ' . $row->automatic_attempt_count . ' / ' . $row->manual_retry_count,
+            self::text('작업 번호', 'Action number') => $row->action_id ?? '—',
+            self::text('실행 잠금 경과', 'Lock elapsed') => $row->lock_age_seconds === null ? self::text('잠금 없음', 'No lock') : ((int) $row->lock_age_seconds . 's'),
             self::text('오류 코드', 'Error code') => $row->error_code ?? '—',
             self::text('정제된 오류', 'Sanitized error') => $row->last_error ?? '—',
             'Contact' => self::maskIdentifier($row->remote_contact_id),
             'Deal' => self::maskIdentifier($row->remote_deal_id),
             'Slack' => $row->slack_status . ' / ' . self::maskIdentifier($row->slack_message_ts),
-            self::text('업데이트 UTC', 'Updated UTC') => $row->updated_at,
+            self::text('최근 변경 (UTC)', 'Last updated (UTC)') => $row->updated_at,
         ];
         echo '<dl class="oddroom-fact-grid">';
         foreach ($facts as $label => $value) {
@@ -381,24 +420,40 @@ final class OddRoom_Admin
     {
         echo '<form class="oddroom-filter" method="get"><input type="hidden" name="page" value="' . esc_attr(self::PAGE) . '">';
         echo '<label>' . esc_html(self::text('상태', 'Status')) . '<select name="status"><option value="">' . esc_html(self::text('전체', 'All')) . '</option>';
-        foreach (['pending', 'processing', 'retry_wait', 'operator_wait', 'failed', 'completed'] as $status) {
-            echo '<option value="' . esc_attr($status) . '"' . selected($filters['status'], $status, false) . '>' . esc_html($status) . '</option>';
+        $statuses = [
+            'pending' => self::text('대기', 'Queued'),
+            'processing' => self::text('처리 중', 'Processing'),
+            'retry_wait' => self::text('자동 재시도 대기', 'Waiting to retry'),
+            'operator_wait' => self::text('관리자 확인 대기', 'Waiting for review'),
+            'failed' => self::text('실패', 'Failed'),
+            'completed' => self::text('완료', 'Completed'),
+        ];
+        foreach ($statuses as $status => $label) {
+            echo '<option value="' . esc_attr($status) . '"' . selected($filters['status'], $status, false) . '>' . esc_html($label) . '</option>';
         }
-        echo '</select></label><label>' . esc_html(self::text('이벤트', 'Event')) . '<select name="event_type"><option value="">' . esc_html(self::text('전체', 'All')) . '</option>';
+        echo '</select></label><label>' . esc_html(self::text('주문 단계', 'Order stage')) . '<select name="event_type"><option value="">' . esc_html(self::text('전체', 'All')) . '</option>';
         foreach (['ORDER_CREATED', 'PAYMENT_CONFIRMED', 'ORDER_CANCELLED', 'ORDER_REFUNDED'] as $event) {
-            echo '<option value="' . esc_attr($event) . '"' . selected($filters['event_type'], $event, false) . '>' . esc_html($event) . '</option>';
+            echo '<option value="' . esc_attr($event) . '"' . selected($filters['event_type'], $event, false) . '>' . esc_html(self::eventTypeLabel($event)) . '</option>';
         }
-        echo '</select></label><label>' . esc_html(self::text('주문 또는 이벤트', 'Order or event')) . '<input type="search" maxlength="191" name="search" value="' . esc_attr($filters['search']) . '"></label>';
-        echo '<label>' . esc_html(self::text('정렬', 'Sort')) . '<select name="sort">';
-        foreach (['id', 'order_id', 'event_type', 'status', 'occurred_at_utc', 'updated_at'] as $sort) {
-            echo '<option value="' . esc_attr($sort) . '"' . selected($filters['sort'], $sort, false) . '>' . esc_html($sort) . '</option>';
+        echo '</select></label><label>' . esc_html(self::text('주문 번호 또는 처리 기록', 'Order number or record')) . '<input type="search" maxlength="191" name="search" value="' . esc_attr($filters['search']) . '"></label>';
+        echo '<label>' . esc_html(self::text('정렬 기준', 'Sort by')) . '<select name="sort">';
+        $sorts = [
+            'id' => self::text('처리 기록', 'Activity record'),
+            'order_id' => self::text('주문 번호', 'Order number'),
+            'event_type' => self::text('주문 단계', 'Order stage'),
+            'status' => self::text('상태', 'Status'),
+            'occurred_at_utc' => self::text('발생 시각', 'Occurred at'),
+            'updated_at' => self::text('최근 변경', 'Last updated'),
+        ];
+        foreach ($sorts as $sort => $label) {
+            echo '<option value="' . esc_attr($sort) . '"' . selected($filters['sort'], $sort, false) . '>' . esc_html($label) . '</option>';
         }
-        echo '</select></label><label>' . esc_html(self::text('방향', 'Direction')) . '<select name="direction">';
-        foreach (['DESC', 'ASC'] as $direction) {
-            echo '<option value="' . esc_attr($direction) . '"' . selected($filters['direction'], $direction, false) . '>' . esc_html($direction) . '</option>';
+        echo '</select></label><label>' . esc_html(self::text('정렬 방향', 'Order')) . '<select name="direction">';
+        foreach (['DESC' => self::text('최신순', 'Newest first'), 'ASC' => self::text('오래된 순', 'Oldest first')] as $direction => $label) {
+            echo '<option value="' . esc_attr($direction) . '"' . selected($filters['direction'], $direction, false) . '>' . esc_html($label) . '</option>';
         }
         echo '</select></label>';
-        submit_button(self::text('필터 적용', 'Apply filters'), 'secondary', 'submit', false);
+        submit_button(self::text('조회', 'Search'), 'secondary', 'submit', false);
         echo '</form>';
     }
 
@@ -407,29 +462,35 @@ final class OddRoom_Admin
         if ((string) $row->status === 'failed') {
             echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="oddroom_orderops_retry"><input type="hidden" name="row_id" value="' . esc_attr((string) $row->id) . '">';
             wp_nonce_field('oddroom_orderops_retry_' . (int) $row->id);
-            submit_button(self::text('수동 재시도', 'Manual retry'), 'primary small', 'submit', false);
+            submit_button(self::text('다시 처리', 'Retry processing'), 'primary small', 'submit', false);
             echo '</form>';
         }
         if ((string) $row->status === 'operator_wait'
             && (int) $row->resolved_operator_wait_epoch < (int) $row->operator_wait_epoch) {
-            echo '<details class="oddroom-resolve"><summary>' . esc_html(self::text('결과 확정', 'Resolve outcome')) . '</summary><form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
+            echo '<details class="oddroom-resolve"><summary>' . esc_html(self::text('처리 결과 확정', 'Confirm processing outcome')) . '</summary><form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
             echo '<input type="hidden" name="action" value="oddroom_orderops_resolve"><input type="hidden" name="row_id" value="' . esc_attr((string) $row->id) . '"><input type="hidden" name="epoch" value="' . esc_attr((string) $row->operator_wait_epoch) . '">';
             wp_nonce_field('oddroom_orderops_resolve_' . (int) $row->id . '_' . (int) $row->operator_wait_epoch);
-            echo '<label>Decision<select name="decision">';
-            foreach (['UNRESOLVED', 'CONFIRMED_POSTED', 'CONFIRMED_NOT_POSTED', 'RETRY_AFTER_DUE'] as $decision) {
-                echo '<option value="' . esc_attr($decision) . '">' . esc_html($decision) . '</option>';
+            echo '<label>' . esc_html(self::text('처리 결과', 'Outcome')) . '<select name="decision">';
+            $decisions = [
+                'UNRESOLVED' => self::text('아직 확인되지 않음', 'Not confirmed yet'),
+                'CONFIRMED_POSTED' => self::text('외부 반영 확인', 'Confirmed as delivered'),
+                'CONFIRMED_NOT_POSTED' => self::text('외부 미반영 확인', 'Confirmed as not delivered'),
+                'RETRY_AFTER_DUE' => self::text('예정 시각 이후 다시 처리', 'Retry after the due time'),
+            ];
+            foreach ($decisions as $decision => $label) {
+                echo '<option value="' . esc_attr($decision) . '">' . esc_html($label) . '</option>';
             }
-            echo '</select></label><label>' . esc_html(self::text('보호된 증거 참조', 'Protected evidence reference')) . '<input required maxlength="255" name="evidence_ref"></label><label>' . esc_html(self::text('확인한 재개 단계', 'Verified resume phase')) . '<select name="verified_phase"><option value="">' . esc_html(self::text('해당 없음', 'Not applicable')) . '</option>';
+            echo '</select></label><label>' . esc_html(self::text('확인 근거 참조', 'Evidence reference')) . '<input required maxlength="255" name="evidence_ref"></label><label>' . esc_html(self::text('확인한 재개 지점', 'Verified resume point')) . '<select name="verified_phase"><option value="">' . esc_html(self::text('해당 없음', 'Not applicable')) . '</option>';
             foreach (['created', 'deal_resolved', 'contact_upserted', 'deal_upserted', 'associated', 'slack_pending'] as $phase) {
-                echo '<option value="' . esc_attr($phase) . '">' . esc_html($phase) . '</option>';
+                echo '<option value="' . esc_attr($phase) . '">' . esc_html(self::phaseLabel($phase)) . '</option>';
             }
-            echo '</select></label><label>Contact ID<input maxlength="128" name="remote_contact_id"></label><label>Deal ID<input maxlength="128" name="remote_deal_id"></label><label>Slack timestamp<input maxlength="64" name="slack_message_ts"></label><label>Service due UTC<input maxlength="20" placeholder="YYYY-MM-DDTHH:MM:SSZ" name="due_at_utc"></label>';
-            submit_button(self::text('확정 적용', 'Apply resolution'), 'primary', 'submit', false);
+            echo '</select></label><label>' . esc_html(self::text('HubSpot 연락처 ID', 'HubSpot contact ID')) . '<input maxlength="128" name="remote_contact_id"></label><label>' . esc_html(self::text('HubSpot 거래 ID', 'HubSpot deal ID')) . '<input maxlength="128" name="remote_deal_id"></label><label>' . esc_html(self::text('Slack 메시지 ID', 'Slack message ID')) . '<input maxlength="64" name="slack_message_ts"></label><label>' . esc_html(self::text('다시 처리할 시각 (UTC)', 'Retry due time (UTC)')) . '<input maxlength="20" placeholder="YYYY-MM-DDTHH:MM:SSZ" name="due_at_utc"></label>';
+            submit_button(self::text('결과 확정', 'Confirm outcome'), 'primary', 'submit', false);
             echo '</form></details>';
         }
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="oddroom_orderops_reveal"><input type="hidden" name="row_id" value="' . esc_attr((string) $row->id) . '">';
         wp_nonce_field('oddroom_orderops_reveal_' . (int) $row->id);
-        submit_button(self::text('합성 ID 2분간 표시', 'Reveal synthetic IDs for 2 minutes'), 'secondary small', 'submit', false);
+        submit_button(self::text('연동 ID 2분간 보기', 'Show connection IDs for 2 minutes'), 'secondary small', 'submit', false);
         echo '</form>';
     }
 
@@ -463,10 +524,12 @@ final class OddRoom_Admin
             return;
         }
         delete_transient(self::noticeKey());
-        $class = !empty($notice['success']) ? 'is-success' : 'is-error';
+        $success = !empty($notice['success']);
+        $code = (string) ($notice['code'] ?? 'UNKNOWN');
+        $class = $success ? 'is-success' : 'is-error';
         echo '<div class="oddroom-notice ' . esc_attr($class) . '" role="status"><strong>'
-            . esc_html(!empty($notice['success']) ? self::text('작업 완료', 'Action completed') : self::text('조치 필요', 'Action required'))
-            . '</strong><code>' . esc_html((string) ($notice['code'] ?? 'UNKNOWN')) . '</code></div>';
+            . esc_html(self::noticeMessage($code, $success))
+            . '</strong><code>' . esc_html($code) . '</code></div>';
     }
 
     private static function renderReveal(): void
@@ -480,9 +543,15 @@ final class OddRoom_Admin
             return;
         }
         delete_transient(self::revealKey($rowId));
-        echo '<div class="oddroom-notice is-info"><strong>' . esc_html(sprintf(self::text('이벤트 #%d 합성 식별자', 'Synthetic identifiers for event #%d'), $rowId)) . '</strong><ul>';
-        foreach (['remote_contact_id', 'remote_deal_id', 'slack_message_ts', 'operator_evidence_ref'] as $field) {
-            echo '<li>' . esc_html($field) . ': <code>' . esc_html((string) ($values[$field] ?? '—')) . '</code></li>';
+        echo '<div class="oddroom-notice is-info"><strong>' . esc_html(sprintf(self::text('처리 기록 #%d 연동 ID', 'Connection IDs for record #%d'), $rowId)) . '</strong><ul>';
+        $labels = [
+            'remote_contact_id' => self::text('HubSpot 연락처 ID', 'HubSpot contact ID'),
+            'remote_deal_id' => self::text('HubSpot 거래 ID', 'HubSpot deal ID'),
+            'slack_message_ts' => self::text('Slack 메시지 ID', 'Slack message ID'),
+            'operator_evidence_ref' => self::text('확인 근거 참조', 'Evidence reference'),
+        ];
+        foreach ($labels as $field => $label) {
+            echo '<li>' . esc_html($label) . ': <code>' . esc_html((string) ($values[$field] ?? '—')) . '</code></li>';
         }
         echo '</ul></div>';
     }
@@ -524,8 +593,69 @@ final class OddRoom_Admin
             'completed' => ['class' => 'normal', 'label' => self::text('완료', 'Completed')],
             'retry_wait', 'processing' => ['class' => 'retrying', 'label' => self::text('재시도 중', 'Retrying')],
             'failed' => ['class' => 'failed', 'label' => self::text('실패', 'Failed')],
-            'operator_wait' => ['class' => 'operator', 'label' => self::text('결과 확정 대기', 'Operator review')],
+            'operator_wait' => ['class' => 'operator', 'label' => self::text('관리자 확인 대기', 'Waiting for review')],
             default => ['class' => 'queued', 'label' => self::text('대기', 'Queued')],
+        };
+    }
+
+    private static function eventTypeLabel(string $eventType): string
+    {
+        return match ($eventType) {
+            'ORDER_CREATED' => self::text('주문 접수', 'Order received'),
+            'PAYMENT_CONFIRMED' => self::text('주문 승인', 'Order approved'),
+            'ORDER_CANCELLED' => self::text('주문 취소', 'Order cancelled'),
+            'ORDER_REFUNDED' => self::text('환불 완료', 'Refund completed'),
+            default => $eventType === '' ? self::text('확인 전', 'Not available') : $eventType,
+        };
+    }
+
+    private static function phaseLabel(string $phase): string
+    {
+        return match ($phase) {
+            'created' => self::text('주문 접수', 'Order received'),
+            'deal_resolved' => self::text('거래 확인', 'Deal checked'),
+            'contact_upserted' => self::text('연락처 반영', 'Contact updated'),
+            'deal_upserted' => self::text('거래 반영', 'Deal updated'),
+            'associated' => self::text('연동 완료', 'Connection completed'),
+            'slack_pending' => self::text('알림 대기', 'Notification pending'),
+            'completed' => self::text('처리 완료', 'Processing completed'),
+            default => $phase === '' ? '—' : str_replace('_', ' ', $phase),
+        };
+    }
+
+    private static function modeLabel(string $mode): string
+    {
+        return match ($mode) {
+            OddRoom_Package::DEMO_MODE => self::text('데모 운영', 'Demo operation'),
+            OddRoom_Package::CONNECTED_MODE => self::text('외부 서비스 연결', 'Connected operation'),
+            default => $mode === '' ? self::text('확인 필요', 'Needs attention') : $mode,
+        };
+    }
+
+    private static function reconciliationLabel(string $status): string
+    {
+        return match ($status) {
+            'PASS' => self::text('이상 없음', 'No issues found'),
+            'HOLD' => self::text('확인 필요', 'Needs attention'),
+            default => $status === '' ? self::text('결과 없음', 'No result') : $status,
+        };
+    }
+
+    private static function noticeMessage(string $code, bool $success): string
+    {
+        if (!$success) {
+            return self::text('작업을 완료하지 못했습니다. 아래 코드를 확인해 주세요.', 'The action could not be completed. Review the code below.');
+        }
+        return match (true) {
+            str_starts_with($code, 'MANUAL_RETRY_SCHEDULED_') => self::text('다시 처리를 예약했습니다.', 'Processing has been scheduled again.'),
+            str_starts_with($code, 'OUTCOME_') => self::text('처리 결과를 반영했습니다.', 'The processing outcome has been saved.'),
+            str_starts_with($code, 'RECONCILIATION_') => self::text('주문 기록 점검을 마쳤습니다.', 'The order record check is complete.'),
+            $code === 'PACKAGE_SETUP_SAVED' => self::text('연동 표시 이름을 저장했습니다.', 'Connection display names have been saved.'),
+            str_starts_with($code, 'DEMO_SCENARIO_') => self::text('다음 주문의 처리 결과를 설정했습니다.', 'The result for the next order has been set.'),
+            str_starts_with($code, 'DEMO_RESET_') => self::text('데모 주문 데이터를 비웠습니다.', 'Demo order data has been cleared.'),
+            str_starts_with($code, 'STAGING_FAULT_ENABLED') => self::text('테스트 오류를 설정했습니다.', 'The test fault has been enabled.'),
+            str_starts_with($code, 'RUN_FAULTS_DISABLED_') => self::text('테스트 오류 설정을 종료했습니다.', 'The test fault has been disabled.'),
+            default => self::text('변경 내용을 적용했습니다.', 'The change has been applied.'),
         };
     }
 

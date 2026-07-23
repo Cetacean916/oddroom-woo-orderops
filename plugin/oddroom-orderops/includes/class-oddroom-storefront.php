@@ -54,25 +54,25 @@ final class OddRoom_Storefront
         }
         $primary = self::isEnglish()
             ? [
-                'Shop' => wc_get_page_permalink('shop'),
+                'Collection' => wc_get_page_permalink('shop'),
                 'Objects' => home_url('/#offset-objects'),
-                'Order system' => home_url('/#offset-system'),
+                'Ordering' => home_url('/#offset-system'),
             ]
             : [
-                '스토어' => wc_get_page_permalink('shop'),
+                '컬렉션' => wc_get_page_permalink('shop'),
                 '오브젝트' => home_url('/#offset-objects'),
-                '주문 시스템' => home_url('/#offset-system'),
+                '주문 안내' => home_url('/#offset-system'),
             ];
         echo '<a class="oddroom-skip" href="#oddroom-main">' . esc_html(self::text('본문으로 건너뛰기', 'Skip to content')) . '</a>';
-        echo '<aside class="oddroom-announcement"><span>OFFSET / ORDEROPS</span><p>'
-            . esc_html(self::text('실제 결제 없이 전체 주문 흐름을 실행하는 포트폴리오 데모', 'A complete order-flow portfolio demo with no real payment'))
+        echo '<aside class="oddroom-announcement"><span>OFFSET / OBJECTS</span><p>'
+            . esc_html(self::text('책상과 이동의 흐름을 정돈하는 두 가지 오브젝트', 'Two objects designed to bring order to desk and carry'))
             . '</p><span>DEMO · 0 KRW</span></aside>';
         echo '<header class="oddroom-frontbar"><nav class="oddroom-nav-primary" aria-label="' . esc_attr(self::text('주요 탐색', 'Primary navigation')) . '"><ul>';
         foreach ($primary as $label => $url) {
             echo '<li><a href="' . esc_url($url) . '">' . esc_html($label) . '</a></li>';
         }
         echo '</ul></nav>';
-        echo '<a class="oddroom-wordmark" href="' . esc_url(home_url('/')) . '" aria-label="OFFSET ' . esc_attr(self::text('홈', 'home')) . '"><strong>OFFSET</strong><span>OBJECTS / ORDER SYSTEM</span></a>';
+        echo '<a class="oddroom-wordmark" href="' . esc_url(home_url('/')) . '" aria-label="OFFSET ' . esc_attr(self::text('홈', 'home')) . '"><strong>OFFSET</strong><span>OBJECTS / QUIET UTILITY</span></a>';
         echo '<nav class="oddroom-nav-utility" aria-label="' . esc_attr(self::text('계정과 장바구니', 'Account and cart')) . '"><ul>';
         echo '<li><a href="' . esc_url(self::orderTrackingUrl()) . '">' . esc_html(self::text('주문 조회', 'Order lookup')) . '</a></li>';
         echo '<li><a href="' . esc_url(wc_get_cart_url()) . '">' . esc_html(self::text('장바구니', 'Cart')) . '</a></li>';
@@ -99,50 +99,50 @@ final class OddRoom_Storefront
                         <img src="<?php echo esc_url($heroDesktop); ?>" width="1920" height="1280" alt="<?php echo esc_attr(self::text('오프셋 독과 폴드라인 테크 케이스가 놓인 데스크 장면', 'A desk with an Offset Dock and Foldline Tech Case')); ?>">
                     </picture>
                     <div class="oddroom-hero-copy">
-                        <p class="oddroom-kicker">OFFSET OBJECTS · ORDEROPS EDITION</p>
-                        <h1 id="oddroom-hero-title"><?php echo wp_kses_post(self::text('일의 흐름을<br><span>정돈하는 물건.</span>', 'Objects that bring<br><span>work into order.</span>')); ?></h1>
-                        <p class="oddroom-lead"><?php echo esc_html(self::text('책상 위의 두 오브젝트에서 시작해 주문 기록과 복구까지 이어지는 실제 커머스 데모.', 'A working commerce demo that begins with two desk objects and continues through order records and recovery.')); ?></p>
+                        <p class="oddroom-kicker">OFFSET OBJECTS · DESK TO CARRY</p>
+                        <h1 id="oddroom-hero-title"><?php echo wp_kses_post(self::text('하루의 흐름을<br><span>정돈하는 물건.</span>', 'Objects that bring<br><span>order to the day.</span>')); ?></h1>
+                        <p class="oddroom-lead"><?php echo esc_html(self::text('케이블과 작은 도구를 제자리에. 책상 위에서도 이동 중에도 필요한 것만 단정하게 담아보세요.', 'Give cables and small tools a clear place, whether they stay on the desk or travel with you.')); ?></p>
                         <div class="oddroom-hero-actions">
-                            <a class="oddroom-button oddroom-button-primary" href="<?php echo esc_url($shop); ?>"><?php echo esc_html(self::text('컬렉션 보기', 'Shop the collection')); ?></a>
-                            <a class="oddroom-button oddroom-button-ghost" href="#offset-system"><?php echo esc_html(self::text('시스템 살펴보기', 'Explore the system')); ?></a>
+                            <a class="oddroom-button oddroom-button-primary" href="<?php echo esc_url($shop); ?>"><?php echo esc_html(self::text('제품 보러 가기', 'Shop the collection')); ?></a>
+                            <a class="oddroom-button oddroom-button-ghost" href="#offset-objects"><?php echo esc_html(self::text('두 제품 비교하기', 'Compare the objects')); ?></a>
                         </div>
                     </div>
-                    <figcaption><span>01 / 02</span><strong>OFFSET DOCK + FOLDLINE CASE</strong><span><?php echo esc_html(self::text('합성 주문 전용', 'SYNTHETIC ORDERS ONLY')); ?></span></figcaption>
+                    <figcaption><span>01 / 02</span><strong>OFFSET DOCK + FOLDLINE CASE</strong><span><?php echo esc_html(self::text('주문 체험 · 0 KRW', 'ORDER DEMO · 0 KRW')); ?></span></figcaption>
                 </figure>
             </section>
 
             <section class="oddroom-manifesto" aria-labelledby="offset-manifesto-title">
                 <p class="oddroom-kicker">DESIGNED FOR ORDER</p>
-                <h2 id="offset-manifesto-title"><?php echo wp_kses_post(self::text('좋은 물건은 공간을 정돈하고,<br>좋은 시스템은 <span>실패 뒤의 일을 정돈합니다.</span>', 'Good objects organize a space.<br>Good systems organize <span>what happens after failure.</span>')); ?></h2>
-                <p><?php echo esc_html(self::text('OFFSET은 제품을 고르고 주문하는 고객 화면과, 주문을 기록하고 전달하고 복구하는 운영 화면을 하나의 작동하는 경험으로 연결합니다.', 'OFFSET connects the customer experience of choosing and ordering a product with the operator experience of recording, delivering, and recovering that order.')); ?></p>
+                <h2 id="offset-manifesto-title"><?php echo wp_kses_post(self::text('흩어진 작은 것들이<br>제자리를 찾으면, <span>하루가 가벼워집니다.</span>', 'When the small things<br>find their place, <span>the day feels lighter.</span>')); ?></h2>
+                <p><?php echo esc_html(self::text('OFFSET은 책상 위의 케이블부터 이동 중 필요한 소형 기기까지, 꺼내기 쉽고 다시 정리하기 좋은 형태를 고민합니다.', 'OFFSET gives desk cables and everyday devices a place that is easy to reach and simple to restore.')); ?></p>
             </section>
 
             <section id="offset-objects" class="oddroom-section oddroom-collection" aria-labelledby="oddroom-shop-title">
-                <header><p class="oddroom-kicker">THE OFFSET COLLECTION · 01—02</p><h2 id="oddroom-shop-title"><?php echo esc_html(self::text('매일 쓰는 두 가지 오브젝트.', 'Two objects for everyday work.')); ?></h2><p><?php echo esc_html(self::text('정리와 이동을 위한 제품을 고른 뒤, 실제 결제 없이 주문·취소·환불 흐름까지 직접 실행할 수 있습니다.', 'Choose an object for order or mobility, then run the order, cancellation, and refund paths without a real payment.')); ?></p></header>
+                <header><p class="oddroom-kicker">THE OFFSET COLLECTION · 01—02</p><h2 id="oddroom-shop-title"><?php echo esc_html(self::text('두 가지 오브젝트, 두 가지 쓰임.', 'Two objects, each with a clear purpose.')); ?></h2><p><?php echo esc_html(self::text('Offset Dock은 책상 위를, Foldline Tech Case는 가방 안을 정돈합니다. 지금 필요한 방식에 맞춰 골라보세요.', 'Offset Dock organizes the desk. Foldline Tech Case brings the same calm to your bag. Choose the one that fits today.')); ?></p></header>
                 <?php echo wp_kses_post(self::productCards()); ?>
                 <p class="oddroom-collection-link"><a class="oddroom-text-link" href="<?php echo esc_url($shop); ?>"><?php echo esc_html(self::text('전체 컬렉션 보기', 'View the full collection')); ?><span aria-hidden="true">↗</span></a></p>
             </section>
 
-            <section class="oddroom-story-grid" aria-label="<?php echo esc_attr(self::text('상품에서 운영까지 이어지는 장면', 'Scenes from product to operations')); ?>">
-                <article class="oddroom-story-order"><img src="<?php echo esc_url($packing); ?>" width="1600" height="1200" alt="<?php echo esc_attr(self::text('합성 주문 상품을 포장하는 장면', 'Packing a synthetic order')); ?>"><div><p class="oddroom-kicker">FROM OBJECT TO ORDER · 01</p><h2><?php echo esc_html(self::text('구매의 순간을 잃지 않는 기록으로.', 'Keep the purchase moment as a durable record.')); ?></h2><p><?php echo esc_html(self::text('고객이 주문을 마치면 원본 주문 정보와 발생 시각을 먼저 보존합니다.', 'When a customer completes an order, the original order data and occurrence time are preserved first.')); ?></p></div></article>
-                <article class="oddroom-story-operator"><img src="<?php echo esc_url($operator); ?>" width="1600" height="1200" alt="<?php echo esc_attr(self::text('주문 상태를 확인하는 운영자 장면', 'An operator reviewing order state')); ?>"><div><p class="oddroom-kicker">FROM ORDER TO RECOVERY · 02</p><h2><?php echo esc_html(self::text('운영자가 다음 행동을 결정할 수 있는 상태.', 'A state that lets the operator decide what comes next.')); ?></h2><p><?php echo esc_html(self::text('성공, 재시도, 확인 필요를 구분해 중복 처리 없이 운영을 이어갑니다.', 'Separate success, retry, and review-required states so work can continue without duplication.')); ?></p></div></article>
+            <section class="oddroom-story-grid" aria-label="<?php echo esc_attr(self::text('선택부터 주문 확인까지 이어지는 장면', 'Scenes from selection through order lookup')); ?>">
+                <article class="oddroom-story-order"><img src="<?php echo esc_url($packing); ?>" width="1600" height="1200" alt="<?php echo esc_attr(self::text('OFFSET 제품을 단정하게 포장하는 장면', 'An OFFSET object being carefully packed')); ?>"><div><p class="oddroom-kicker">FROM CHOICE TO ORDER · 01</p><h2><?php echo esc_html(self::text('고른 그대로, 주문 끝까지.', 'Your choice, carried through the order.')); ?></h2><p><?php echo esc_html(self::text('선택한 제품과 옵션, 수량을 주문이 완료될 때까지 분명하게 확인할 수 있습니다.', 'The object, finish, and quantity you choose stay clear through every step of the order.')); ?></p></div></article>
+                <article class="oddroom-story-operator"><img src="<?php echo esc_url($operator); ?>" width="1600" height="1200" alt="<?php echo esc_attr(self::text('OFFSET 주문을 확인하는 장면', 'Reviewing an OFFSET order')); ?>"><div><p class="oddroom-kicker">AFTER THE ORDER · 02</p><h2><?php echo esc_html(self::text('주문 뒤에도 찾기 쉽게.', 'Easy to find, even after the order.')); ?></h2><p><?php echo esc_html(self::text('완료 화면의 주문 번호로 처리 상태를 확인하고 필요한 기록을 다시 찾아볼 수 있습니다.', 'Use the order number from confirmation to check its status whenever you need it.')); ?></p></div></article>
             </section>
 
             <section id="offset-system" class="oddroom-section oddroom-flow" aria-labelledby="oddroom-flow-title">
-                <header><p class="oddroom-kicker">THE ORDER SYSTEM</p><h2 id="oddroom-flow-title"><?php echo esc_html(self::text('기록. 전달. 복구.', 'Record. Deliver. Recover.')); ?></h2><p><?php echo esc_html(self::text('정상 흐름만 보여주는 모형이 아니라, 실패 뒤에도 실제로 이어지는 운영 데모입니다.', 'This is not a happy-path mockup. It is a working operations demo that continues after failure.')); ?></p></header>
+                <header><p class="oddroom-kicker">HOW YOUR ORDER WORKS</p><h2 id="oddroom-flow-title"><?php echo esc_html(self::text('고르고, 주문하고, 확인하세요.', 'Choose. Order. Check in.')); ?></h2><p><?php echo esc_html(self::text('일반 스토어처럼 제품을 고르고 주문을 마친 뒤, 주문 번호로 처리 상태까지 확인할 수 있습니다.', 'Browse and place an order as you would in a store, then use the order number to check its status.')); ?></p></header>
                 <ol>
-                    <li><span>01</span><div><p class="oddroom-flow-label">CAPTURE</p><h3><?php echo esc_html(self::text('기록', 'Record')); ?></h3><p><?php echo esc_html(self::text('WooCommerce 주문을 변경되지 않는 이벤트로 먼저 저장합니다.', 'Store the WooCommerce order as an immutable event first.')); ?></p></div></li>
-                    <li><span>02</span><div><p class="oddroom-flow-label">HANDOFF</p><h3><?php echo esc_html(self::text('전달', 'Deliver')); ?></h3><p><?php echo esc_html(self::text('주문별 작업 ID로 CRM과 Slack 전달의 중복을 차단합니다.', 'Use an order-specific action identity to prevent duplicate CRM and Slack handoffs.')); ?></p></div></li>
-                    <li><span>03</span><div><p class="oddroom-flow-label">CONTINUE</p><h3><?php echo esc_html(self::text('복구', 'Recover')); ?></h3><p><?php echo esc_html(self::text('실패 유형을 나누고 필요한 지점에서 안전하게 다시 시작합니다.', 'Classify the failure and resume safely from the required point.')); ?></p></div></li>
+                    <li><span>01</span><div><p class="oddroom-flow-label">CHOOSE</p><h3><?php echo esc_html(self::text('고르기', 'Choose')); ?></h3><p><?php echo esc_html(self::text('제품의 쓰임과 이미지를 살펴보고 원하는 마감과 수량을 선택합니다.', 'Explore each object, then select the finish and quantity that suit you.')); ?></p></div></li>
+                    <li><span>02</span><div><p class="oddroom-flow-label">ORDER</p><h3><?php echo esc_html(self::text('주문하기', 'Order')); ?></h3><p><?php echo esc_html(self::text('장바구니와 쿠폰을 확인한 뒤 0원 데모 주문을 완료합니다.', 'Review the cart and coupon, then complete the 0 KRW demo order.')); ?></p></div></li>
+                    <li><span>03</span><div><p class="oddroom-flow-label">LOOK UP</p><h3><?php echo esc_html(self::text('확인하기', 'Check in')); ?></h3><p><?php echo esc_html(self::text('완료 화면의 주문 번호로 언제든 처리 상태를 다시 확인합니다.', 'Keep the confirmation number to look up the order whenever you need it.')); ?></p></div></li>
                 </ol>
             </section>
 
             <section class="oddroom-cta" aria-labelledby="oddroom-cta-title">
                 <img src="<?php echo esc_url($cta); ?>" width="1600" height="1200" alt="<?php echo esc_attr(self::text('OFFSET 컬렉션 상품 정물', 'OFFSET collection product still life')); ?>">
                 <div class="oddroom-cta-copy"><p class="oddroom-kicker">START WITH AN OBJECT</p>
-                <h2 id="oddroom-cta-title"><?php echo esc_html(self::text('직접 고르고, 주문하고, 운영을 확인하세요.', 'Choose it. Order it. Follow the operation.')); ?></h2>
-                <p><?php echo esc_html(self::text('합성 구매자 정보와 비금전 결제 수단만 사용합니다. 실제 결제·이메일·외부 전송은 발생하지 않습니다.', 'The demo uses synthetic buyer information and a non-monetary payment method. No real payment, email, or external delivery occurs.')); ?></p>
-                <div class="oddroom-hero-actions"><a class="oddroom-button oddroom-button-primary" href="<?php echo esc_url($shop); ?>"><?php echo esc_html(self::text('컬렉션에서 시작', 'Start with the collection')); ?></a><a class="oddroom-button oddroom-button-ghost" href="<?php echo esc_url($orderTracking); ?>"><?php echo esc_html(self::text('주문 기록 보기', 'Look up an order')); ?></a></div></div>
+                <h2 id="oddroom-cta-title"><?php echo esc_html(self::text('당신의 자리에 맞는 오브젝트를 골라보세요.', 'Choose the object that fits your place.')); ?></h2>
+                <p><?php echo esc_html(self::text('모든 주문은 0 KRW 데모로 진행되며 실제 결제·이메일·배송은 발생하지 않습니다.', 'Every order is a 0 KRW demo. No real payment, email, or delivery takes place.')); ?></p>
+                <div class="oddroom-hero-actions"><a class="oddroom-button oddroom-button-primary" href="<?php echo esc_url($shop); ?>"><?php echo esc_html(self::text('제품 보러 가기', 'Shop the collection')); ?></a><a class="oddroom-button oddroom-button-ghost" href="<?php echo esc_url($orderTracking); ?>"><?php echo esc_html(self::text('주문 조회', 'Look up an order')); ?></a></div></div>
             </section>
         </div>
         <?php
@@ -157,20 +157,75 @@ final class OddRoom_Storefront
             return;
         }
         $product = is_product() ? wc_get_product(get_queried_object_id()) : null;
+        $isOrderReceived = is_checkout() && is_order_received_page();
         if (is_shop()) {
-            $title = self::text('직접 실행하는 데모 상품', 'Demo products you can run');
+            $title = self::text('일과 이동을 위한 오브젝트', 'Objects for desk and carry');
+            $kicker = 'OFFSET / OBJECT COLLECTION';
+            $copy = self::text(
+                '책상 위를 정돈하는 Offset Dock과 이동을 가볍게 만드는 Foldline Tech Case를 만나보세요.',
+                'Meet Offset Dock for the desk and Foldline Tech Case for the things that travel with you.'
+            );
+            $marker = '01—02';
         } elseif ($isCategory) {
             $title = single_term_title('', false);
+            $kicker = 'OFFSET / OBJECT COLLECTION';
+            $copy = self::text(
+                '매일 손이 가는 작은 도구를 더 편하게 꺼내고 정리할 수 있도록 만든 컬렉션입니다.',
+                'A collection designed to keep everyday tools close, clear, and easy to put away.'
+            );
+            $marker = '01—02';
         } elseif ($product instanceof WC_Product) {
             $title = $product->get_name();
+            $kicker = 'OFFSET / OBJECT DETAILS';
+            $copy = $product->get_sku() === 'OFFSET-DOCK'
+                ? self::text(
+                    '충전 케이블과 자주 쓰는 작은 도구를 한곳에 모아 책상 위에 여유를 만듭니다.',
+                    'Gather charging cables and everyday tools in one place, leaving more calm on the desk.'
+                )
+                : self::text(
+                    '케이블과 소형 기기를 한눈에 정리하고, Graphite와 Sandstone 중 원하는 마감을 선택하세요.',
+                    'Keep cables and small devices in view, then choose Graphite or Sandstone to suit your carry.'
+                );
+            $marker = $product->get_sku() === 'OFFSET-DOCK' ? 'OBJECT 01' : 'OBJECT 02';
         } elseif (is_cart()) {
-            $title = self::text('합성 주문 장바구니', 'Synthetic order cart');
+            $title = self::text('선택한 제품', 'Your selection');
+            $kicker = 'OFFSET / YOUR CART';
+            $copy = self::text(
+                '제품과 옵션, 수량을 확인한 뒤 주문을 이어가세요. 데모 주문이므로 실제 결제 금액은 발생하지 않습니다.',
+                'Review the object, finish, and quantity, then continue. This demo order does not create a real charge.'
+            );
+            $marker = 'CART';
         } elseif ($isTracking) {
-            $title = self::text('합성 주문 조회', 'Synthetic order lookup');
+            $title = self::text('주문 조회', 'Order lookup');
+            $kicker = 'OFFSET / ORDER LOOKUP';
+            $copy = self::text(
+                '완료한 주문의 번호와 이메일을 입력하면 현재 처리 상태를 다시 확인할 수 있습니다.',
+                'Enter the order number and email from confirmation to check the current status.'
+            );
+            $marker = 'LOOKUP';
         } elseif (is_checkout()) {
-            $title = self::text('실제 결제 없는 주문서', 'Checkout with no real payment');
+            $title = $isOrderReceived
+                ? self::text('주문이 완료되었습니다', 'Order complete')
+                : self::text('주문하기', 'Checkout');
+            $kicker = $isOrderReceived ? 'OFFSET / ORDER COMPLETE' : 'OFFSET / CHECKOUT';
+            $copy = $isOrderReceived
+                ? self::text(
+                    '주문 번호를 보관해 두면 주문 조회에서 처리 상태를 다시 확인할 수 있습니다.',
+                    'Keep the order number so you can return to Order lookup and check its status.'
+                )
+                : self::text(
+                    '주문 정보를 입력하고 선택한 제품을 확인하세요. 모든 주문은 0 KRW 데모로 완료됩니다.',
+                    'Enter the order details and review your selection. Every order completes as a 0 KRW demo.'
+                );
+            $marker = $isOrderReceived ? 'COMPLETE' : 'CHECKOUT';
         } else {
-            $title = self::text('합성 주문 조회', 'Synthetic order history');
+            $title = self::text('주문 내역', 'Your orders');
+            $kicker = 'OFFSET / ORDER HISTORY';
+            $copy = self::text(
+                '완료한 주문을 확인하고 필요한 주문 기록을 다시 찾아보세요.',
+                'Review completed orders and return to the details you need.'
+            );
+            $marker = 'ORDERS';
         }
         $classes = 'oddroom-commerce-intro';
         if (!(is_shop() || $isCategory)) {
@@ -179,23 +234,20 @@ final class OddRoom_Storefront
         if (is_product()) {
             $classes .= ' oddroom-commerce-intro--product';
         }
-        $marker = is_product() && $product instanceof WC_Product
-            ? ($product->get_sku() === 'OFFSET-DOCK' ? 'OBJECT 01' : 'OBJECT 02')
-            : '01—02';
         $headingTag = is_shop() || $isCategory || is_product() || $isTracking || (is_checkout() && !is_order_received_page()) ? 'h1' : 'p';
-        echo '<section id="oddroom-main" class="' . esc_attr($classes) . '" aria-label="' . esc_attr(self::text('OFFSET 데모 화면 안내', 'OFFSET demo screen guidance')) . '">';
-        echo '<p class="oddroom-kicker">OFFSET / WORKING COMMERCE DEMO</p><' . $headingTag . ' class="oddroom-commerce-title"><strong>' . esc_html($title) . '</strong><span>01—02</span></' . $headingTag . '>';
+        echo '<section id="oddroom-main" class="' . esc_attr($classes) . '" aria-label="' . esc_attr(self::text('OFFSET 상점 안내', 'OFFSET store guidance')) . '">';
+        echo '<p class="oddroom-kicker">' . esc_html($kicker) . '</p><' . $headingTag . ' class="oddroom-commerce-title"><strong>' . esc_html($title) . '</strong><span>' . esc_html($marker) . '</span></' . $headingTag . '>';
         echo '<p class="oddroom-commerce-marker">' . esc_html($marker) . '</p>';
-        echo '<p class="oddroom-commerce-copy">' . esc_html(self::text('제품 선택부터 주문 기록과 복구까지 실제로 이어지는 비금전 커머스 화면입니다.', 'A non-monetary commerce surface that runs from product selection through order records and recovery.'));
-        if (is_checkout()) {
-            echo ' ' . esc_html(self::text('이름은 Synthetic / Buyer, 이메일은 소문자 @example.com 주소를 입력하세요.', 'Use Synthetic / Buyer and a lowercase @example.com email address.'));
+        echo '<p class="oddroom-commerce-copy">' . esc_html($copy);
+        if (is_checkout() && !$isOrderReceived) {
+            echo ' ' . esc_html(self::text('이름은 Synthetic / Buyer, 이메일은 소문자 @example.com 주소를 사용해 주세요.', 'Use Synthetic / Buyer and a lowercase @example.com email address.'));
         } elseif ($isTracking) {
-            echo ' ' . esc_html(self::text('주문 완료 화면의 주문 번호와 주문에 사용한 @example.com 이메일을 입력하세요.', 'Enter the order number and the @example.com email used at checkout.'));
+            echo ' ' . esc_html(self::text('주문할 때 사용한 @example.com 이메일을 입력해 주세요.', 'Use the @example.com email entered at checkout.'));
         }
         echo '</p>';
         if (is_shop() || $isCategory) {
-            echo '<aside class="oddroom-coupon-banner"><span>' . esc_html(self::text('데모 주문 혜택', 'Demo order benefit')) . '</span><strong>OFFSET10</strong><span>'
-                . esc_html(self::text('결제 단계에서 10% 쿠폰 적용', 'Apply 10% at checkout'))
+            echo '<aside class="oddroom-coupon-banner"><span>' . esc_html(self::text('첫 주문 혜택', 'A welcome benefit')) . '</span><strong>OFFSET10</strong><span>'
+                . esc_html(self::text('주문 단계에서 10% 혜택', 'Save 10% at checkout'))
                 . '</span></aside>';
         }
         echo '</section>';
@@ -203,7 +255,7 @@ final class OddRoom_Storefront
 
     public static function emptyCartMessage(string $message): string
     {
-        return self::text('아직 담은 상품이 없습니다. OFFSET 컬렉션 제품으로 합성 주문 흐름을 시작해 보세요.', 'Your cart is empty for now. Choose an OFFSET collection product to start a synthetic order flow.');
+        return self::text('장바구니가 비어 있습니다. 당신의 책상과 이동에 맞는 OFFSET 오브젝트를 만나보세요.', 'Your cart is empty. Find the OFFSET object that fits your desk or carry.');
     }
 
     public static function footer(): void
@@ -211,7 +263,7 @@ final class OddRoom_Storefront
         if (is_admin()) {
             return;
         }
-        echo '<footer class="oddroom-demo-footer" aria-label="' . esc_attr(self::text('데모 이용 범위', 'Demo usage boundary')) . '"><div class="oddroom-footer-brand"><strong>OFFSET</strong><span>OBJECTS / ORDER SYSTEM</span></div><div><strong>' . esc_html(self::text('스토어', 'Store')) . '</strong><a href="' . esc_url(wc_get_page_permalink('shop')) . '">' . esc_html(self::text('전체 컬렉션', 'Full collection')) . '</a><a href="' . esc_url(wc_get_cart_url()) . '">' . esc_html(self::text('장바구니', 'Cart')) . '</a></div><div><strong>' . esc_html(self::text('운영', 'Operations')) . '</strong><a href="' . esc_url(self::orderTrackingUrl()) . '">' . esc_html(self::text('주문 조회', 'Order lookup')) . '</a><a href="' . esc_url(home_url('/#offset-system')) . '">' . esc_html(self::text('시스템 구조', 'System flow')) . '</a></div><div class="oddroom-footer-boundary"><strong>DEMO BOUNDARY</strong><span>' . esc_html(self::text('실제 결제 없음', 'No real payment')) . '</span><span>' . esc_html(self::text('합성 데이터 전용', 'Synthetic data only')) . '</span><span>0 KRW</span></div><p>© OFFSET / ORDEROPS PORTFOLIO DEMO</p></footer>';
+        echo '<footer class="oddroom-demo-footer" aria-label="' . esc_attr(self::text('OFFSET 안내', 'OFFSET information')) . '"><div class="oddroom-footer-brand"><strong>OFFSET</strong><span>OBJECTS / QUIET UTILITY</span></div><div><strong>' . esc_html(self::text('컬렉션', 'Collection')) . '</strong><a href="' . esc_url(wc_get_page_permalink('shop')) . '">' . esc_html(self::text('전체 제품', 'All objects')) . '</a><a href="' . esc_url(wc_get_cart_url()) . '">' . esc_html(self::text('장바구니', 'Cart')) . '</a></div><div><strong>' . esc_html(self::text('주문', 'Orders')) . '</strong><a href="' . esc_url(self::orderTrackingUrl()) . '">' . esc_html(self::text('주문 조회', 'Order lookup')) . '</a><a href="' . esc_url(home_url('/#offset-system')) . '">' . esc_html(self::text('주문 방법', 'How to order')) . '</a></div><div class="oddroom-footer-boundary"><strong>DEMO ORDER</strong><span>' . esc_html(self::text('실제 결제 없음', 'No real payment')) . '</span><span>' . esc_html(self::text('실제 배송 없음', 'No real delivery')) . '</span><span>0 KRW</span></div><p>© OFFSET / OBJECTS COLLECTION</p></footer>';
     }
 
     public static function removeDuplicateSkipLink(): void
@@ -283,7 +335,7 @@ final class OddRoom_Storefront
         ])) {
             $errors->add(
                 'oddroom_checkout_synthetic_identity_required',
-                self::text('이 데모에서는 이름 Synthetic / Buyer와 소문자 @example.com 이메일만 사용할 수 있습니다.', 'This demo accepts only Synthetic / Buyer with a lowercase @example.com email.')
+                self::text('데모 주문은 이름에 Synthetic / Buyer를, 이메일에는 소문자 @example.com 주소를 입력해 주세요.', 'For a demo order, enter Synthetic / Buyer and a lowercase @example.com email address.')
             );
             return;
         }
@@ -291,7 +343,7 @@ final class OddRoom_Storefront
             return;
         }
         if (!self::consumeCheckoutAllowance()) {
-            $errors->add('oddroom_checkout_rate_limited', self::text('합성 주문 허용 횟수에 도달했습니다. 잠시 후 다시 시도하세요.', 'The synthetic checkout limit was reached. Please try again later.'));
+            $errors->add('oddroom_checkout_rate_limited', self::text('잠시 동안 주문 가능한 횟수를 모두 사용했습니다. 조금 뒤에 다시 시도해 주세요.', 'The order limit for this period has been reached. Please try again shortly.'));
         }
     }
 
@@ -309,7 +361,7 @@ final class OddRoom_Storefront
         if (!self::isSyntheticIdentity($billing)) {
             return new WP_Error(
                 'oddroom_checkout_synthetic_identity_required',
-                self::text('이 데모에서는 이름 Synthetic / Buyer와 소문자 @example.com 이메일만 사용할 수 있습니다.', 'This demo accepts only Synthetic / Buyer with a lowercase @example.com email.'),
+                self::text('데모 주문은 이름에 Synthetic / Buyer를, 이메일에는 소문자 @example.com 주소를 입력해 주세요.', 'For a demo order, enter Synthetic / Buyer and a lowercase @example.com email address.'),
                 ['status' => 422]
             );
         }
@@ -318,7 +370,7 @@ final class OddRoom_Storefront
         }
         return new WP_Error(
             'oddroom_checkout_rate_limited',
-            self::text('합성 주문 허용 횟수에 도달했습니다. 잠시 후 다시 시도하세요.', 'The synthetic checkout limit was reached. Please try again later.'),
+            self::text('잠시 동안 주문 가능한 횟수를 모두 사용했습니다. 조금 뒤에 다시 시도해 주세요.', 'The order limit for this period has been reached. Please try again shortly.'),
             ['status' => 429]
         );
     }
@@ -361,8 +413,8 @@ final class OddRoom_Storefront
         update_option('show_on_front', 'page');
         update_option('page_on_front', $homeId);
         update_option('blog_public', '0');
-        update_option('blogname', self::text('OFFSET 주문 시스템', 'OFFSET Order System'));
-        update_option('blogdescription', self::text('WooCommerce 주문 전달과 복구를 직접 실행하는 합성 데모', 'A synthetic demo for WooCommerce order delivery and recovery'));
+        update_option('blogname', 'OFFSET Objects');
+        update_option('blogdescription', self::text('책상과 이동의 흐름을 정돈하는 오브젝트 컬렉션', 'Objects designed to bring order to desk and carry'));
         update_option('timezone_string', 'Asia/Seoul');
         update_option('woocommerce_currency', 'KRW');
         update_option('woocommerce_price_num_decimals', '2');
@@ -373,23 +425,23 @@ final class OddRoom_Storefront
         update_option(
             'woocommerce_checkout_privacy_policy_text',
             self::text(
-                '입력한 합성 구매 정보는 이 패키지 안에서 주문 흐름을 실행하는 데만 사용됩니다. 실제 결제·이메일·외부 전달은 발생하지 않습니다.',
-                'Synthetic buyer information is used only to run the order flow inside this package. No real payment, email, or external delivery occurs.'
+                '입력한 데모 주문 정보는 이 화면에서 주문을 처리하고 조회하는 데만 사용됩니다. 실제 결제·이메일·배송은 발생하지 않습니다.',
+                'Demo order information is used only to process and look up the order on this site. No real payment, email, or delivery occurs.'
             )
         );
         update_option(
             'woocommerce_registration_privacy_policy_text',
             self::text(
-                '이 데모는 합성 데이터만 사용하며 외부로 전송하지 않습니다.',
-                'This demo uses synthetic data only and does not transmit it externally.'
+                '데모 주문 정보는 이 사이트 안에서만 사용되며 외부로 전송되지 않습니다.',
+                'Demo order information remains inside this site and is not sent externally.'
             )
         );
         update_option('oddroom_orderops_checkout_control_mode', self::CHECKOUT_MODE, false);
         update_option('woocommerce_cod_settings', [
             'enabled' => 'yes',
-            'title' => self::text('합성 주문 승인 — 실제 결제 없음', 'Approve synthetic order — no real payment'),
-            'description' => self::text('테스트 전용 결제 수단입니다. 카드·계좌이체·현금 등 어떤 자금도 수집하지 않습니다.', 'A test-only payment method. It collects no card, bank, cash, or other funds.'),
-            'instructions' => self::text('합성 데모 주문입니다. 결제할 금액은 없습니다.', 'This is a synthetic demo order. No funds are due.'),
+            'title' => self::text('0원 데모 주문', '0 KRW demo order'),
+            'description' => self::text('주문 화면을 체험하기 위한 전용 수단입니다. 카드나 계좌 정보는 입력하지 않습니다.', 'This option is provided for the order demo. No card or bank information is requested.'),
+            'instructions' => self::text('주문이 접수되었습니다. 결제 금액은 0원입니다.', 'Your order has been received. The amount charged is 0 KRW.'),
             'enable_for_methods' => [],
             'enable_for_virtual' => 'yes',
         ]);
@@ -427,7 +479,7 @@ final class OddRoom_Storefront
             }
         }
         if ($products === []) {
-            return '<p>' . esc_html(self::text('데모 상품을 준비하고 있습니다.', 'Preparing demo products.')) . '</p>';
+            return '<p>' . esc_html(self::text('OFFSET 컬렉션을 준비하고 있습니다.', 'The OFFSET collection is being prepared.')) . '</p>';
         }
         $html = '<div class="oddroom-product-grid">';
         foreach ($products as $index => $product) {
@@ -438,15 +490,15 @@ final class OddRoom_Storefront
             $image = '<img src="' . esc_url(self::assetUrl($isSimple
                     ? 'images/quiet-utility/simple/shop-card.webp'
                     : 'images/quiet-utility/variable/shop-card.webp'))
-                . '" loading="lazy" width="1200" height="960" alt="'
+                . '" width="1200" height="960" alt="'
                 . esc_attr($isSimple
                     ? self::text('Offset Dock 상품 카드', 'Offset Dock product card')
                     : self::text('Graphite Foldline Tech Case 상품 카드', 'Graphite Foldline Tech Case product card')) . '">';
-            $objectLabel = $isSimple ? self::text('데스크 오브젝트', 'DESK OBJECT') : self::text('캐리 오브젝트', 'CARRY OBJECT');
+            $objectLabel = $isSimple ? self::text('데스크 오거나이저', 'DESK ORGANIZER') : self::text('테크 오거나이저', 'TECH ORGANIZER');
             $html .= '<article><a href="' . esc_url($product->get_permalink()) . '">'
                 . $image
                 . '<div class="oddroom-product-info"><span class="oddroom-product-index">0' . esc_html((string) ($index + 1)) . '</span><span class="oddroom-product-tag">' . esc_html($objectLabel) . '</span><h3>' . esc_html($product->get_name()) . '</h3>'
-                . '<p class="price">' . wp_kses_post($product->get_price_html()) . '</p><span class="oddroom-card-link">' . esc_html(self::text('제품 살펴보기', 'Explore object')) . '<span aria-hidden="true">↗</span></span></div></a></article>';
+                . '<p class="price">' . wp_kses_post($product->get_price_html()) . '</p><span class="oddroom-card-link">' . esc_html(self::text('제품 보기', 'View object')) . '<span aria-hidden="true">↗</span></span></div></a></article>';
         }
         return $html . '</div>';
     }
@@ -530,7 +582,7 @@ final class OddRoom_Storefront
     {
         $existing = get_page_by_path('oddroom-home', OBJECT, 'page');
         $post = [
-            'post_title' => self::text('OFFSET 주문 시스템', 'OFFSET Order System'),
+            'post_title' => 'OFFSET Objects',
             'post_name' => 'oddroom-home',
             'post_content' => '[' . self::HOME_SHORTCODE . ']',
             'post_status' => 'publish',
@@ -553,7 +605,7 @@ final class OddRoom_Storefront
         $pageId = (int) get_option(self::ORDER_TRACKING_PAGE_OPTION, 0);
         $existing = $pageId > 0 ? get_post($pageId) : get_page_by_path('order-tracking', OBJECT, 'page');
         $post = [
-            'post_title' => self::text('합성 주문 조회', 'Synthetic order lookup'),
+            'post_title' => self::text('주문 조회', 'Order lookup'),
             'post_name' => 'order-tracking',
             'post_content' => '[woocommerce_order_tracking]',
             'post_status' => 'publish',
@@ -681,8 +733,14 @@ final class OddRoom_Storefront
             $images['simple_packaging'],
         ]);
         $product->set_category_ids([$categoryId]);
-        $product->set_short_description(self::text('선을 조용히 정리하는 오프셋 데스크 독. 이 단순 상품으로 주문 기록부터 CRM 전달과 복구까지 확인합니다.', 'An offset desktop dock that quietly organizes cables. Use this simple product to follow the record, CRM delivery, and recovery path.'));
-        $product->set_description(self::text('OFFSET 컬렉션의 Offset Dock입니다. 실제 결제 없이 WooCommerce 주문 이벤트를 만들고 OFFSET의 기록·전달·복구 흐름을 실행합니다.', 'The Offset Dock from the OFFSET collection. Create a WooCommerce order event without real payment and run the OFFSET record, delivery, and recovery flow.'));
+        $product->set_short_description(self::text(
+            '충전 케이블과 자주 쓰는 작은 도구를 한곳에 모아두는 낮고 넓은 데스크 오거나이저입니다.',
+            'A low, wide desk organizer that keeps charging cables and everyday tools together.'
+        ));
+        $product->set_description(self::text(
+            '비대칭으로 나뉜 세 개의 트레이가 작은 물건마다 분명한 자리를 만듭니다. 책상 위에서 자주 쓰는 케이블과 액세서리를 손쉽게 꺼내고 다시 정리해 보세요.',
+            'Three offset trays give small objects a clear place of their own. Keep frequently used cables and accessories within easy reach, then return them without clutter.'
+        ));
         return (int) $product->save();
     }
 
@@ -718,8 +776,14 @@ final class OddRoom_Storefront
         $product->set_category_ids([$categoryId]);
         $product->set_attributes([$attribute]);
         $product->set_default_attributes(['finish' => 'Graphite']);
-        $product->set_short_description(self::text('Graphite 또는 Sandstone 마감을 선택하고 variation ID와 옵션 이미지가 복구 가능한 주문 경로로 이어지는지 확인합니다.', 'Choose Graphite or Sandstone and verify that the variation identity and image continue through the recoverable order path.'));
-        $product->set_description(self::text('OFFSET 컬렉션의 Foldline Tech Case입니다. 두 가지 마감을 가진 테스트 전용 가변 상품으로, 모든 주문은 실제 자금을 수집하지 않습니다.', 'The Foldline Tech Case from the OFFSET collection. This test-only variable product has two distinct finishes and never collects real funds.'));
+        $product->set_short_description(self::text(
+            '케이블과 충전기, 소형 기기를 한눈에 정리하는 테크 케이스입니다. Graphite와 Sandstone 중 원하는 마감을 선택하세요.',
+            'A tech case that keeps cables, chargers, and small devices easy to see. Choose Graphite or Sandstone.'
+        ));
+        $product->set_description(self::text(
+            '크기가 다른 포켓과 밴드가 이동 중 흩어지기 쉬운 도구를 제자리에 잡아줍니다. 가방을 열었을 때 필요한 물건을 바로 찾을 수 있도록 가볍고 단정하게 구성했습니다.',
+            'A mix of pockets and bands keeps travel essentials in place. Open the case and find what you need without searching through the rest of the bag.'
+        ));
         $productId = (int) $product->save();
         $variationIds = [];
         foreach ([
@@ -758,7 +822,7 @@ final class OddRoom_Storefront
         $coupon->set_discount_type('percent');
         $coupon->set_amount('10');
         $coupon->set_individual_use(true);
-        $coupon->set_description(self::text('OFFSET 합성 주문 검증용 10% 할인 쿠폰입니다.', 'A 10% coupon for synthetic OFFSET order validation.'));
+        $coupon->set_description(self::text('OFFSET 컬렉션 데모 주문에 적용되는 10% 혜택입니다.', 'A 10% benefit for an OFFSET collection demo order.'));
         return (int) $coupon->save();
     }
 
@@ -766,14 +830,14 @@ final class OddRoom_Storefront
     {
         $existing = term_exists('demo-products', 'product_cat');
         if (is_array($existing)) {
-            wp_update_term((int) $existing['term_id'], 'product_cat', ['name' => self::text('데모 상품', 'Demo products')]);
+            wp_update_term((int) $existing['term_id'], 'product_cat', ['name' => self::text('OFFSET 컬렉션', 'OFFSET Collection')]);
             return (int) $existing['term_id'];
         }
         if (is_int($existing) && $existing > 0) {
-            wp_update_term($existing, 'product_cat', ['name' => self::text('데모 상품', 'Demo products')]);
+            wp_update_term($existing, 'product_cat', ['name' => self::text('OFFSET 컬렉션', 'OFFSET Collection')]);
             return $existing;
         }
-        $created = wp_insert_term(self::text('데모 상품', 'Demo products'), 'product_cat', ['slug' => 'demo-products']);
+        $created = wp_insert_term(self::text('OFFSET 컬렉션', 'OFFSET Collection'), 'product_cat', ['slug' => 'demo-products']);
         if (is_wp_error($created) || !is_array($created) || (int) ($created['term_id'] ?? 0) < 1) {
             throw new RuntimeException('Product category setup failed.');
         }
@@ -783,15 +847,15 @@ final class OddRoom_Storefront
     private static function localizeCommercePages(): void
     {
         foreach (self::isEnglish() ? [
-            'woocommerce_shop_page_id' => ['Demo shop', ''],
+            'woocommerce_shop_page_id' => ['OFFSET Collection', ''],
             'woocommerce_cart_page_id' => ['Cart', '[woocommerce_cart]'],
-            'woocommerce_checkout_page_id' => ['Synthetic checkout', '[woocommerce_checkout]'],
+            'woocommerce_checkout_page_id' => ['Checkout', '[woocommerce_checkout]'],
             'woocommerce_myaccount_page_id' => ['Orders', '[woocommerce_my_account]'],
         ] : [
-            'woocommerce_shop_page_id' => ['데모 상품', ''],
+            'woocommerce_shop_page_id' => ['OFFSET 컬렉션', ''],
             'woocommerce_cart_page_id' => ['장바구니', '[woocommerce_cart]'],
-            'woocommerce_checkout_page_id' => ['합성 주문', '[woocommerce_checkout]'],
-            'woocommerce_myaccount_page_id' => ['주문 조회', '[woocommerce_my_account]'],
+            'woocommerce_checkout_page_id' => ['주문하기', '[woocommerce_checkout]'],
+            'woocommerce_myaccount_page_id' => ['주문 내역', '[woocommerce_my_account]'],
         ] as $option => [$title, $content]) {
             $pageId = (int) get_option($option, 0);
             if ($pageId < 1) {
