@@ -215,7 +215,7 @@ for (const width of viewports) {
         return !native && element.getAttribute('role') === 'button' && element.tabIndex < 0;
       }).length;
       const bodyText = document.body.innerText;
-      const internalCopyPattern = /lorem ipsum|\bTODO\b|Product proof surface|Synthetic catalog|Cart rehearsal|No-funds checkout|Synthetic order account|Store fixtures are being prepared|\bUncategorized\b|직접 실행하는 데모 상품|제품 선택부터 주문 기록과 복구|비금전 커머스 화면|주문별 작업 ID|PF07 outbox|좋은 시스템은 실패 뒤|기록[.·]\s*전달[.·]\s*복구|운영자가 다음 행동|직접 고르고,\s*주문하고,\s*운영을 확인|OFFSET\s*\/\s*ORDEROPS|OBJECTS\s*\/\s*ORDER SYSTEM|WORKING COMMERCE DEMO|Demo products you can run|non-monetary commerce surface|immutable event|order-specific action identity/i;
+      const internalCopyPattern = /lorem ipsum|\bTODO\b|Product proof surface|Synthetic catalog|Cart rehearsal|No-funds checkout|Synthetic order account|Store fixtures are being prepared|\bUncategorized\b|직접 실행하는 데모 상품|제품 선택부터 주문 기록과 복구|비금전 커머스 화면|주문별 작업 ID|PF07 outbox|좋은 시스템은 실패 뒤|기록[.·]\s*전달[.·]\s*복구|운영자가 다음 행동|직접 고르고,\s*주문하고,\s*운영을 확인|고른 그대로,\s*주문 끝까지|고르고,\s*주문하고,\s*확인하세요|OFFSET\s*\/\s*ORDEROPS|OBJECTS\s*\/\s*ORDER SYSTEM|WORKING COMMERCE DEMO|Demo products you can run|non-monetary commerce surface|immutable event|order-specific action identity/i;
       return {
         client_width: root.clientWidth,
         scroll_width: root.scrollWidth,
