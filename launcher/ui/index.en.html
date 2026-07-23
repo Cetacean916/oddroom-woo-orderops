@@ -31,35 +31,42 @@
 
     <section id="top" class="hero" aria-labelledby="hub-title">
       <div class="hero-copy">
-        <p class="eyebrow">PF07 / LOCAL CONTROL SURFACE / 01</p>
-        <h1 id="hub-title">Run the system.<br><span>See every state.</span></h1>
-        <p id="mode-description" class="lede">
-          Control the store, order automation, delivery state, and failure recovery in one package runtime. The current mode uses synthetic orders only and does not contact payments or external recipients.
-        </p>
-        <div class="actions primary-actions">
-          <button id="start-button" class="button button-primary" type="button">Start runtime</button>
-          <button id="store-button" class="button" type="button" disabled>Open store</button>
-          <button id="admin-button" class="button" type="button" disabled>Open admin</button>
+        <div class="hero-title-block">
+          <p class="eyebrow">PF07 / PACKAGE CONTROL / 01</p>
+          <p class="hero-index">ORDEROPS RUNTIME · LOCAL</p>
+          <h1 id="hub-title">Start operations.<br><span>Observe. Recover.</span></h1>
+        </div>
+        <div class="hero-command">
+          <p class="command-label">PRIMARY CONTROL</p>
+          <p id="mode-description" class="lede">
+            Control the store, order automation, delivery state, and failure recovery in one package runtime. The current mode uses synthetic orders only and does not contact payments or external recipients.
+          </p>
+          <div class="actions primary-actions">
+            <button id="start-button" class="button button-primary" type="button">Start runtime</button>
+            <button id="store-button" class="button" type="button" disabled>Open store</button>
+            <button id="admin-button" class="button" type="button" disabled>Open admin</button>
+          </div>
+          <p class="hero-note">Store and admin targets unlock only after their readiness checks pass.</p>
         </div>
       </div>
 
       <aside class="status-card" aria-labelledby="status-title">
         <div class="status-heading">
           <div>
-            <p class="eyebrow">LIVE SYSTEM READOUT</p>
-            <h2 id="status-title">Runtime status</h2>
+            <p class="eyebrow">LIVE RUNTIME READOUT</p>
+            <h2 id="status-title">Runtime readiness</h2>
           </div>
           <span id="status-badge" class="badge badge-idle">Checking</span>
         </div>
         <div class="signal" aria-hidden="true"><span id="signal-fill"></span></div>
         <dl class="facts">
           <div><dt>Mode</dt><dd id="mode-fact">DEMO_MODE</dd></div>
+          <div><dt>Required services</dt><dd id="service-fact">0 / 5</dd></div>
           <div><dt>Store</dt><dd id="store-fact">Waiting</dd></div>
           <div><dt>Admin</dt><dd id="admin-fact">Waiting</dd></div>
           <div><dt>Automation</dt><dd id="n8n-fact">Waiting</dd></div>
           <div><dt>Code runner</dt><dd id="runner-fact">Waiting</dd></div>
           <div><dt>Background worker</dt><dd id="worker-fact">Waiting</dd></div>
-          <div><dt>Required services</dt><dd id="service-fact">0 / 5</dd></div>
         </dl>
         <p id="operation-message" class="operation" role="status" aria-live="polite">
           Checking the package state.

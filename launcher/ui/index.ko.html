@@ -31,34 +31,41 @@
 
     <section id="top" class="hero" aria-labelledby="hub-title">
       <div class="hero-copy">
-        <p class="eyebrow">PF07 / LOCAL CONTROL SURFACE / 01</p>
-        <h1 id="hub-title">시작하고,<br><span>모든 상태를 본다.</span></h1>
-        <p id="mode-description" class="lede">상점, 주문 자동화, 전달 상태, 실패 복구를 하나의 패키지 런타임에서 제어합니다. 현재 모드는 합성 주문 전용이며 실제 결제나 외부 수신자를 호출하지 않습니다.
-        </p>
-        <div class="actions primary-actions">
-          <button id="start-button" class="button button-primary" type="button">런타임 시작</button>
-          <button id="store-button" class="button" type="button" disabled>상점 열기</button>
-          <button id="admin-button" class="button" type="button" disabled>관리자 열기</button>
+        <div class="hero-title-block">
+          <p class="eyebrow">PF07 / PACKAGE CONTROL / 01</p>
+          <p class="hero-index">ORDEROPS RUNTIME · LOCAL</p>
+          <h1 id="hub-title">주문 운영 시작.<br><span>상태 확인과 복구.</span></h1>
+        </div>
+        <div class="hero-command">
+          <p class="command-label">PRIMARY CONTROL</p>
+          <p id="mode-description" class="lede">상점, 주문 자동화, 전달 상태, 실패 복구를 하나의 패키지 런타임에서 제어합니다. 현재 모드는 합성 주문 전용이며 실제 결제나 외부 수신자를 호출하지 않습니다.
+          </p>
+          <div class="actions primary-actions">
+            <button id="start-button" class="button button-primary" type="button">런타임 시작</button>
+            <button id="store-button" class="button" type="button" disabled>상점 열기</button>
+            <button id="admin-button" class="button" type="button" disabled>관리자 열기</button>
+          </div>
+          <p class="hero-note">상점과 관리자 버튼은 준비 검사가 끝난 뒤 활성화됩니다.</p>
         </div>
       </div>
 
       <aside class="status-card" aria-labelledby="status-title">
         <div class="status-heading">
           <div>
-            <p class="eyebrow">LIVE SYSTEM READOUT</p>
-            <h2 id="status-title">실행 상태</h2>
+            <p class="eyebrow">LIVE RUNTIME READOUT</p>
+            <h2 id="status-title">런타임 준비 상태</h2>
           </div>
           <span id="status-badge" class="badge badge-idle">확인 중</span>
         </div>
         <div class="signal" aria-hidden="true"><span id="signal-fill"></span></div>
         <dl class="facts">
           <div><dt>운영 모드</dt><dd id="mode-fact">DEMO_MODE</dd></div>
+          <div><dt>필수 서비스</dt><dd id="service-fact">0 / 5</dd></div>
           <div><dt>상점</dt><dd id="store-fact">대기</dd></div>
           <div><dt>관리자</dt><dd id="admin-fact">대기</dd></div>
           <div><dt>자동화</dt><dd id="n8n-fact">대기</dd></div>
           <div><dt>코드 실행기</dt><dd id="runner-fact">대기</dd></div>
           <div><dt>백그라운드 작업자</dt><dd id="worker-fact">대기</dd></div>
-          <div><dt>필수 서비스</dt><dd id="service-fact">0 / 5</dd></div>
         </dl>
         <p id="operation-message" class="operation" role="status" aria-live="polite">패키지 상태를 확인하고 있습니다.
         </p>
