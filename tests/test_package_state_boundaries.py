@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import ipaddress
 import shutil
 import subprocess
 import sys
@@ -73,6 +74,33 @@ class PackageStateBoundaryTest(unittest.TestCase):
                 with self.assertRaisesRegex(core.LauncherError, "occupied"):
                     core.ensure_runtime()
             self.assertFalse((root / ".pf07").exists())
+
+    def test_network_subnet_selection_avoids_existing_routes_and_networks(self) -> None:
+        with tempfile.TemporaryDirectory() as directory_name:
+            root = Path(directory_name)
+            occupied = [
+                ipaddress.ip_network("10.240.0.0/20"),
+                ipaddress.ip_network("10.241.32.0/24"),
+            ]
+            with (
+                patch.object(core, "package_root", return_value=root),
+                patch.object(core, "_occupied_ipv4_networks", return_value=occupied),
+                patch.dict(core.os.environ, {}, clear=True),
+            ):
+                selected = ipaddress.ip_network(core._select_network_subnet())
+            self.assertEqual(24, selected.prefixlen)
+            self.assertTrue(selected.subnet_of(ipaddress.ip_network("10.240.0.0/12")))
+            self.assertFalse(any(selected.overlaps(network) for network in occupied))
+
+    def test_network_subnet_override_requires_private_canonical_24(self) -> None:
+        with patch.dict(core.os.environ, {"PF07_NETWORK_SUBNET": "10.250.17.0/24"}, clear=True):
+            self.assertEqual("10.250.17.0/24", core._select_network_subnet())
+        for invalid in ("10.250.17.1/24", "10.250.0.0/16", "203.0.113.0/24"):
+            with self.subTest(invalid=invalid), patch.dict(
+                core.os.environ, {"PF07_NETWORK_SUBNET": invalid}, clear=True
+            ):
+                with self.assertRaisesRegex(core.LauncherError, "private IPv4 /24"):
+                    core._select_network_subnet()
 
     def test_missing_runtime_precedes_identity_creation(self) -> None:
         with tempfile.TemporaryDirectory() as directory_name:

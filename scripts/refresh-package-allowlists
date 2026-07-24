@@ -8,7 +8,7 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "1.0.2"
+VERSION = "1.0.3"
 
 
 def sha256(path: Path) -> str:
@@ -110,7 +110,7 @@ def main() -> None:
         artifact_id="pf07-windows-x64",
         platform="windows",
         architecture="x86_64",
-        root_name="PF07-OrderOps-1.0.2-windows-x64",
+        root_name="PF07-OrderOps-1.0.3-windows-x64",
         specific=[
             ("packaging/windows/Start-PF07.ps1", "Start-PF07.ps1", "0644"),
             ("packaging/windows/START-PF07.cmd", "START-PF07.cmd", "0644"),
@@ -126,7 +126,7 @@ def main() -> None:
         artifact_id="pf07-windows-kvm-test-kit",
         platform="windows-kvm-test-kit",
         architecture="x86_64",
-        root_name="PF07-OrderOps-1.0.2-windows-kvm-test-kit",
+        root_name="PF07-OrderOps-1.0.3-windows-kvm-test-kit",
         specific=[
             ("packaging/windows/kvm/PF07-KVM-TEST.html", "PF07-KVM-TEST.html", "0644"),
             ("packaging/windows/kvm/PF07-KVM-Evidence.ps1", "PF07-KVM-Evidence.ps1", "0644"),
@@ -144,7 +144,7 @@ def main() -> None:
         artifact_id="pf07-macos-universal",
         platform="macos",
         architecture="arm64+x86_64-script-adapter",
-        root_name="PF07-OrderOps-1.0.2-macos-universal",
+        root_name="PF07-OrderOps-1.0.3-macos-universal",
         specific=[
             ("packaging/macos/PF07 Launcher.app/Contents/Info.plist", "PF07 Launcher.app/Contents/Info.plist", "0644"),
             ("packaging/macos/PF07 Launcher.app/Contents/MacOS/PF07-OrderOps", "PF07 Launcher.app/Contents/MacOS/PF07-OrderOps", "0755"),
@@ -162,7 +162,7 @@ def main() -> None:
         artifact_id="pf07-linux-x86_64",
         platform="linux",
         architecture="x86_64",
-        root_name="PF07-OrderOps-1.0.2-linux-x86_64",
+        root_name="PF07-OrderOps-1.0.3-linux-x86_64",
         specific=[
             ("packaging/linux/PF07-Launcher", "PF07-Launcher", "0755"),
             ("packaging/linux/pf07", "pf07", "0755"),
@@ -178,7 +178,7 @@ def main() -> None:
         artifact_id="pf07-linux-server",
         platform="linux-server",
         architecture="x86_64",
-        root_name="PF07-OrderOps-1.0.2-linux-server",
+        root_name="PF07-OrderOps-1.0.3-linux-server",
         specific=[
             ("packaging/linux/pf07", "pf07", "0755"),
             ("packaging/linux/server/pf07-server", "server/pf07-server", "0755"),

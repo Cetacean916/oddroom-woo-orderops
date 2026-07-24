@@ -2,9 +2,9 @@
   "schema_version": "1",
   "acceptance_id": "GATE-06",
   "run_id": "PF07-REFINEMENT-ACCEPTANCE-RUN",
-  "started_at": "2026-07-23T00:54:47Z",
-  "finished_at": "2026-07-23T00:57:42Z",
-  "source_tree_sha256": "4ab824e61751941e1f9ab7b7c16a9879b37b2640d520030df1666258b30a61e8",
+  "started_at": "2026-07-23T23:42:02Z",
+  "finished_at": "2026-07-23T23:46:19Z",
+  "source_tree_sha256": "6826f36c264e8c0f26b56a12a4ab79287cfb4ba8cf2d3b490234cae5dd8d43f1",
   "command_or_probe": "recorded redaction of protected acceptance observation",
   "exit_code": 0,
   "observations": {
@@ -46,10 +46,10 @@
     "script_sha256": "aaa1efd7f518423acdb6aad17d094427e473b48ecd424153e54ff959e7b5bae0"
   },
   "source_acceptance_id": "GATE-06",
-  "source_record_sha256": "122ba8256f3a86f1ce81519fe26f81b077b398d78c3f322dc8f1bc33f8de1f53",
+  "source_record_sha256": "4d0bca0c983f8ee2ce62a678caccef4961b7f31940c6355e8f44791d2acbc520",
   "source_artifact_hashes": {
-    "exhaustion_attempt_trace": "e784849d9d474f42e2d886b84d66c510842826dd9ffb2bb7126136738929e0fe",
-    "outage_proxy_trace": "d1699e395f5417be541960b98a5d5049a27895d11a4c00a5282dd4c71ce86407",
-    "slack_checkpoint_trace": "a2b39c1153667a8d5be00932f455ce36f7796c1ff0566febb2a04cb32f61b803"
+    "exhaustion_attempt_trace": "17b4c39fb71f61313eeedd4e63d9abcc3b81cef09c9875951aed13eb8865fdfe",
+    "outage_proxy_trace": "e44fbc9b5ceadd15dd4f982be549f38638578b9c0da94603b715594a7ac15fd5",
+    "slack_checkpoint_trace": "b17e73e186e2620a24539a1f87ece89b4003bdab70250f36c8a796cff0ac2c51"
   }
 }

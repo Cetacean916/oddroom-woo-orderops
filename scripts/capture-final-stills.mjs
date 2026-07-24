@@ -43,8 +43,8 @@ for (const required of ["PF07_WORDPRESS_PORT", "PF07_ADMIN_USER", "PF07_ADMIN_PA
 const artifactSetBytes = await fsp.readFile(artifactSetPath);
 const artifactSet = JSON.parse(artifactSetBytes.toString("utf8"));
 if (artifactSet.schema !== "pf07.artifact-set-manifest.v1"
-  || artifactSet.package_version !== "1.0.2"
-  || artifactSet.build_id !== "pf07-build-b99af2ac12d22b464865"
+  || artifactSet.package_version !== "1.0.3"
+  || artifactSet.build_id !== "pf07-build-f032ed8deddb52c4961b"
   || artifactSet.artifact_count !== 5) {
   throw new Error("final artifact-set identity failed");
 }
@@ -145,7 +145,7 @@ const windows = artifactById.get("pf07-windows-x64");
 const kvm = artifactById.get("pf07-windows-kvm-test-kit");
 const macos = artifactById.get("pf07-macos-universal");
 await writeGuide({
-  id: "GUIDE-001", slug: "windows-download-start", language: "ko", eyebrow: "WINDOWS BUYER PACKAGE / 1.0.2",
+  id: "GUIDE-001", slug: "windows-download-start", language: "ko", eyebrow: "WINDOWS BUYER PACKAGE / 1.0.3",
   title: "다운로드에서 실행 허브까지", subtitle: "최종 Windows x64 아카이브의 실제 파일명과 진입점을 따릅니다.", artifact: windows,
   steps: [
     { title: "아카이브 받기", copy: `${windows.filename}의 SHA-256을 확인합니다.` },
@@ -155,7 +155,7 @@ await writeGuide({
   ],
 });
 await writeGuide({
-  id: "GUIDE-001", slug: "windows-download-start", language: "en", eyebrow: "WINDOWS BUYER PACKAGE / 1.0.2",
+  id: "GUIDE-001", slug: "windows-download-start", language: "en", eyebrow: "WINDOWS BUYER PACKAGE / 1.0.3",
   title: "From download to launch hub", subtitle: "Follow the exact file names and entrypoints in the final Windows x64 artifact.", artifact: windows,
   steps: [
     { title: "Download the archive", copy: `Verify the SHA-256 of ${windows.filename}.` },
@@ -165,7 +165,7 @@ await writeGuide({
   ],
 });
 await writeGuide({
-  id: "GUIDE-002", slug: "windows-preflight-evidence", language: "ko", eyebrow: "WINDOWS KVM TEST KIT / 1.0.2",
+  id: "GUIDE-002", slug: "windows-preflight-evidence", language: "ko", eyebrow: "WINDOWS KVM TEST KIT / 1.0.3",
   title: "사전 점검에서 증거 내보내기까지", subtitle: "독립 KVM 테스트 키트와 구매자 패키지의 실제 제어를 순서대로 사용합니다.", artifact: kvm,
   steps: [
     { title: "테스트 키트 분리", copy: `${kvm.filename}을 구매자 패키지와 별도 폴더에 풉니다.` },
@@ -175,7 +175,7 @@ await writeGuide({
   ],
 });
 await writeGuide({
-  id: "GUIDE-002", slug: "windows-preflight-evidence", language: "en", eyebrow: "WINDOWS KVM TEST KIT / 1.0.2",
+  id: "GUIDE-002", slug: "windows-preflight-evidence", language: "en", eyebrow: "WINDOWS KVM TEST KIT / 1.0.3",
   title: "Preflight, result, evidence", subtitle: "Use the real controls in the independent KVM kit and buyer package in order.", artifact: kvm,
   steps: [
     { title: "Keep the test kit separate", copy: `Extract ${kvm.filename} beside, not inside, the buyer package.` },
@@ -185,7 +185,7 @@ await writeGuide({
   ],
 });
 await writeGuide({
-  id: "GUIDE-003", slug: "macos-download-first-launch", language: "ko", eyebrow: "macOS UNIVERSAL PACKAGE / 1.0.2",
+  id: "GUIDE-003", slug: "macos-download-first-launch", language: "ko", eyebrow: "macOS UNIVERSAL PACKAGE / 1.0.3",
   title: "Applications 배치와 최초 실행", subtitle: "최종 앱 번들의 실제 구조와 unsigned 첫 실행 경계를 정확히 안내합니다.", artifact: macos,
   steps: [
     { title: "아카이브 검증", copy: `${macos.filename}과 SHA-256을 확인합니다.` },
@@ -195,7 +195,7 @@ await writeGuide({
   ],
 });
 await writeGuide({
-  id: "GUIDE-003", slug: "macos-download-first-launch", language: "en", eyebrow: "macOS UNIVERSAL PACKAGE / 1.0.2",
+  id: "GUIDE-003", slug: "macos-download-first-launch", language: "en", eyebrow: "macOS UNIVERSAL PACKAGE / 1.0.3",
   title: "Applications and first launch", subtitle: "Follow the exact app-bundle layout and unsigned first-launch boundary.", artifact: macos,
   steps: [
     { title: "Verify the archive", copy: `Check ${macos.filename} and its SHA-256.` },

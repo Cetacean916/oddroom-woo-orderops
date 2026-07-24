@@ -2,9 +2,9 @@
   "schema_version": "1",
   "acceptance_id": "VSL-PASS",
   "run_id": "PF07-REFINEMENT-ACCEPTANCE-RUN",
-  "started_at": "2026-07-23T00:49:36Z",
-  "finished_at": "2026-07-23T01:28:50Z",
-  "source_tree_sha256": "4ab824e61751941e1f9ab7b7c16a9879b37b2640d520030df1666258b30a61e8",
+  "started_at": "2026-07-23T23:28:15Z",
+  "finished_at": "2026-07-24T00:06:30Z",
+  "source_tree_sha256": "6826f36c264e8c0f26b56a12a4ab79287cfb4ba8cf2d3b490234cae5dd8d43f1",
   "command_or_probe": "recorded redaction of protected acceptance observation",
   "exit_code": 0,
   "observations": {
@@ -60,13 +60,13 @@
     "script_sha256": "aaa1efd7f518423acdb6aad17d094427e473b48ecd424153e54ff959e7b5bae0"
   },
   "source_acceptance_id": "VSL-PASS",
-  "source_record_sha256": "bb24a183ec1cd12122b54946c9ebdfdc0904f75db1682e72169fced32b0a4f87",
+  "source_record_sha256": "8921653642b8b2e5bceb54ef17b27a7ebcb1d4709adcf260d495d9e3cba6db46",
   "source_artifact_hashes": {
-    "exhaustion_attempt_trace": "e784849d9d474f42e2d886b84d66c510842826dd9ffb2bb7126136738929e0fe",
-    "gate01_order_variety_trace": "acf3898a59b4b711554505d9460712f8feb14411a05822d7e441eb6cbdfb52a5",
-    "gate04_duplicate_trace": "216ebfca55f134a3a6b890908173fc42a10c57870f3aece06d95ad8c446df028",
-    "gate09_product_quality_trace": "efc3f7bec0412ebf75a7faac045deb725e92ee35370c0935a19fee2799fd3673",
-    "outage_proxy_trace": "d1699e395f5417be541960b98a5d5049a27895d11a4c00a5282dd4c71ce86407",
-    "slack_checkpoint_trace": "a2b39c1153667a8d5be00932f455ce36f7796c1ff0566febb2a04cb32f61b803"
+    "exhaustion_attempt_trace": "17b4c39fb71f61313eeedd4e63d9abcc3b81cef09c9875951aed13eb8865fdfe",
+    "gate01_order_variety_trace": "4de442d2fffeffeb744439f2c62f10972c88466d5481399a294627b6bc389cbb",
+    "gate04_duplicate_trace": "eee2d1af59e2c04d1ae30cb442261886157bbf9b3c985b93cd80b16878d322d4",
+    "gate09_product_quality_trace": "2a83a6f778563aefa6859e21208e5b989f00bb761dd429214f1bf096b482f3dd",
+    "outage_proxy_trace": "e44fbc9b5ceadd15dd4f982be549f38638578b9c0da94603b715594a7ac15fd5",
+    "slack_checkpoint_trace": "b17e73e186e2620a24539a1f87ece89b4003bdab70250f36c8a796cff0ac2c51"
   }
 }

@@ -1,7 +1,7 @@
 {
   "schema": "pf07.bootstrap-manifest.v2",
-  "package_version": "1.0.2",
-  "release_tag": "pf07-v1.0.2",
+  "package_version": "1.0.3",
+  "release_tag": "pf07-v1.0.3",
   "delivery_mode": "GITHUB_RELEASE_ASSETS",
   "default_runtime_mode": "DEMO_MODE",
   "supported_modes": [
@@ -48,8 +48,8 @@
   },
   "content_bindings": {
     "path": "packaging/common/distribution-content-bindings.json",
-    "sha256": "a340cb22ef62f3ac935cb7fd8957f079ec8060e4c90f45c49e3609a9d562e17b",
-    "content_set_sha256": "9ebc66a4a418345424a283bd24a523ba558201293181dd6a018fe54555425f71",
+    "sha256": "1eeeebc3aefac23d8ccb6f312a1cffe282e86115cfec7b2ac951ecfcb3dce507",
+    "content_set_sha256": "8bff8fb78d509c1fff048c6ae53b5af52e06bbe7fed6c843beaf567a6537485d",
     "includes": [
       "sanitized deterministic seed",
       "PF07 plugin",
@@ -254,9 +254,9 @@
   },
   "controlled_update": {
     "confirmation": "UPDATE PF07",
-    "predecessor_requirement": "separate complete published PF07 1.0.1 extraction with the same artifact ID and a different reviewed build ID",
-    "successor_requirement": "this exact complete PF07 1.0.2 extraction",
-    "migration_id": "controlled-1.0.1-to-1.0.2-v1",
+    "predecessor_requirement": "separate complete published PF07 1.0.2 extraction with the same artifact ID and a different reviewed build ID",
+    "successor_requirement": "this exact complete PF07 1.0.3 extraction",
+    "migration_id": "controlled-1.0.2-to-1.0.3-v1",
     "state_transfer": "copy package-local configuration and bind the same three package-owned volumes only after predecessor quiescence",
     "workflow_update": "replace definitions by stable workflow ID without creating duplicate workflow identities",
     "successor_writer_count": 1,
