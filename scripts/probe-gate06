@@ -16,6 +16,8 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 import uuid
 
+from pf07_probe_runtime import protected_synthetic_contact_email
+
 
 TOXIPROXY_IMAGE = (
     "ghcr.io/shopify/toxiproxy@"
@@ -200,8 +202,10 @@ def wait_until_due(row_id: int, maximum_seconds: int = 45) -> dict:
 
 def create_order(alias_prefix: str) -> dict:
     alias = f"{alias_prefix}-{suffix}"
+    email = protected_synthetic_contact_email(f"pf07+{alias}@example.com")
     created = wpcli_json([
-        "oddroom-orderops", "create-order", f"--alias={alias}", "--amount=17000.00", "--shape=simple",
+        "oddroom-orderops", "create-order", f"--alias={alias}", "--amount=17000.00",
+        "--shape=simple", f"--email={email}",
     ])
     if not all(isinstance(created.get(key), int) and created[key] > 0 for key in ("order_id", "outbox_id", "action_id")):
         fail("synthetic order did not create an outbox action")

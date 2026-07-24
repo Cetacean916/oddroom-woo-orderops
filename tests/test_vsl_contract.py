@@ -40,6 +40,7 @@ GATE06_PROBE = (ROOT / "scripts/probe-gate06").read_text(encoding="utf-8")
 GATE06_LEASE_PROBE = (ROOT / "scripts/probe-gate06-lease").read_text(encoding="utf-8")
 GATE06_OPERATOR_PROBE = (ROOT / "scripts/probe-gate06-operator").read_text(encoding="utf-8")
 CORE_ACCEPTANCE_PROBE = (ROOT / "scripts/probe-core-acceptance").read_text(encoding="utf-8")
+PROBE_RUNTIME = (ROOT / "scripts/pf07_probe_runtime.py").read_text(encoding="utf-8")
 GATE09_COMPATIBILITY_PROBE = (ROOT / "scripts/probe-gate09-compatibility").read_text(encoding="utf-8")
 GATE09_PRODUCT_PROBE = (ROOT / "scripts/probe-gate09-product-quality").read_text(encoding="utf-8")
 GATE10_RESTORE_PROBE = (ROOT / "scripts/probe-clean-restore").read_text(encoding="utf-8")
@@ -319,6 +320,14 @@ require("oddroom-orderops reset-checkout-limit" in CLI
         and "SYNTHETIC_CHECKOUT_RATE_LIMIT_ONLY" in CLI
         and "ON_DEMAND_ONLY" in CLI,
         "protected synthetic checkout recording setup is missing or unbounded")
+require("Use --email with one lowercase synthetic @example.com address." in CLI
+        and "PF07_SYNTHETIC_CONTACT_EMAIL_POOL" in PROBE_RUNTIME
+        and "1 to 64 distinct addresses" in PROBE_RUNTIME
+        and "protected_synthetic_contact_email" in CORE_ACCEPTANCE_PROBE
+        and "protected_synthetic_contact_email" in GATE06_PROBE
+        and "PF07_SYNTHETIC_CONTACT_EMAIL_POOL" in MEDIA_RECORDER
+        and "`--email=${nextSyntheticContactEmail()}`" in MEDIA_RECORDER,
+        "protected connected probes or media can exhaust the remote synthetic-contact allowance")
 require("UPDATE {$wpdb->options}" in STOREFRONT
         and "CAST(option_value AS UNSIGNED) < %d" in STOREFRONT
         and "INSERT IGNORE INTO {$wpdb->options}" in STOREFRONT

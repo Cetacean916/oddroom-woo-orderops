@@ -186,92 +186,92 @@
     {
       "path": "evidence/refinement/public/acceptance-matrix.json",
       "mode": "0644",
-      "sha256": "e8dfb4cc7350a875f53fef78b6207144b35041faf491e32e3b584b58ba41637d"
+      "sha256": "040eaac045b09c731ac316832adad3ecf523fe8fd94c17200ad4774d102b468c"
     },
     {
       "path": "evidence/refinement/public/duplicate-suppression.json",
       "mode": "0644",
-      "sha256": "da3cd766d930df4e061f06a358ee2223a0fbabfd6c6be4d997631f5b61d35eed"
+      "sha256": "e619c6cf7f8a4132ffbfe737e83ee139c19f81f6069bc14e70c662a610df5402"
     },
     {
       "path": "evidence/refinement/public/e2e-normal-order.json",
       "mode": "0644",
-      "sha256": "be23a0f6e83b51dcac08290cfc7c2ca52f4c5c7da721b06d6fec1520ff49bc05"
+      "sha256": "9d514498f7050e80c7791cc008f36417679090ba129aac502ce8dba69d0ed06f"
     },
     {
       "path": "evidence/refinement/public/e2e-variable-coupon-order.json",
       "mode": "0644",
-      "sha256": "c152a78b0a1d3ce5216f79c3ec0f49a61b4ef9ec0f83b6b6f3e8569c52aab6ec"
+      "sha256": "3fc7ce116bfa9a38c0af9157c03266e7ebe4ec5de6076c6a477276fc4978a08a"
     },
     {
       "path": "evidence/refinement/public/evidence-manifest.sha256",
       "mode": "0644",
-      "sha256": "1e2ea3f87a084186b6da0764b6f8ebabde3c66c3e1fd32023a60955495ed48d7"
+      "sha256": "293b220491f84e11b50405babb21e76c5ccc2f49636c692f7d3733ccbcf01302"
     },
     {
       "path": "evidence/refinement/public/hmac-rejection.json",
       "mode": "0644",
-      "sha256": "a4f2b7d6235d314c5ffa2f0e18fba568caf37467328544f1e390df9e0a52068f"
+      "sha256": "8f33a4a74b9025996a4c49b4ef541a07c7ce6b7553eb3832f411bfc403ffd2b7"
     },
     {
       "path": "evidence/refinement/public/hpos-compatibility.json",
       "mode": "0644",
-      "sha256": "e68458727b5b38df87e356de1d2a240fb6499e764efc440ae4926b425a62022d"
+      "sha256": "58dadb1bcf8fbde38577f1afe154501f2a46dc816986a8d3fc63d2ef9df6dd00"
     },
     {
       "path": "evidence/refinement/public/operator-outcome-resolution.json",
       "mode": "0644",
-      "sha256": "82805e77419f6609086a901351912d597ceb6319f4ce0e6c935bc4d4555d9e52"
+      "sha256": "3baf46335aebc3c00abf4b1c9ddf7acc8e300a414f20c6bc53ed845aeba10cf0"
     },
     {
       "path": "evidence/refinement/public/outage-retry.json",
       "mode": "0644",
-      "sha256": "3920e0b0d8fbd26479741416a7562b9bf87853d8999121eec72b2c5771eb0016"
+      "sha256": "3ae8eb37d495f52d5087eb66511617fe4bfa30b5b3ab8a7b122336a5964fa1f7"
     },
     {
       "path": "evidence/refinement/public/partial-failure-recovery.json",
       "mode": "0644",
-      "sha256": "7dd96b8dfb84f78b7feebb6ee27a4847a6d18887e4d95e605e2fa6f0720644c6"
+      "sha256": "53c90f3198fcbe9db8ba2e167c3ca8aedc557d4f2d18b6e002a5ad078fe0d2d3"
     },
     {
       "path": "evidence/refinement/public/product-quality.json",
       "mode": "0644",
-      "sha256": "ed4a911de5d9272485ad921759eeaf8d42c6b30307bce412b72f9194da17266c"
+      "sha256": "1e552e32c1ae5559e688ec28c350a68246aef018651ebc982af88066335fb7c3"
     },
     {
       "path": "evidence/refinement/public/raw-byte-resource-bounds.json",
       "mode": "0644",
-      "sha256": "1dbb2c74e49a3ed259405e11f818ebb09ee7d1a6b63b1214c1fe3c1575df2e8f"
+      "sha256": "8611f77ec67f08578e5f377557d46db8abf330f5f531b3d8d1ab59c334b8f572"
     },
     {
       "path": "evidence/refinement/public/reconciliation-repair.json",
       "mode": "0644",
-      "sha256": "2b7eece0d837a4891092a2dc66aca6ff01a02b4f26dde8cb25aa96ed1b629ef6"
+      "sha256": "dffb92d81cb527510d8fc46ab7790365352d5becfa3c69802002be7e1e85dd26"
     },
     {
       "path": "evidence/refinement/public/restore-drill.json",
       "mode": "0644",
-      "sha256": "d6d2b890e8f8e5c85fea1d47fd3ed93fb44fc85188316ce1d95dd2d25d577cb5"
+      "sha256": "8041b92572cf37b66553b8e22f8acc7cea69ed2dcb0e1ac8de56e2deaccae558"
     },
     {
       "path": "evidence/refinement/public/retry-exhaustion.json",
       "mode": "0644",
-      "sha256": "252f5b7c156b2d6674d2fd310b79ed4cd117dd75dd471e0d34347df78b2b27bf"
+      "sha256": "61cda1c497e7c7bf583cd199c01212496475c11dd8f8be7af91287b2456df9e3"
     },
     {
       "path": "evidence/refinement/public/stale-lease-recovery.json",
       "mode": "0644",
-      "sha256": "460feef0908fc5c8e7f87d5a50a98b8f51aab506860b84e8c3c383161ad281bc"
+      "sha256": "57a613b75e5cb0b1d602afacd68c6c6bee54f7a9b534ba6e6224cec922a78fbd"
     },
     {
       "path": "evidence/refinement/public/state-non-regression.json",
       "mode": "0644",
-      "sha256": "178e341ef0c2c6511380676bee70cfb6b7e9f31d79673df081508fc7d52197a8"
+      "sha256": "c3053194060d391134f7832089accebc6a294bf54638c48574e93e0409bc38fd"
     },
     {
       "path": "evidence/refinement/public/vsl-pass.json",
       "mode": "0644",
-      "sha256": "df1dc7c9844b4ef6985dbbdcb36a79ee117044cd0741dde9e9ddfd020cbf191b"
+      "sha256": "6127659e577eb539aafe63f604a8e72db3c49963e98cd5b77a7a18fc2b63e118"
     },
     {
       "path": "fixtures/README.md",
@@ -346,7 +346,7 @@
     {
       "path": "launcher/pf07_launcher/core.py",
       "mode": "0644",
-      "sha256": "72c0d98fcc1b00aa4579a449545b4df7f927524b4c760d32784ea4ba30ed9dbd"
+      "sha256": "1b090a1901ec4cf03509bdf50580f46d937496eb1e7d78f14bd6395ca1e93dcf"
     },
     {
       "path": "launcher/pf07_launcher/hub.py",
@@ -411,7 +411,7 @@
     {
       "path": "packaging/common/bootstrap-manifest.json",
       "mode": "0644",
-      "sha256": "452b3928967f7e759e682bea92fa63a05793a0ef0a9555fea6f15bcd7ef938d2"
+      "sha256": "86e13791a618d4030966ddd47f889d294c990b40405ca8c0397ddfe6c23685c0"
     },
     {
       "path": "packaging/common/compose.yaml",
@@ -421,7 +421,7 @@
     {
       "path": "packaging/common/distribution-content-bindings.json",
       "mode": "0644",
-      "sha256": "1eeeebc3aefac23d8ccb6f312a1cffe282e86115cfec7b2ac951ecfcb3dce507"
+      "sha256": "f1754bee7bacf03341e46df18b976407840ccfb99a235236d29d1f37b7d087d4"
     },
     {
       "path": "packaging/common/n8n-task-runners.json",
@@ -496,7 +496,7 @@
     {
       "path": "packaging/linux/local-package-allowlist.json",
       "mode": "0644",
-      "sha256": "476d86e5c2ee310e39626146db78a038afa984e20902a12dd4537b473c74c908"
+      "sha256": "084baffad2c4069dcf2d530090dc5776d522b7d327bd6b038287c9105be2f4fd"
     },
     {
       "path": "packaging/linux/pf07",
@@ -506,7 +506,7 @@
     {
       "path": "packaging/linux/server-package-allowlist.json",
       "mode": "0644",
-      "sha256": "fc6d6128a42f8035b7cbb6457246aa3b97a51d739910c98c44e2d9cb7cb9e45c"
+      "sha256": "f7d4dd2edf14f87919d74ed64e4c76532f1bd4da0e0f4812a3906f8f3aa3443b"
     },
     {
       "path": "packaging/linux/server/README.en.md",
@@ -566,7 +566,7 @@
     {
       "path": "packaging/macos/package-allowlist.json",
       "mode": "0644",
-      "sha256": "9e1cdbff31b2df6bdcddd82c61245b2d12bbf177673ace27fd96f085680f22c1"
+      "sha256": "701488af19b0af3562e4a19fc0541b2f97b6e7cf2bfb68768b113271335e4ee5"
     },
     {
       "path": "packaging/macos/pf07",
@@ -646,7 +646,7 @@
     {
       "path": "packaging/windows/package-allowlist.json",
       "mode": "0644",
-      "sha256": "36d2055965867a9013bb85197c03494fb380c3fb5e1c02ef1234ae3db670121f"
+      "sha256": "c4ba902535adae8618f84be3564dfe7d6834cef4989cd97d394a8583f7e7024f"
     },
     {
       "path": "packaging/windows/pf07.cmd",
@@ -851,7 +851,7 @@
     {
       "path": "plugin/oddroom-orderops/includes/class-oddroom-cli.php",
       "mode": "0644",
-      "sha256": "8ad3bd926f67cd54748862a618c289f18005cee5cc76806aebfcfda261a7d14a"
+      "sha256": "9c8fd671f64e7f359299d6f3041babddf7bae6b86fbb663f440fc4f72d37770f"
     },
     {
       "path": "plugin/oddroom-orderops/includes/class-oddroom-dependencies.php",
@@ -986,7 +986,7 @@
     {
       "path": "scripts/capture-final-stills.mjs",
       "mode": "0644",
-      "sha256": "7d4bd26ddbf1aff5aea981cb506a3283655c46827d54131245d8281337715c10"
+      "sha256": "cb0264eb0adc29e68b1201cb06c53c24418ae07735efd1ff79ee77b69b6964c1"
     },
     {
       "path": "scripts/ci",
@@ -1021,7 +1021,7 @@
     {
       "path": "scripts/pf07_probe_runtime.py",
       "mode": "0644",
-      "sha256": "ba35b77042de1e333e8e0c5cfc35ea200ed083ed6b1c5c6fc12c870b67bf7f9e"
+      "sha256": "b289d1132872876a3076c489848435a3e630e798040e432a125e66c9b763fe3a"
     },
     {
       "path": "scripts/probe-clean-restore",
@@ -1031,12 +1031,12 @@
     {
       "path": "scripts/probe-core-acceptance",
       "mode": "0755",
-      "sha256": "1ff6935090ea99ac6bab600c417396f2f5937fdf84043703bf43c0e080c6162a"
+      "sha256": "d0d55aafb420e5662bb96c5c7506c9e841654bdf5e35e9110b466224ba5808a2"
     },
     {
       "path": "scripts/probe-gate06",
       "mode": "0755",
-      "sha256": "3bda2c9e9f16f9c06274511b57e89e431732b3ccc605e5bffbbb8724a3bc4140"
+      "sha256": "5efe39f33df962b19d4a462ba4a44b60cf7af2b97a43f36219b5de139a96fad3"
     },
     {
       "path": "scripts/probe-gate06-lease",
@@ -1066,7 +1066,7 @@
     {
       "path": "scripts/record-public-media.mjs",
       "mode": "0644",
-      "sha256": "6ac232661587514bed6d78fecc42f017c76ec0906d6682823fa76daf1762a1c7"
+      "sha256": "b0fc4ec1fa05c26e8c01dd2fc3bc72473a35a50aac0feb26afc906c238ce2fb4"
     },
     {
       "path": "scripts/refinement_evidence_paths.py",
@@ -1161,7 +1161,7 @@
     {
       "path": "tests/test_package_state_boundaries.py",
       "mode": "0644",
-      "sha256": "fa241f485fcf53a1ddcacfd0fde2a8ecedbb1b1efa86d3d10ca7b0ae3814b56e"
+      "sha256": "46a10b8c41c1775bc749bec9bfa098d43d044c28f12925926344b1f4cadd68b0"
     },
     {
       "path": "tests/test_public_builder.py",
@@ -1171,7 +1171,7 @@
     {
       "path": "tests/test_vsl_contract.py",
       "mode": "0755",
-      "sha256": "3ff4718a02afbb48b584eca683b565b1bcd8f0d8a78b9ebfe01625aa4e1119be"
+      "sha256": "b79253980b33536bfc46ee3ed44526e4c9ce2698578543c8601676df515df656"
     },
     {
       "path": "tests/ui_quality.mjs",

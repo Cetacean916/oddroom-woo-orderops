@@ -18,6 +18,44 @@ class ProbeRuntimeError(RuntimeError):
     pass
 
 
+_SYNTHETIC_CONTACT_POOL_KEY: tuple[str, str] | None = None
+_SYNTHETIC_CONTACT_POOL: tuple[str, ...] = ()
+_SYNTHETIC_CONTACT_INDEX = 0
+
+
+def _validate_synthetic_contact_email(value: str, label: str) -> str:
+    if (
+        len(value) > 254
+        or value != value.strip()
+        or value != value.lower()
+        or re.fullmatch(r"[a-z0-9][a-z0-9._+\-]{0,180}@example\.com", value) is None
+    ):
+        raise ProbeRuntimeError(f"{label} must contain lowercase synthetic @example.com addresses")
+    return value
+
+
+def protected_synthetic_contact_email(default: str) -> str:
+    global _SYNTHETIC_CONTACT_POOL_KEY, _SYNTHETIC_CONTACT_POOL, _SYNTHETIC_CONTACT_INDEX
+    raw_pool = os.environ.get("PF07_SYNTHETIC_CONTACT_EMAIL_POOL", "")
+    single = os.environ.get("PF07_SYNTHETIC_CONTACT_EMAIL", "")
+    key = (raw_pool, single)
+    if raw_pool == "" and single == "":
+        return _validate_synthetic_contact_email(default, "default synthetic contact")
+    if key != _SYNTHETIC_CONTACT_POOL_KEY:
+        values = tuple(raw_pool.split(",")) if raw_pool != "" else (single,)
+        if not 1 <= len(values) <= 64 or len(values) != len(set(values)):
+            raise ProbeRuntimeError("PF07 synthetic contact pool must contain 1 to 64 distinct addresses")
+        _SYNTHETIC_CONTACT_POOL = tuple(
+            _validate_synthetic_contact_email(value, "PF07 synthetic contact pool")
+            for value in values
+        )
+        _SYNTHETIC_CONTACT_POOL_KEY = key
+        _SYNTHETIC_CONTACT_INDEX = 0
+    value = _SYNTHETIC_CONTACT_POOL[_SYNTHETIC_CONTACT_INDEX % len(_SYNTHETIC_CONTACT_POOL)]
+    _SYNTHETIC_CONTACT_INDEX += 1
+    return value
+
+
 def _redact(message: str) -> str:
     message = re.sub(r"https?://\S+", "<url>", message)
     message = re.sub(
@@ -298,8 +336,10 @@ class ProbeRuntime:
             raise ProbeRuntimeError("collector RUN_ID differs from the active restored runtime")
 
     def create_order(self, shape: str, alias: str, amount: str) -> dict:
+        email = protected_synthetic_contact_email(f"pf07+{alias}@example.com")
         value = self.wpcli_json([
-            "oddroom-orderops", "create-order", f"--shape={shape}", f"--alias={alias}", f"--amount={amount}",
+            "oddroom-orderops", "create-order", f"--shape={shape}", f"--alias={alias}",
+            f"--amount={amount}", f"--email={email}",
         ])
         if not isinstance(value, dict):
             raise ProbeRuntimeError("synthetic order creation did not return an object")

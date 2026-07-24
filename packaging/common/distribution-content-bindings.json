@@ -5,7 +5,7 @@
   "plugin_schema_version": "1.1.0",
   "payload_schema_version": "1",
   "file_count": 85,
-  "content_set_sha256": "8bff8fb78d509c1fff048c6ae53b5af52e06bbe7fed6c843beaf567a6537485d",
+  "content_set_sha256": "5ade2203fa60cdaa22284ac87947c6f262605f1548c6626188aa53ba9729b38a",
   "files": [
     {
       "source": "launcher/bin/pf07",
@@ -40,8 +40,8 @@
     {
       "source": "launcher/pf07_launcher/core.py",
       "package_path": "launcher/pf07_launcher/core.py",
-      "sha256": "72c0d98fcc1b00aa4579a449545b4df7f927524b4c760d32784ea4ba30ed9dbd",
-      "bytes": 119493
+      "sha256": "1b090a1901ec4cf03509bdf50580f46d937496eb1e7d78f14bd6395ca1e93dcf",
+      "bytes": 121452
     },
     {
       "source": "launcher/pf07_launcher/hub.py",
@@ -400,8 +400,8 @@
     {
       "source": "plugin/oddroom-orderops/includes/class-oddroom-cli.php",
       "package_path": "payload/oddroom-orderops/includes/class-oddroom-cli.php",
-      "sha256": "8ad3bd926f67cd54748862a618c289f18005cee5cc76806aebfcfda261a7d14a",
-      "bytes": 13688
+      "sha256": "9c8fd671f64e7f359299d6f3041babddf7bae6b86fbb663f440fc4f72d37770f",
+      "bytes": 14151
     },
     {
       "source": "plugin/oddroom-orderops/includes/class-oddroom-dependencies.php",

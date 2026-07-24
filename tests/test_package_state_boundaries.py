@@ -102,6 +102,42 @@ class PackageStateBoundaryTest(unittest.TestCase):
                 with self.assertRaisesRegex(core.LauncherError, "private IPv4 /24"):
                     core._select_network_subnet()
 
+    def test_controlled_update_accepts_only_the_successor_owned_subnet_key_as_legacy_missing(self) -> None:
+        predecessor_values = {key: "present" for key in core.REQUIRED_ENV_KEYS}
+        predecessor_values.pop("PF07_NETWORK_SUBNET")
+        self.assertEqual([], core._controlled_update_missing_runtime_keys(predecessor_values))
+
+        predecessor_values.pop("PF07_WORDPRESS_PORT")
+        self.assertEqual(
+            ["PF07_WORDPRESS_PORT"],
+            core._controlled_update_missing_runtime_keys(predecessor_values),
+        )
+
+    def test_existing_legacy_runtime_adds_network_subnet_in_place(self) -> None:
+        with tempfile.TemporaryDirectory() as directory_name:
+            root = Path(directory_name)
+            state = root / ".pf07"
+            state.mkdir()
+            values = {key: f"test-{key.lower()}" for key in core.REQUIRED_ENV_KEYS}
+            values["PF07_WORDPRESS_PORT"] = "19101"
+            values.pop("PF07_NETWORK_SUBNET")
+            (state / "runtime.env").write_text(
+                "".join(f"{key}={value}\n" for key, value in sorted(values.items())),
+                encoding="utf-8",
+            )
+
+            with (
+                patch.object(core, "package_root", return_value=root),
+                patch.object(core, "_select_network_subnet", return_value="10.250.17.0/24"),
+            ):
+                migrated = core.ensure_runtime()
+
+            self.assertEqual("10.250.17.0/24", migrated["PF07_NETWORK_SUBNET"])
+            self.assertIn(
+                "PF07_NETWORK_SUBNET=10.250.17.0/24\n",
+                (state / "runtime.env").read_text(encoding="utf-8"),
+            )
+
     def test_missing_runtime_precedes_identity_creation(self) -> None:
         with tempfile.TemporaryDirectory() as directory_name:
             root = Path(directory_name)
@@ -140,6 +176,63 @@ class PackageStateBoundaryTest(unittest.TestCase):
             )
             prepare_downloads.assert_not_called()
             compose.assert_not_called()
+
+    def test_webhook_readiness_requires_registered_unsigned_rejection(self) -> None:
+        values = {"ODDROOM_WEBHOOK_PATH": "oddroom-orderops-demo-v1"}
+        for status, expected in (("401", True), ("404", False), ("500", False)):
+            with self.subTest(status=status), patch.object(
+                core,
+                "_compose",
+                return_value=subprocess.CompletedProcess([], 0, status + "\n", ""),
+            ) as compose:
+                self.assertEqual(expected, core._n8n_webhook_ready(values))
+                arguments = compose.call_args.args[1]
+                self.assertEqual(["exec", "-T", "n8n", "node", "-e"], arguments[:5])
+                self.assertIn("method:'POST'", arguments[5])
+
+        with patch.object(
+            core,
+            "_compose",
+            return_value=subprocess.CompletedProcess([], 1, "", "unreachable"),
+        ):
+            self.assertFalse(core._n8n_webhook_ready(values))
+
+    def test_automation_starts_worker_only_after_webhook_readiness(self) -> None:
+        events: list[object] = []
+
+        def compose(_values: dict[str, str], arguments: list[str], **_kwargs: object) -> subprocess.CompletedProcess[str]:
+            events.append(("compose", tuple(arguments)))
+            return subprocess.CompletedProcess(arguments, 0, "", "")
+
+        with (
+            patch.object(core, "_compose", side_effect=compose),
+            patch.object(core, "_provision_n8n", side_effect=lambda _values: events.append("provision")),
+            patch.object(
+                core,
+                "_ensure_task_runner_image",
+                side_effect=lambda _values: events.append("task-runner-image"),
+            ),
+            patch.object(core, "_wait_for_n8n", side_effect=lambda _values, _seconds: events.append("health")),
+            patch.object(
+                core,
+                "_wait_for_n8n_webhook",
+                side_effect=lambda _values, _seconds: events.append("webhook"),
+            ),
+        ):
+            core._start_automation({"ODDROOM_WEBHOOK_PATH": "oddroom-orderops-demo-v1"})
+
+        self.assertEqual(
+            [
+                ("compose", ("stop", "worker", "task-runners", "n8n")),
+                "provision",
+                "task-runner-image",
+                ("compose", ("up", "-d", "n8n", "task-runners")),
+                "health",
+                "webhook",
+                ("compose", ("up", "-d", "worker")),
+            ],
+            events,
+        )
 
     def test_first_run_diagnostics_does_not_create_identity(self) -> None:
         with tempfile.TemporaryDirectory() as directory_name:

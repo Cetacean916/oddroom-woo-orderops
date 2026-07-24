@@ -54,11 +54,22 @@ final class OddRoom_CLI
         $alias = sanitize_key((string) ($assocArgs['alias'] ?? 'alpha'));
         $amount = (string) ($assocArgs['amount'] ?? '15000.00');
         $shape = sanitize_key((string) ($assocArgs['shape'] ?? 'simple'));
+        $defaultEmail = 'pf07+' . $alias . '@example.com';
+        $email = (string) ($assocArgs['email'] ?? $defaultEmail);
         if (!preg_match('/^[1-9][0-9]{0,7}\\.[0-9]{2}$/', $amount)) {
             WP_CLI::error('Use --amount with two decimal places.');
         }
         if (!in_array($shape, ['simple', 'variable', 'coupon'], true)) {
             WP_CLI::error('Use --shape=simple, variable, or coupon.');
+        }
+        if (
+            $email !== trim($email)
+            || $email !== strtolower($email)
+            || strlen($email) > 254
+            || !is_email($email)
+            || !preg_match('/^[a-z0-9][a-z0-9._+\\-]{0,180}@example\\.com$/D', $email)
+        ) {
+            WP_CLI::error('Use --email with one lowercase synthetic @example.com address.');
         }
 
         $fixture = self::createProductFixture($shape, $alias, $amount);
@@ -67,7 +78,7 @@ final class OddRoom_CLI
 
         $order = wc_create_order(['status' => 'pending', 'created_via' => 'oddroom-orderops-cli']);
         $order->set_currency('KRW');
-        $order->set_billing_email('pf07+' . $alias . '@example.com');
+        $order->set_billing_email($email);
         $order->set_billing_first_name('Synthetic-' . strtoupper($alias));
         $order->set_billing_last_name('Buyer');
         $order->add_product($product, 1);

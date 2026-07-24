@@ -69,6 +69,9 @@ REQUIRED_ENV_KEYS = {
     "PF07_SLACK_CONFIGURED",
     "PF07_WORDPRESS_PORT",
 }
+CONTROLLED_UPDATE_PREDECESSOR_MIGRATED_ENV_KEYS = {
+    "PF07_NETWORK_SUBNET",
+}
 VERIFIED_DOWNLOADS = {
     "wordpress-7.0.2.zip": {
         "url": "https://wordpress.org/wordpress-7.0.2.zip",
@@ -816,6 +819,48 @@ def _wait_for_n8n(values: dict[str, str], seconds: int) -> None:
     raise LauncherError(f"The package-owned n8n service did not become ready within {seconds} seconds.")
 
 
+def _n8n_webhook_ready(values: dict[str, str]) -> bool:
+    path = values.get("ODDROOM_WEBHOOK_PATH", "")
+    if re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._/-]{0,127}", path) is None:
+        return False
+    url = "http://127.0.0.1:5678/webhook/" + path
+    script = (
+        f"fetch({json.dumps(url)},{{method:'POST',body:''}})"
+        ".then(response=>process.stdout.write(String(response.status)))"
+        ".catch(()=>process.exit(1));"
+    )
+    result = _compose(
+        values,
+        ["exec", "-T", "n8n", "node", "-e", script],
+        check=False,
+        timeout=15,
+    )
+    # Both reviewed workflows reject an unsigned request with 401. This
+    # distinguishes a registered webhook from n8n's earlier health-only 404.
+    return result.returncode == 0 and result.stdout.strip() == "401"
+
+
+def _wait_for_n8n_webhook(values: dict[str, str], seconds: int) -> None:
+    deadline = time.monotonic() + seconds
+    while time.monotonic() < deadline:
+        if _n8n_webhook_ready(values):
+            return
+        time.sleep(1)
+    raise LauncherError(
+        f"The package-owned n8n webhook did not become active within {seconds} seconds."
+    )
+
+
+def _start_automation(values: dict[str, str]) -> None:
+    _compose(values, ["stop", "worker", "task-runners", "n8n"], check=False, timeout=180)
+    _provision_n8n(values)
+    _ensure_task_runner_image(values)
+    _compose(values, ["up", "-d", "n8n", "task-runners"], timeout=900)
+    _wait_for_n8n(values, 180)
+    _wait_for_n8n_webhook(values, 120)
+    _compose(values, ["up", "-d", "worker"], timeout=900)
+
+
 def _ensure_task_runner_image(values: dict[str, str]) -> str:
     existing = _run(
         [
@@ -1083,11 +1128,7 @@ def start() -> dict[str, Any]:
             _set_operation("automation", "패키지 소유 n8n 워크플로와 백그라운드 작업자를 준비하는 중입니다.")
             if selected_mode() == "CONNECTED_MODE":
                 _connected_values(required=True)
-            _compose(values, ["stop", "worker", "task-runners", "n8n"], check=False, timeout=180)
-            _provision_n8n(values)
-            _ensure_task_runner_image(values)
-            _compose(values, ["up", "-d", "n8n", "task-runners", "worker"], timeout=900)
-            _wait_for_n8n(values, 180)
+            _start_automation(values)
 
             _set_operation("verify", "상점, 관리자, n8n, 작업자 대상을 확인하는 중입니다.")
             _wait_for_url(values["ODDROOM_PUBLIC_BASE_URL"], 120)
@@ -2342,6 +2383,12 @@ def _project_service_container_count(values: dict[str, str], service: str) -> in
     return len([line for line in result.stdout.splitlines() if line.strip()]) if result.returncode == 0 else 0
 
 
+def _controlled_update_missing_runtime_keys(values: dict[str, str]) -> list[str]:
+    """Allow only successor-owned keys that the reviewed 1.0.2 runtime predates."""
+    predecessor_required = REQUIRED_ENV_KEYS - CONTROLLED_UPDATE_PREDECESSOR_MIGRATED_ENV_KEYS
+    return sorted(predecessor_required - values.keys())
+
+
 def controlled_update(predecessor_name: str, confirmation: str) -> dict[str, Any]:
     """Move one running predecessor state to this exact reviewed package without a second writer."""
     if confirmation != "UPDATE PF07":
@@ -2377,9 +2424,10 @@ def controlled_update(predecessor_name: str, confirmation: str) -> dict[str, Any
     if (predecessor_state / "operation.lock").exists() or (predecessor_state / "update.lock").exists():
         raise LauncherError("The predecessor is busy. Let its current operation finish, then retry the update.")
     predecessor_values = _parse_env(predecessor_runtime)
-    missing = sorted(REQUIRED_ENV_KEYS - predecessor_values.keys())
+    missing = _controlled_update_missing_runtime_keys(predecessor_values)
     if missing:
         raise LauncherError("The predecessor runtime state is incomplete: " + ", ".join(missing))
+    network_subnet_migrated = "PF07_NETWORK_SUBNET" not in predecessor_values
     _volume_names(predecessor_values)
 
     current_state = state_dir()
@@ -2450,7 +2498,9 @@ def controlled_update(predecessor_name: str, confirmation: str) -> dict[str, Any
                 "oddroom-orderops-schema-1.1.0",
                 "package-config-v1",
                 "persistent-volume-schema-1",
+                "package-network-subnet-v1",
             ],
+            "network_subnet_migrated": network_subnet_migrated,
             "shop_instance_id_sha256": hashlib.sha256(
                 predecessor_values["ODDROOM_SHOP_INSTANCE_ID"].encode("utf-8")
             ).hexdigest(),
@@ -2491,6 +2541,7 @@ def controlled_update(predecessor_name: str, confirmation: str) -> dict[str, Any
             "successor_files_verified": current_identity["files_verified"],
             "migration_id": migration_record["migration_id"],
             "migration_applied_once": True,
+            "network_subnet_migrated": network_subnet_migrated,
             "shop_instance_id_sha256": migration_record["shop_instance_id_sha256"],
             "quiesced_predecessor_services": 0,
             "predecessor_outbound_calls_during_quiescence": 0,

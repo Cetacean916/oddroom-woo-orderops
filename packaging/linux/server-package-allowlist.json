@@ -79,7 +79,7 @@
       "source": "launcher/pf07_launcher/core.py",
       "target": "launcher/pf07_launcher/core.py",
       "mode": "0644",
-      "source_sha256": "72c0d98fcc1b00aa4579a449545b4df7f927524b4c760d32784ea4ba30ed9dbd"
+      "source_sha256": "1b090a1901ec4cf03509bdf50580f46d937496eb1e7d78f14bd6395ca1e93dcf"
     },
     {
       "source": "launcher/pf07_launcher/hub.py",
@@ -145,7 +145,7 @@
       "source": "packaging/common/bootstrap-manifest.json",
       "target": "packaging/common/bootstrap-manifest.json",
       "mode": "0644",
-      "source_sha256": "452b3928967f7e759e682bea92fa63a05793a0ef0a9555fea6f15bcd7ef938d2"
+      "source_sha256": "86e13791a618d4030966ddd47f889d294c990b40405ca8c0397ddfe6c23685c0"
     },
     {
       "source": "packaging/common/compose.yaml",
@@ -157,7 +157,7 @@
       "source": "packaging/common/distribution-content-bindings.json",
       "target": "packaging/common/distribution-content-bindings.json",
       "mode": "0644",
-      "source_sha256": "1eeeebc3aefac23d8ccb6f312a1cffe282e86115cfec7b2ac951ecfcb3dce507"
+      "source_sha256": "f1754bee7bacf03341e46df18b976407840ccfb99a235236d29d1f37b7d087d4"
     },
     {
       "source": "packaging/common/n8n-task-runners.json",
@@ -463,7 +463,7 @@
       "source": "plugin/oddroom-orderops/includes/class-oddroom-cli.php",
       "target": "payload/oddroom-orderops/includes/class-oddroom-cli.php",
       "mode": "0644",
-      "source_sha256": "8ad3bd926f67cd54748862a618c289f18005cee5cc76806aebfcfda261a7d14a"
+      "source_sha256": "9c8fd671f64e7f359299d6f3041babddf7bae6b86fbb663f440fc4f72d37770f"
     },
     {
       "source": "plugin/oddroom-orderops/includes/class-oddroom-dependencies.php",
