@@ -136,7 +136,7 @@ def main() -> None:
     ):
         require(token in pe_result.stdout, f"PE metadata is missing: {token}")
     utf16 = pe.read_bytes().decode("utf-16le", errors="ignore")
-    for token in ("OFFSET OrderOps", "PF07-Launcher.exe", "1.0.2"):
+    for token in ("OFFSET OrderOps", "PF07-Launcher.exe", "1.0.3"):
         require(token in utf16, f"PE version string missing: {token}")
     powershell = parse_powershell(
         args.pwsh,
@@ -231,7 +231,7 @@ def main() -> None:
         "windows": {
             "status": "WINDOWS_PACKAGE_AND_TEST_KIT_READY",
             "actual_owner_kvm_execution": "NOT_RUN",
-            "pe": {"machine": "AMD64", "subsystem": "WINDOWS_GUI", "imports": ["USER32.dll", "KERNEL32.dll"], "version": "1.0.2"},
+            "pe": {"machine": "AMD64", "subsystem": "WINDOWS_GUI", "imports": ["USER32.dll", "KERNEL32.dll"], "version": "1.0.3"},
             "powershell": powershell,
             "cmd": cmd_results,
             "kvm_binding": {"archive": binding["buyer_archive"], "sha256": binding["buyer_sha256"]},

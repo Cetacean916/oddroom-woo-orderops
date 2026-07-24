@@ -14,7 +14,7 @@ from urllib.request import Request, urlopen
 import uuid
 
 from acceptance_semantics import AcceptanceSemanticError, derive_fixture_observations
-from pf07_probe_runtime import ProbeRuntime, ProbeRuntimeError
+from pf07_probe_runtime import ProbeRuntime, ProbeRuntimeError, protected_synthetic_contact_email
 
 
 SUPPORTED = {
@@ -235,6 +235,7 @@ def signed_headers(runtime: ProbeRuntime, event_key: str, body: bytes, timestamp
 def request_payload(runtime: ProbeRuntime, order_id: int, suffix: str, *, item_count: int = 1) -> tuple[str, dict]:
     shop_id = runtime.env.get("ODDROOM_SHOP_INSTANCE_ID", "")
     run_id = runtime.env.get("ODDROOM_RUN_ID", "")
+    email = protected_synthetic_contact_email(f"pf07+{suffix}@example.com")
     event_key = f"v1:{shop_id}:{order_id}:ORDER_CREATED"
     occurred = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
     items = [
@@ -264,7 +265,7 @@ def request_payload(runtime: ProbeRuntime, order_id: int, suffix: str, *, item_c
             "currency": "KRW",
             "total": "17000.00",
             "customer": {
-                "email": f"pf07+{suffix}@example.com",
+                "email": email,
                 "first_name": "합성",
                 "last_name": "검증",
             },
@@ -476,6 +477,7 @@ def gate05_resource(runtime: ProbeRuntime, suffix: str) -> None:
 
 
 def create_uncaptured_order(runtime: ProbeRuntime, alias: str, amount: str = "19000.00") -> int:
+    email = protected_synthetic_contact_email(f"pf07+{alias}@example.com")
     code = f"""
 $product=new WC_Product_Simple();
 $product->set_name('OddRoom Reconciliation {alias}');
@@ -487,7 +489,7 @@ $productId=(int)$product->save();
 if($productId<1){{throw new RuntimeException('PRODUCT_CREATE_FAILED');}}
 $order=wc_create_order(['status'=>'pending','created_via'=>'oddroom-orderops-reconciliation-probe']);
 $order->set_currency('KRW');
-$order->set_billing_email('pf07+{alias}@example.com');
+$order->set_billing_email('{email}');
 $order->set_billing_first_name('Synthetic-{alias}');
 $order->set_billing_last_name('Buyer');
 $order->add_product($product,1);

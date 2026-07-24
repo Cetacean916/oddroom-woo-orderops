@@ -59,12 +59,31 @@ const runtime = Object.fromEntries(
 for (const key of ["PF07_WORDPRESS_PORT", "PF07_ADMIN_USER", "PF07_ADMIN_PASSWORD", "PF07_COMPOSE_PROJECT"]) {
   if (!runtime[key]) throw new Error(`missing final package runtime value: ${key}`);
 }
+const configuredContactPool = process.env.PF07_SYNTHETIC_CONTACT_EMAIL_POOL
+  ? process.env.PF07_SYNTHETIC_CONTACT_EMAIL_POOL.split(",")
+  : [];
+const syntheticContactPool = configuredContactPool.length > 0
+  ? configuredContactPool
+  : [process.env.PF07_SYNTHETIC_CONTACT_EMAIL || `pf07-video-${Date.now()}@example.com`];
+if (syntheticContactPool.length > 64
+  || new Set(syntheticContactPool).size !== syntheticContactPool.length
+  || syntheticContactPool.some((value) => value.length > 254
+    || value !== value.trim()
+    || value !== value.toLowerCase()
+    || !/^[a-z0-9][a-z0-9._+\-]{0,180}@example\.com$/.test(value))) {
+  throw new Error("PF07 synthetic contact pool must contain 1 to 64 distinct lowercase @example.com addresses");
+}
+let syntheticContactIndex = 0;
+const nextSyntheticContactEmail = () => syntheticContactPool[
+  syntheticContactIndex++ % syntheticContactPool.length
+];
+const checkoutContactEmail = nextSyntheticContactEmail();
 const artifactManifestBytes = await fsp.readFile(artifactManifestPath);
 const artifactManifest = JSON.parse(artifactManifestBytes.toString("utf8"));
 if (artifactManifest.schema !== "pf07.artifact-manifest.v1"
   || artifactManifest.artifact_id !== "pf07-linux-x86_64"
-  || artifactManifest.package_version !== "1.0.2"
-  || artifactManifest.build_id !== "pf07-build-b99af2ac12d22b464865"
+  || artifactManifest.package_version !== "1.0.3"
+  || artifactManifest.build_id !== "pf07-build-c14f8fe0b8e95bea97bf"
   || artifactManifest.actual_os_runtime_execution !== false
   || artifactManifest.tested_boundary !== "ACTUAL_LINUX_LOCAL_EXECUTION_REQUIRED_ON_CANONICAL_CI_BYTES_IN_STEP_090") {
   throw new Error("final Linux package identity or execution boundary failed");
@@ -413,7 +432,7 @@ async function createOrderThroughCheckout(page, timelineState = null) {
   await slowFill(page, "#billing_address_1", "123 Test Street");
   await slowFill(page, "#billing_city", "Seoul");
   await slowFill(page, "#billing_postcode", "04524");
-  await slowFill(page, "#billing_email", `pf07-video-${Date.now()}@example.com`, { protect: true });
+  await slowFill(page, "#billing_email", checkoutContactEmail, { protect: true });
   if (timelineState) {
     await caption(page, "SYNTHETIC CHECKOUT", "Test Street · Seoul · protected dummy contact fields");
     mark(timelineState.capture, timelineState.timeline, "CHECKOUT_INPUT", "synthetic_checkout_input_visible");
@@ -640,6 +659,7 @@ async function createRecoveryOrderViaWpCli() {
   const result = await compose(
     "--profile", "tools", "run", "--rm", "-T", "wpcli",
     "oddroom-orderops", "create-order", "--shape=variable", `--alias=${alias}`,
+    `--email=${nextSyntheticContactEmail()}`,
   );
   const record = JSON.parse(result.stdout.toString("utf8"));
   if (!Number.isInteger(record.order_id) || record.order_id < 1

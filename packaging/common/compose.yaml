@@ -189,3 +189,6 @@ volumes:
 networks:
   private:
     internal: false
+    ipam:
+      config:
+        - subnet: ${PF07_NETWORK_SUBNET:?package-local network subnet is required}

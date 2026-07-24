@@ -5,7 +5,7 @@
   "plugin_schema_version": "1.1.0",
   "payload_schema_version": "1",
   "file_count": 85,
-  "content_set_sha256": "9ebc66a4a418345424a283bd24a523ba558201293181dd6a018fe54555425f71",
+  "content_set_sha256": "5ade2203fa60cdaa22284ac87947c6f262605f1548c6626188aa53ba9729b38a",
   "files": [
     {
       "source": "launcher/bin/pf07",
@@ -22,7 +22,7 @@
     {
       "source": "launcher/pf07_launcher/__init__.py",
       "package_path": "launcher/pf07_launcher/__init__.py",
-      "sha256": "1fedbba171d84db1a442a8fbdd5977b9160e347b0be3af8fd5c9a86e9c47cf5f",
+      "sha256": "aa56f7340af2c3a83bc298d08b93c2e7dd81900259e3454cf6a845f8454d7e6c",
       "bytes": 87
     },
     {
@@ -40,8 +40,8 @@
     {
       "source": "launcher/pf07_launcher/core.py",
       "package_path": "launcher/pf07_launcher/core.py",
-      "sha256": "d6b1164dd8aaf46560c372d9af510184ad3c1a98d4a7d3a95468f8bd76a9b390",
-      "bytes": 114943
+      "sha256": "1b090a1901ec4cf03509bdf50580f46d937496eb1e7d78f14bd6395ca1e93dcf",
+      "bytes": 121452
     },
     {
       "source": "launcher/pf07_launcher/hub.py",
@@ -58,14 +58,14 @@
     {
       "source": "launcher/ui/app.css",
       "package_path": "launcher/ui/app.css",
-      "sha256": "db5278e098ec53a9eb2579a51198d5c7cb212b88c009816ce8371d1eb90d3e06",
-      "bytes": 16796
+      "sha256": "07f8b750272c89f57df1327dccc00cfc016a78280a620fb5b02b97816422a92e",
+      "bytes": 19303
     },
     {
       "source": "launcher/ui/app.js",
       "package_path": "launcher/ui/app.js",
-      "sha256": "4e15a15fdff9c5349e8c7e1fedf8ebe117197419b4cc5460891ea42fae194f1a",
-      "bytes": 23318
+      "sha256": "87b20f8a6c2cf0520cf286d3084b577b5332717ef139a76ce7ab83653841d5a4",
+      "bytes": 23099
     },
     {
       "source": "launcher/ui/fonts/PretendardVariable.woff2",
@@ -76,14 +76,14 @@
     {
       "source": "launcher/ui/index.en.html",
       "package_path": "launcher/ui/index.en.html",
-      "sha256": "deff0c118d2359c8a5cb70e64db4430ee0c46e9bca83528f86d7c5edd73394ef",
-      "bytes": 15697
+      "sha256": "a529547dfd1ca942bd34f7aed240ff4732339c5842c2cf83012fb97a740e75fd",
+      "bytes": 15726
     },
     {
       "source": "launcher/ui/index.ko.html",
       "package_path": "launcher/ui/index.ko.html",
-      "sha256": "6892ce676888f958f974211a4fb95a3b4822da686ef33c389c8ad16521704399",
-      "bytes": 16172
+      "sha256": "95fbe9745074e35e72505022d7fde71af0f628ffaa1d369a763e6177a31560e6",
+      "bytes": 16177
     },
     {
       "source": "packaging/common/action-contract.json",
@@ -94,8 +94,8 @@
     {
       "source": "packaging/common/compose.yaml",
       "package_path": "packaging/common/compose.yaml",
-      "sha256": "8e3727972402e751d01bb7e91dee164ea26566b6ca45b050dc11747b423fbc51",
-      "bytes": 8157
+      "sha256": "d7131f862a2d782c1e2219dbc99b6e7c4891a09371cbcd5f0a7d10034d7defac",
+      "bytes": 8264
     },
     {
       "source": "packaging/common/n8n-task-runners.json",
@@ -388,8 +388,8 @@
     {
       "source": "plugin/oddroom-orderops/includes/class-oddroom-admin.php",
       "package_path": "payload/oddroom-orderops/includes/class-oddroom-admin.php",
-      "sha256": "a50aec44ad374cab5ba287719719dfae8fd6a99314089f1a0775109bbc9d077e",
-      "bytes": 36441
+      "sha256": "5457a9b8d265daa7f2697cf59faffeb92439121532c87061356961da00919c02",
+      "bytes": 44079
     },
     {
       "source": "plugin/oddroom-orderops/includes/class-oddroom-canonical-payload.php",
@@ -400,8 +400,8 @@
     {
       "source": "plugin/oddroom-orderops/includes/class-oddroom-cli.php",
       "package_path": "payload/oddroom-orderops/includes/class-oddroom-cli.php",
-      "sha256": "8ad3bd926f67cd54748862a618c289f18005cee5cc76806aebfcfda261a7d14a",
-      "bytes": 13688
+      "sha256": "9c8fd671f64e7f359299d6f3041babddf7bae6b86fbb663f440fc4f72d37770f",
+      "bytes": 14151
     },
     {
       "source": "plugin/oddroom-orderops/includes/class-oddroom-dependencies.php",
@@ -484,8 +484,8 @@
     {
       "source": "plugin/oddroom-orderops/includes/class-oddroom-storefront.php",
       "package_path": "payload/oddroom-orderops/includes/class-oddroom-storefront.php",
-      "sha256": "01a89ca0cb2c9b79aa6905075df72977fd01cc411b429d78af829bb8d02596bb",
-      "bytes": 49090
+      "sha256": "c9245fed79e8947953ca7b1109d5958ba4bc18752a6d4874be3ebc4cceb4df14",
+      "bytes": 52008
     },
     {
       "source": "plugin/oddroom-orderops/includes/class-oddroom-worker.php",

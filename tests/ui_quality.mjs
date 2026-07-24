@@ -215,7 +215,7 @@ for (const width of viewports) {
         return !native && element.getAttribute('role') === 'button' && element.tabIndex < 0;
       }).length;
       const bodyText = document.body.innerText;
-      const internalCopyPattern = /lorem ipsum|\bTODO\b|Product proof surface|Synthetic catalog|Cart rehearsal|No-funds checkout|Synthetic order account|Store fixtures are being prepared|\bUncategorized\b/i;
+      const internalCopyPattern = /lorem ipsum|\bTODO\b|Product proof surface|Synthetic catalog|Cart rehearsal|No-funds checkout|Synthetic order account|Store fixtures are being prepared|\bUncategorized\b|직접 실행하는 데모 상품|제품 선택부터 주문 기록과 복구|비금전 커머스 화면|주문별 작업 ID|PF07 outbox|좋은 시스템은 실패 뒤|기록[.·]\s*전달[.·]\s*복구|운영자가 다음 행동|직접 고르고,\s*주문하고,\s*운영을 확인|고른 그대로,\s*주문 끝까지|고르고,\s*주문하고,\s*확인하세요|OFFSET\s*\/\s*ORDEROPS|OBJECTS\s*\/\s*ORDER SYSTEM|WORKING COMMERCE DEMO|Demo products you can run|non-monetary commerce surface|immutable event|order-specific action identity/i;
       return {
         client_width: root.clientWidth,
         scroll_width: root.scrollWidth,
@@ -364,6 +364,8 @@ if (adminUser && passwordFile) {
         : Boolean(eventList)
           && eventList.scrollWidth <= eventList.clientWidth + 1
           && documentOverflowContained;
+      const developerReportCopy = /주문 사실부터 n8n|연결은 보이고|실제 상태를 만들고|결정적 데모 시나리오|사실 재조정|전달 이벤트|Trace and act on order facts|Visible connections, hidden secrets|Create and recover real states|deterministic scenario|Fact reconciliation|Delivery events/i
+        .test(root.innerText);
       return {
         root_selector: '.oddroom-orderops',
         document_client_width: document.documentElement.clientWidth,
@@ -376,6 +378,7 @@ if (adminUser && passwordFile) {
         protected_action_count: buttons.length,
         overlapping_protected_action_count: overlappingActions,
         unlabeled_protected_action_count: unlabeledActions,
+        developer_report_copy: developerReportCopy,
         horizontally_clipped_action_count: buttons.filter((button) => {
           const box = button.getBoundingClientRect();
           const ownerScroller = button.closest('.oddroom-table-wrap');
@@ -409,6 +412,7 @@ if (adminUser && passwordFile) {
       || observation.horizontally_clipped_action_count > 0
       || observation.overlapping_protected_action_count > 0
       || observation.unlabeled_protected_action_count > 0
+      || observation.developer_report_copy
       || observation.moderate_or_worse.length > 0
       || observation.console_errors.length > 0) {
       evidence.failures.push({ surface: 'admin', viewport_width: width });

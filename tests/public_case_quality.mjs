@@ -375,7 +375,7 @@ const expectedEvidenceLinks = [
   "https://github.com/Cetacean916/oddroom-woo-orderops/blob/main/plugin/oddroom-orderops/tests/run.php",
   "https://github.com/Cetacean916/oddroom-woo-orderops/blob/main/workflow/oddroom-orderops-vsl.json",
   "https://github.com/Cetacean916/oddroom-woo-orderops/blob/main/docs/RECOVERY-RUNBOOK.md",
-  "https://github.com/Cetacean916/oddroom-woo-orderops/releases/download/pf07-v1.0.2/PF07-RELEASE-MANIFEST.json",
+  "https://github.com/Cetacean916/oddroom-woo-orderops/releases/download/pf07-v1.0.3/PF07-RELEASE-MANIFEST.json",
   new URL("assets/media/pf07/execution-proof.json", deploymentRoot).href,
 ];
 const expectedVideoSources = [

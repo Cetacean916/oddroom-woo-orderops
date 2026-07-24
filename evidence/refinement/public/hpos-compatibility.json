@@ -2,9 +2,9 @@
   "schema_version": "1",
   "acceptance_id": "GATE-09-COMPATIBILITY",
   "run_id": "PF07-REFINEMENT-ACCEPTANCE-RUN",
-  "started_at": "2026-07-23T01:08:29Z",
-  "finished_at": "2026-07-23T01:10:12Z",
-  "source_tree_sha256": "4ab824e61751941e1f9ab7b7c16a9879b37b2640d520030df1666258b30a61e8",
+  "started_at": "2026-07-24T05:30:37Z",
+  "finished_at": "2026-07-24T05:32:42Z",
+  "source_tree_sha256": "08d7d80a22d551d1847a6129a303e14b752f77fd715cf3fc862710cbf6838ad9",
   "command_or_probe": "recorded redaction of protected acceptance observation",
   "exit_code": 0,
   "observations": {
@@ -26,8 +26,8 @@
     "script_sha256": "aaa1efd7f518423acdb6aad17d094427e473b48ecd424153e54ff959e7b5bae0"
   },
   "source_acceptance_id": "GATE-09-COMPATIBILITY",
-  "source_record_sha256": "8423cd1c761e8d0367861b2fec1b1f14866cd1c9af776612adbf027c7b424874",
+  "source_record_sha256": "d25abd301471a0f8727bc9bbc34064c925e0742b34b95f42531146ce2cc2079b",
   "source_artifact_hashes": {
-    "gate09_compatibility_trace": "e746ecd75d386f893c7047344f35eebed943229aedf7bf35a9c365c4846fcfed"
+    "gate09_compatibility_trace": "108b93f4c98b9301f4aa53ba7abfbea3174f0bf22eaaf888eb37b8eba367763e"
   }
 }
