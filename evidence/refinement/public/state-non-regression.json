@@ -4,7 +4,7 @@
   "run_id": "PF07-REFINEMENT-ACCEPTANCE-RUN",
   "started_at": "2026-07-24T05:09:07Z",
   "finished_at": "2026-07-24T05:11:31Z",
-  "source_tree_sha256": "08d7d80a22d551d1847a6129a303e14b752f77fd715cf3fc862710cbf6838ad9",
+  "source_tree_sha256": "85aa568243f31dc2f9fc236e19bb6143c8cfa6ba0dd81ecb439f554cbaf10057",
   "command_or_probe": "recorded redaction of protected acceptance observation",
   "exit_code": 0,
   "observations": {
@@ -29,7 +29,7 @@
     "script_sha256": "aaa1efd7f518423acdb6aad17d094427e473b48ecd424153e54ff959e7b5bae0"
   },
   "source_acceptance_id": "GATE-02",
-  "source_record_sha256": "0e12c364933c9348c882d074a2ad8f17d6c2fdcd3acfc04f0c4c93d9a7891e88",
+  "source_record_sha256": "fff2babd5a1074a6e5812038ded8dc3bb4f6af39b4e3577df570956132cf4071",
   "source_artifact_hashes": {
     "gate02_state_trace": "966d11a7ab4e2710de47808a33c286b2b816dc49b896376c18e502d305c1a2a2"
   }

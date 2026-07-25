@@ -287,10 +287,11 @@ if mode == "--post-public":
     if b'id: "pf07"' not in showcase_js or b"GATE-10" not in showcase_js:
         fail("deployed showcase data lacks the PF07 case or scorecard")
     for url in [
-        "https://cetacean916.github.io/portfolio-showcase/case.html?id=pf07",
-        "https://cetacean916.github.io/portfolio-showcase/assets/media/pf07/main-image.png",
-        "https://cetacean916.github.io/portfolio-showcase/assets/media/pf07/demo-video.mp4",
-        "https://cetacean916.github.io/portfolio-showcase/assets/media/pf07/recovery-clip.mp4",
+        "https://cetacean916.github.io/portfolio-showcase/case-pf07-ko.html",
+        "https://cetacean916.github.io/portfolio-showcase/case-pf07-en.html",
+        "https://cetacean916.github.io/portfolio-showcase/assets/media/pf07/media-manifest.json",
+        "https://cetacean916.github.io/portfolio-showcase/assets/media/pf07/current-ui-manifest.json",
+        "https://cetacean916.github.io/portfolio-showcase/assets/media/pf07/execution-proof.json",
     ]:
         if not fetch(url):
             fail(f"deployed public case asset is empty: {url}")
