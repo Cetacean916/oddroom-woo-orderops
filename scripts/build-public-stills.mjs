@@ -12,8 +12,10 @@ if (!mediaRoot || !outputRoot) {
   throw new Error('usage: scripts/build-public-stills.mjs EXECUTION_MEDIA_DIR OUTPUT_DIR');
 }
 
-const videoPath = path.join(mediaRoot, 'demo-video.mp4');
-const recoveryVideoPath = path.join(mediaRoot, 'recovery-clip.mp4');
+const videoName = 'ko-purchase-delivery.mp4';
+const recoveryVideoName = 'ko-failure-recovery.mp4';
+const videoPath = path.join(mediaRoot, videoName);
+const recoveryVideoPath = path.join(mediaRoot, recoveryVideoName);
 const proofPath = path.join(mediaRoot, 'execution-proof.json');
 const mainOutputPath = path.join(outputRoot, 'main-image.png');
 const outputPath = path.join(outputRoot, 'detail-01-overview.png');
@@ -26,13 +28,14 @@ if ([mainOutputPath, outputPath, flowOutputPath, recoveryOutputPath].some((targe
 }
 
 const proof = JSON.parse(await fsp.readFile(proofPath, 'utf8'));
-const video = proof.videos?.['demo-video.mp4'];
-if (!video || proof.classification !== 'PUBLIC_SANITIZED_EXECUTION_PROOF') {
+const video = proof.videos?.[videoName];
+if (!video || proof.schema_version !== 2
+  || proof.classification !== 'PUBLIC_SANITIZED_DIRECT_RUNTIME_RECORD') {
   throw new Error('execution proof identity is invalid');
 }
 
 const sha256 = (bytes) => crypto.createHash('sha256').update(bytes).digest('hex');
-const eventByName = new Map((video.timeline || []).map((event) => [event.event, event]));
+const eventByName = new Map((video.event_frames || []).map((event) => [event.event, event]));
 const requiredEvents = ['LIVE_STOREFRONT', 'PRODUCT_SELECTED', 'CHECKOUT_INPUT'];
 const frames = {};
 for (const eventName of requiredEvents) {
@@ -63,8 +66,13 @@ for (const eventName of ['ADMIN_COMPLETED']) {
   }
   frames[eventName] = `data:image/png;base64,${result.stdout.toString('base64')}`;
 }
-const recoveryVideo = proof.videos?.['recovery-clip.mp4'];
-const recoveryEventByName = new Map((recoveryVideo?.timeline || []).map((event) => [event.event, event]));
+const recoveryVideo = proof.videos?.[recoveryVideoName];
+if (!recoveryVideo
+  || sha256(await fsp.readFile(videoPath)) !== video.sha256
+  || sha256(await fsp.readFile(recoveryVideoPath)) !== recoveryVideo.sha256) {
+  throw new Error('focused source video commitment is invalid');
+}
+const recoveryEventByName = new Map((recoveryVideo?.event_frames || []).map((event) => [event.event, event]));
 for (const eventName of ['FAILED', 'RECOVERED']) {
   const event = recoveryEventByName.get(eventName);
   if (!event || !Number.isFinite(event.at_seconds) || !/^[0-9a-f]{64}$/.test(event.frame_sha256)) {

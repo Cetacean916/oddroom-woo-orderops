@@ -712,6 +712,26 @@ async function videoProbe(file) {
   };
 }
 
+async function commitTimelineFrames(video, timeline) {
+  const committed = [];
+  for (const event of timeline) {
+    const { stdout } = await runProcess(ffmpeg, [
+      "-hide_banner", "-loglevel", "error",
+      "-i", video,
+      "-ss", String(event.at_seconds),
+      "-frames:v", "1",
+      "-f", "image2pipe",
+      "-vcodec", "png",
+      "-",
+    ]);
+    committed.push({
+      ...event,
+      frame_sha256: sha256(stdout),
+    });
+  }
+  return committed;
+}
+
 function mediaWords(locale) {
   if (locale === "ko_KR") {
     return {
@@ -1049,6 +1069,9 @@ for (const locale of ["ko_KR", "en_US"]) {
     ["purchase-delivery", targets.purchase, targets.purchasePoster, targets.purchaseCaptions, targets.purchaseTimeline, purchaseProbe],
     ["failure-recovery", targets.recovery, targets.recoveryPoster, targets.recoveryCaptions, targets.recoveryTimeline, recoveryProbe],
   ]) {
+    const observedTimeline = kind === "purchase-delivery"
+      ? recording.purchaseTimeline
+      : recording.recoveryTimeline;
     proof.videos[path.basename(video)] = {
       locale,
       media_kind: kind,
@@ -1066,6 +1089,7 @@ for (const locale of ["ko_KR", "en_US"]) {
         file: path.basename(timeline),
         sha256: await sha256File(timeline),
       },
+      event_frames: await commitTimelineFrames(video, observedTimeline),
       continuous_capture: true,
       time_compression: false,
     };

@@ -5,7 +5,8 @@ import fsp from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import crypto from "node:crypto";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 
 const packageRoot = process.env.PF07_PACKAGE_ROOT
@@ -15,6 +16,8 @@ const outputRoot = process.argv[2] ? path.resolve(process.argv[2]) : null;
 if (!packageRoot || !outputRoot) {
   throw new Error("usage: PF07_PACKAGE_ROOT=PACKAGE scripts/record-guided-service-tour.mjs OUTPUT_DIRECTORY");
 }
+const proofTarget = path.join(outputRoot, "guided-execution-proof.json");
+const scriptPath = fileURLToPath(import.meta.url);
 
 const launcher = path.join(packageRoot, "pf07");
 const hubLauncher = path.join(packageRoot, "launcher", "bin", "pf07-hub");
@@ -26,6 +29,9 @@ for (const required of [launcher, hubLauncher, runtimeEnvPath, artifactManifestP
   await fsp.access(required, fs.constants.R_OK);
 }
 await fsp.mkdir(outputRoot, { recursive: true });
+if (fs.existsSync(proofTarget)) {
+  throw new Error(`refusing to replace ${proofTarget}`);
+}
 
 const artifactManifestBytes = await fsp.readFile(artifactManifestPath);
 const artifactManifest = JSON.parse(artifactManifestBytes.toString("utf8"));
@@ -200,8 +206,9 @@ async function clickAndSettle(locator, page) {
   await wait(800);
 }
 
-function chapter(markers, startedAt, label) {
+function chapter(markers, startedAt, event, label) {
   markers.push({
+    event,
     seconds: Number(((Date.now() - startedAt) / 1000).toFixed(3)),
     label,
   });
@@ -274,23 +281,23 @@ async function recordLocale(browser, hub, locale) {
     operator: ["OPERATOR EXPERIENCE", "The operator now receives the order.", "A fully separate workspace shows order status and the next operational action."],
   };
 
-  chapter(markers, startedAt, words.hub[1]);
+  chapter(markers, startedAt, "SERVICE_READY", words.hub[1]);
   await page.goto(hub.url, { waitUntil: "networkidle" });
   await overlay(page, ...words.hub);
   await showPageFromTopToBottom(page, 950);
 
-  chapter(markers, startedAt, words.store[1]);
+  chapter(markers, startedAt, "STOREFRONT_HOME", words.store[1]);
   await page.goto(`${baseUrl}/`, { waitUntil: "networkidle" });
   await overlay(page, ...words.store);
   await page.screenshot({ path: poster });
   await showPageFromTopToBottom(page, 1250);
 
-  chapter(markers, startedAt, words.catalog[1]);
+  chapter(markers, startedAt, "PRODUCT_CATALOG", words.catalog[1]);
   await page.goto(`${baseUrl}/shop/`, { waitUntil: "networkidle" });
   await overlay(page, ...words.catalog);
   await showPageFromTopToBottom(page, 1200);
 
-  chapter(markers, startedAt, words.product[1]);
+  chapter(markers, startedAt, "PRODUCT_DETAIL", words.product[1]);
   const product = page.locator('a[href*="/product/offset-dock/"]').first();
   await clickAndSettle(product, page);
   await overlay(page, ...words.product);
@@ -300,12 +307,12 @@ async function recordLocale(browser, hub, locale) {
   await page.locator("button.single_add_to_cart_button").click();
   await wait(1000);
 
-  chapter(markers, startedAt, words.cart[1]);
+  chapter(markers, startedAt, "CART_REVIEW", words.cart[1]);
   await page.goto(`${baseUrl}/cart/`, { waitUntil: "networkidle" });
   await overlay(page, ...words.cart);
   await showPageFromTopToBottom(page, 1000);
 
-  chapter(markers, startedAt, words.checkout[1]);
+  chapter(markers, startedAt, "CHECKOUT", words.checkout[1]);
   await page.goto(`${baseUrl}/checkout/`, { waitUntil: "networkidle" });
   await page.locator("#billing_email").waitFor();
   await overlay(page, ...words.checkout);
@@ -319,12 +326,12 @@ async function recordLocale(browser, hub, locale) {
   ]);
   await page.waitForLoadState("networkidle").catch(() => {});
 
-  chapter(markers, startedAt, words.complete[1]);
+  chapter(markers, startedAt, "ORDER_COMPLETE", words.complete[1]);
   await overlay(page, ...words.complete);
   await showPageFromTopToBottom(page, 1100);
   await wait(1200);
 
-  chapter(markers, startedAt, words.operator[1]);
+  chapter(markers, startedAt, "OPERATOR_ORDER_REVIEW", words.operator[1]);
   await page.goto(`${baseUrl}/wp-login.php`, { waitUntil: "networkidle" });
   await page.locator("#user_login").fill(runtime.PF07_ADMIN_USER);
   await page.locator("#user_pass").fill(runtime.PF07_ADMIN_PASSWORD);
@@ -367,6 +374,14 @@ async function recordLocale(browser, hub, locale) {
     chapters: markers,
   }, null, 2)}\n`, "utf8");
   await fsp.rm(rawVideoDirectory, { recursive: true, force: true });
+  return {
+    locale,
+    target,
+    poster,
+    captions,
+    timeline,
+    chapters: markers,
+  };
 }
 
 const hub = await startHub();
@@ -375,11 +390,117 @@ const browser = await chromium.launch({
   executablePath: chrome,
   args: ["--disable-dev-shm-usage", "--hide-scrollbars"],
 });
+const recordings = [];
 try {
-  await recordLocale(browser, hub, "ko_KR");
-  await recordLocale(browser, hub, "en_US");
+  recordings.push(await recordLocale(browser, hub, "ko_KR"));
+  recordings.push(await recordLocale(browser, hub, "en_US"));
 } finally {
   await browser.close();
   await stopHub(hub);
   await packageCommand("language", "ko_KR").catch(() => {});
 }
+
+const sha256 = (bytes) => crypto.createHash("sha256").update(bytes).digest("hex");
+const sha256File = async (file) => sha256(await fsp.readFile(file));
+
+function probeVideo(file) {
+  const result = spawnSync(process.env.PF07_FFPROBE_PATH || "/usr/bin/ffprobe", [
+    "-v", "error",
+    "-select_streams", "v:0",
+    "-count_frames",
+    "-show_entries", "stream=codec_name,pix_fmt,width,height,avg_frame_rate,nb_read_frames:format=duration,size",
+    "-of", "json",
+    file,
+  ], { encoding: "utf8", maxBuffer: 16 * 1024 * 1024 });
+  if (result.status !== 0) {
+    throw new Error(`ffprobe failed for ${path.basename(file)}`);
+  }
+  const parsed = JSON.parse(result.stdout);
+  const stream = parsed.streams?.[0];
+  const format = parsed.format;
+  if (!stream || !format) {
+    throw new Error(`video stream is missing for ${path.basename(file)}`);
+  }
+  return {
+    codec: stream.codec_name,
+    pixel_format: stream.pix_fmt,
+    width: Number(stream.width),
+    height: Number(stream.height),
+    average_frame_rate: stream.avg_frame_rate,
+    frame_count: Number(stream.nb_read_frames),
+    duration_seconds: Number(Number(format.duration).toFixed(3)),
+    bytes: Number(format.size),
+  };
+}
+
+function commitFrames(video, chapters) {
+  return chapters.map((chapterItem) => {
+    const result = spawnSync(ffmpeg, [
+      "-hide_banner", "-loglevel", "error",
+      "-i", video,
+      "-ss", String(chapterItem.seconds),
+      "-frames:v", "1",
+      "-f", "image2pipe",
+      "-vcodec", "png",
+      "-",
+    ], { maxBuffer: 32 * 1024 * 1024 });
+    if (result.status !== 0) {
+      throw new Error(`guided frame extraction failed: ${chapterItem.event}`);
+    }
+    return {
+      ...chapterItem,
+      frame_sha256: sha256(result.stdout),
+    };
+  });
+}
+
+const proof = {
+  schema_version: 1,
+  case_id: "pf07",
+  classification: "PUBLIC_SANITIZED_GUIDED_RUNTIME_RECORD",
+  recording_script: "scripts/record-guided-service-tour.mjs",
+  recording_script_sha256: await sha256File(scriptPath),
+  metadata_stripped: true,
+  package_version: artifactManifest.package_version,
+  package_artifact_id: artifactManifest.artifact_id,
+  package_build_id: artifactManifest.build_id,
+  package_artifact_manifest_sha256: artifactManifestSha256,
+  exact_runtime_locale_count: 2,
+  videos: {},
+};
+for (const recording of recordings) {
+  proof.videos[path.basename(recording.target)] = {
+    locale: recording.locale,
+    media_kind: "guided-overview",
+    sha256: await sha256File(recording.target),
+    ...probeVideo(recording.target),
+    poster: {
+      file: path.basename(recording.poster),
+      sha256: await sha256File(recording.poster),
+    },
+    captions: {
+      file: path.basename(recording.captions),
+      sha256: await sha256File(recording.captions),
+    },
+    timeline: {
+      file: path.basename(recording.timeline),
+      sha256: await sha256File(recording.timeline),
+    },
+    event_frames: commitFrames(recording.target, recording.chapters),
+    continuous_capture: true,
+    full_content_view: true,
+    time_compression: false,
+  };
+}
+await fsp.writeFile(
+  proofTarget,
+  `${JSON.stringify(proof, null, 2)}\n`,
+  { mode: 0o644, flag: "wx" },
+);
+process.stdout.write(`${JSON.stringify({
+  package_version: proof.package_version,
+  package_build_id: proof.package_build_id,
+  videos: Object.fromEntries(
+    Object.entries(proof.videos).map(([name, value]) => [name, value.duration_seconds]),
+  ),
+}, null, 2)}\n`);

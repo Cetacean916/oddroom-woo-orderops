@@ -99,17 +99,26 @@ node scripts/record-public-media.mjs <NEW_OUTPUT_DIRECTORY>
 - `ko|en-guided-overview.mp4`, one distinct poster, WebVTT captions, and chapter metadata for each locale
 - `ko|en-purchase-delivery.mp4` and `ko|en-failure-recovery.mp4`, each with its own poster, WebVTT captions, and chapter metadata
 - `execution-proof.json`, bound to the exact 1.0.6 Linux artifact manifest and the four focused recordings
+- `guided-execution-proof.json`, bound to the same artifact manifest and both complete guided tours
 
 The recordings are original-speed captures from the delivered runtime. They are not sped-up derivatives of one another.
 
-The first public detail still is rebuilt from the exact committed `LIVE_STOREFRONT`, `PRODUCT_SELECTED`, and `CHECKOUT_INPUT` frames rather than a separate mock or an old screenshot:
+The focused recorder also commits the exact frame hash for every chapter event. An optional Korean presentation still set can therefore be rebuilt from the committed `LIVE_STOREFRONT`, `PRODUCT_SELECTED`, `CHECKOUT_INPUT`, `ADMIN_COMPLETED`, `FAILED`, and `RECOVERED` frames rather than from a separate mock or an old screenshot:
 
 ```bash
 node scripts/build-public-stills.mjs <EXECUTION_MEDIA_DIRECTORY> <NEW_OUTPUT_DIRECTORY>
-node scripts/build-public-media-manifest.mjs <COMPLETE_MEDIA_DIRECTORY>
 ```
 
-The still builder refuses replacement, re-extracts each frame from the source video, and verifies its SHA-256 against `execution-proof.json`. The manifest builder then probes every complete media asset and writes the exact source, proof, evidence, still, and video commitments without replacing an existing manifest.
+After the guided and focused outputs are assembled in one new directory and the published release manifest is available, build a new deployment-ready media tree:
+
+```bash
+node scripts/build-public-media-manifest.mjs \
+  <COMPLETE_CAPTURE_DIRECTORY> \
+  <NEW_SHOWCASE_MEDIA_DIRECTORY> \
+  <PF07_RELEASE_MANIFEST>
+```
+
+The still builder refuses replacement, re-extracts each selected frame from the Korean purchase and recovery recordings, and verifies its SHA-256 against `execution-proof.json`. The manifest builder requires all six original-speed videos plus six distinct posters, six WebVTT caption files, and six chapter timelines. It rechecks every committed chapter frame, probes the source media, binds both recorder proofs to the published package, and writes the nested `videos/`, `posters/`, `captions/`, `timelines/`, `proof/`, and `provenance/` paths consumed by the public showcase without replacing an existing directory.
 
 ## Claims boundary
 
