@@ -5,7 +5,7 @@
   "plugin_schema_version": "1.1.0",
   "payload_schema_version": "1",
   "file_count": 86,
-  "content_set_sha256": "476523247124d5cf3b65a9cf662024d89a824fb559c29087fdd0e04ee5071e57",
+  "content_set_sha256": "fb9e6dde1d616c4ed4e9d8eb56784203e24f0db4e6b1b2d1e1e055b7cee8faed",
   "files": [
     {
       "source": "launcher/bin/pf07",
@@ -22,7 +22,7 @@
     {
       "source": "launcher/pf07_launcher/__init__.py",
       "package_path": "launcher/pf07_launcher/__init__.py",
-      "sha256": "6dcbc1e114291f0a239804e7b2666839c986806b93745aeeb10151afa7a87dac",
+      "sha256": "4c51674ebce0a9e83b7aba55abcca928f22e2c1ae17f3400b654c2e0b9630c00",
       "bytes": 87
     },
     {
@@ -40,7 +40,7 @@
     {
       "source": "launcher/pf07_launcher/core.py",
       "package_path": "launcher/pf07_launcher/core.py",
-      "sha256": "3c9cb83fd7ae9a35153d941b866448d4e54761c63cec52e3caa59de235c81530",
+      "sha256": "4b27be269d56ea4990e929b7fdc9881560a87a793dfd9e94f9cc0f4806b2e4eb",
       "bytes": 240146
     },
     {

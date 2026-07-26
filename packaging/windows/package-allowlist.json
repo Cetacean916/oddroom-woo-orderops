@@ -1,10 +1,10 @@
 {
   "schema": "pf07.package-allowlist.v1",
   "artifact_id": "pf07-windows-x64",
-  "package_version": "1.0.5",
+  "package_version": "1.0.6",
   "platform": "windows",
   "architecture": "x86_64",
-  "root_name": "PF07-OrderOps-1.0.5-windows-x64",
+  "root_name": "PF07-OrderOps-1.0.6-windows-x64",
   "classification": "PUBLIC_DISTRIBUTION",
   "tested_boundary": "LINUX_CROSS_BUILD_AND_STATIC_ARTIFACT_VALIDATION_ONLY",
   "files": [
@@ -73,7 +73,7 @@
       "source": "launcher/pf07_launcher/__init__.py",
       "target": "launcher/pf07_launcher/__init__.py",
       "mode": "0644",
-      "source_sha256": "6dcbc1e114291f0a239804e7b2666839c986806b93745aeeb10151afa7a87dac"
+      "source_sha256": "4c51674ebce0a9e83b7aba55abcca928f22e2c1ae17f3400b654c2e0b9630c00"
     },
     {
       "source": "launcher/pf07_launcher/action_contract.py",
@@ -91,7 +91,7 @@
       "source": "launcher/pf07_launcher/core.py",
       "target": "launcher/pf07_launcher/core.py",
       "mode": "0644",
-      "source_sha256": "3c9cb83fd7ae9a35153d941b866448d4e54761c63cec52e3caa59de235c81530"
+      "source_sha256": "4b27be269d56ea4990e929b7fdc9881560a87a793dfd9e94f9cc0f4806b2e4eb"
     },
     {
       "source": "launcher/pf07_launcher/hub.py",
@@ -163,7 +163,7 @@
       "source": "packaging/common/bootstrap-manifest.json",
       "target": "packaging/common/bootstrap-manifest.json",
       "mode": "0644",
-      "source_sha256": "03dc1ddf8a90e2e100d439ea1641035bed4ebb8d61ae92a62ceb21b134701261"
+      "source_sha256": "913be5a6ef16040633a5b2a53629ea2cade0d33ece74ad682bfa7fedf9433f08"
     },
     {
       "source": "packaging/common/compose.yaml",
@@ -175,7 +175,7 @@
       "source": "packaging/common/distribution-content-bindings.json",
       "target": "packaging/common/distribution-content-bindings.json",
       "mode": "0644",
-      "source_sha256": "f84124e132e933994318a5ac67ac5d004ed271a2cefa1e6c4b9dc3f5c4c4fda9"
+      "source_sha256": "0c5a248f6e81d35f76adabba7458d540d7ee756f780c8ebb2509f13aa4d7b052"
     },
     {
       "source": "packaging/common/n8n-task-runners.json",

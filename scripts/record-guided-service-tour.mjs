@@ -31,11 +31,11 @@ const artifactManifestBytes = await fsp.readFile(artifactManifestPath);
 const artifactManifest = JSON.parse(artifactManifestBytes.toString("utf8"));
 if (
   artifactManifest.schema !== "pf07.artifact-manifest.v1"
-  || artifactManifest.package_version !== "1.0.5"
+  || artifactManifest.package_version !== "1.0.6"
   || typeof artifactManifest.artifact_id !== "string"
   || typeof artifactManifest.build_id !== "string"
 ) {
-  throw new Error("the guided tour requires an exact PF07 1.0.5 distribution manifest");
+  throw new Error("the guided tour requires an exact PF07 1.0.6 distribution manifest");
 }
 const artifactManifestSha256 = crypto
   .createHash("sha256")

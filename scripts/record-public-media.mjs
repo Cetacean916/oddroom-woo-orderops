@@ -108,7 +108,7 @@ const artifactManifestBytes = await fsp.readFile(artifactManifestPath);
 const artifactManifest = JSON.parse(artifactManifestBytes.toString("utf8"));
 if (artifactManifest.schema !== "pf07.artifact-manifest.v1"
   || artifactManifest.artifact_id !== "pf07-linux-x86_64"
-  || artifactManifest.package_version !== "1.0.5"
+  || artifactManifest.package_version !== "1.0.6"
   || typeof artifactManifest.build_id !== "string"
   || !artifactManifest.build_id.startsWith("pf07-build-")
   || artifactManifest.actual_os_runtime_execution !== false
