@@ -82,20 +82,18 @@ for (const key of ["PF07_WORDPRESS_PORT", "PF07_ADMIN_USER", "PF07_ADMIN_PASSWOR
   if (!runtime[key]) throw new Error(`missing final package runtime value: ${key}`);
 }
 const defaultSyntheticContactEmailPool = [
-  "pf07-media-ko-purchase@example.com",
   "pf07-media-ko-recovery@example.com",
-  "pf07-media-en-purchase@example.com",
   "pf07-media-en-recovery@example.com",
 ];
 const syntheticContactEmailPool = (
   process.env.PF07_SYNTHETIC_CONTACT_EMAIL_POOL
   || defaultSyntheticContactEmailPool.join(",")
 ).split(",").map((value) => value.trim());
-if (syntheticContactEmailPool.length < 4
+if (syntheticContactEmailPool.length < 2
   || syntheticContactEmailPool.length > 64
   || new Set(syntheticContactEmailPool).size !== syntheticContactEmailPool.length
   || syntheticContactEmailPool.some((value) => !/^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@example\.com$/.test(value))) {
-  throw new Error("PF07_SYNTHETIC_CONTACT_EMAIL_POOL must contain 4 to 64 distinct lowercase @example.com addresses");
+  throw new Error("PF07_SYNTHETIC_CONTACT_EMAIL_POOL must contain 2 to 64 distinct lowercase @example.com addresses");
 }
 const usedSyntheticContactEmails = [];
 function nextSyntheticContactEmail() {
@@ -455,7 +453,6 @@ async function createOrderThroughCheckout(page, timelineState = null) {
   const checkoutLink = page.locator("a.checkout-button").first();
   await clickAndWait(checkoutLink, page);
   await page.locator("#billing_email").waitFor();
-  await slowFill(page, "#billing_email", nextSyntheticContactEmail(), { protect: true, instant: true });
   if (timelineState) {
     await caption(page, words.checkout[0], words.checkout[1]);
     mark(timelineState.capture, timelineState.timeline, "CHECKOUT_INPUT", "synthetic_checkout_input_visible");
@@ -1008,8 +1005,8 @@ const proof = {
   package_artifact_id: artifactManifest.artifact_id,
   package_build_id: artifactManifest.build_id,
   package_artifact_manifest_sha256: sha256(artifactManifestBytes),
-  synthetic_checkout_identity: "distinct lowercase @example.com identities",
-  synthetic_checkout_identity_count: usedSyntheticContactEmails.length,
+  synthetic_checkout_identity: "package-fixed readonly @example.com demo identity",
+  synthetic_recovery_identity_count: usedSyntheticContactEmails.length,
   actual_checkout_observed: true,
   visible_worker_terminal_observed: true,
   videos: {},

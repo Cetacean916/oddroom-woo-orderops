@@ -1076,7 +1076,7 @@
     {
       "path": "scripts/record-public-media.mjs",
       "mode": "0644",
-      "sha256": "f226a51d17348882de4f71d1fc7f4fabf9ebf5699c778d57178b83dce9f80a28"
+      "sha256": "70088d518619dc4de3d39823e081111c639b94659f7a8700ff5af844eb4b8d09"
     },
     {
       "path": "scripts/refinement_evidence_paths.py",
