@@ -10,6 +10,11 @@ final class OddRoom_Storefront
     private const CHECKOUT_LIMIT = 10;
     private const CHECKOUT_WINDOW_SECONDS = 900;
     private const CHECKOUT_RATE_OPTION_PREFIX = 'oddroom_checkout_v2_';
+    private const SYNTHETIC_CHECKOUT_EMAIL = 'pf07-demo@example.com';
+    private const SYNTHETIC_ADDRESS = 'Synthetic Demo Address';
+    private const SYNTHETIC_CITY = 'Synthetic City';
+    private const SYNTHETIC_POSTCODE = '00000';
+    private static bool $classicCheckoutInputRejected = false;
 
     public static function boot(): void
     {
@@ -22,8 +27,28 @@ final class OddRoom_Storefront
         add_filter('pre_wp_mail', [self::class, 'captureMail'], 10, 2);
         add_filter('woocommerce_available_payment_gateways', [self::class, 'syntheticGatewayOnly']);
         add_filter('woocommerce_price_trim_zeros', '__return_true');
+        add_filter('woocommerce_product_single_add_to_cart_text', [self::class, 'singleAddToCartText']);
+        add_filter('woocommerce_product_add_to_cart_text', [self::class, 'loopAddToCartText'], 10, 2);
+        add_filter('woocommerce_attribute_label', [self::class, 'attributeLabel'], 10, 3);
+        add_filter('woocommerce_reset_variations_link', [self::class, 'resetVariationsLink']);
+        add_filter('woocommerce_order_tracking_status', [self::class, 'trackingStatus'], 10, 2);
+        add_filter('woocommerce_order_formatted_billing_address', [self::class, 'formattedBillingAddress'], 10, 2);
+        add_filter('woocommerce_order_formatted_shipping_address', [self::class, 'formattedShippingAddress'], 10, 2);
+        add_filter('woocommerce_checkout_fields', [self::class, 'syntheticCheckoutFields']);
+        add_filter('woocommerce_checkout_get_value', [self::class, 'syntheticCheckoutValue'], 10, 2);
+        add_action('woocommerce_before_checkout_process', [self::class, 'prepareClassicDemoCheckout'], 0);
+        add_filter('woocommerce_checkout_posted_data', [self::class, 'sanitizeClassicCheckoutPostedData'], 0);
+        add_filter('woocommerce_checkout_customer_id', [self::class, 'forceDemoCheckoutGuest'], PHP_INT_MAX);
+        add_filter('woocommerce_checkout_update_customer_data', [self::class, 'allowCheckoutCustomerUpdate'], PHP_INT_MAX, 2);
+        add_action('woocommerce_review_order_before_payment', [self::class, 'checkoutDemoNote']);
+        add_action('woocommerce_order_details_before_order_table', [self::class, 'orderDemoNote']);
         add_action('woocommerce_after_checkout_validation', [self::class, 'rateLimitClassicCheckout'], 10, 2);
-        add_filter('rest_pre_dispatch', [self::class, 'rateLimitStoreApiCheckout'], 10, 3);
+        add_action('woocommerce_checkout_create_order', [self::class, 'sanitizeClassicDemoOrder'], 100, 2);
+        add_action('woocommerce_checkout_order_created', [self::class, 'sanitizeCreatedDemoOrder'], 100, 1);
+        add_action('woocommerce_store_api_checkout_update_order_from_request', [self::class, 'sanitizeStoreApiDemoOrder'], 100, 2);
+        add_action('woocommerce_store_api_checkout_order_processed', [self::class, 'sanitizeCreatedDemoOrder'], 1, 1);
+        add_filter('rest_pre_dispatch', [self::class, 'guardStoreApiCustomerData'], 10, 3);
+        add_filter('rest_request_before_callbacks', [self::class, 'rateLimitValidatedStoreApiCheckout'], 10, 3);
         add_action('wp_head', [self::class, 'favicon']);
         add_action('wp', [self::class, 'removeDuplicateSkipLink']);
         add_filter('render_block', [self::class, 'removeThemeChrome'], 10, 2);
@@ -36,13 +61,13 @@ final class OddRoom_Storefront
             'oddroom-orderops-storefront',
             self::assetUrl('css/storefront.css'),
             [],
-            '0.6.3'
+            '0.6.4'
         );
         wp_enqueue_script(
             'oddroom-orderops-storefront',
             self::assetUrl('js/storefront.js'),
             [],
-            '0.6.3',
+            '0.6.4',
             ['in_footer' => true, 'strategy' => 'defer']
         );
     }
@@ -72,6 +97,13 @@ final class OddRoom_Storefront
             echo '<li><a href="' . esc_url($url) . '">' . esc_html($label) . '</a></li>';
         }
         echo '</ul></nav>';
+        echo '<details class="oddroom-mobile-nav"><summary><span aria-hidden="true"></span>' . esc_html(self::text('메뉴', 'Menu')) . '</summary><nav aria-label="' . esc_attr(self::text('모바일 전체 탐색', 'Mobile navigation')) . '"><ul>';
+        foreach ($primary as $label => $url) {
+            echo '<li><a href="' . esc_url($url) . '">' . esc_html($label) . '</a></li>';
+        }
+        echo '<li><a href="' . esc_url(self::orderTrackingUrl()) . '">' . esc_html(self::text('주문 조회', 'Order lookup')) . '</a></li>';
+        echo '<li><a href="' . esc_url(wc_get_cart_url()) . '">' . esc_html(self::text('장바구니', 'Cart')) . '</a></li>';
+        echo '</ul></nav></details>';
         echo '<a class="oddroom-wordmark" href="' . esc_url(home_url('/')) . '" aria-label="OFFSET ' . esc_attr(self::text('홈', 'home')) . '"><strong>OFFSET</strong><span>OBJECTS / QUIET UTILITY</span></a>';
         echo '<nav class="oddroom-nav-utility" aria-label="' . esc_attr(self::text('계정과 장바구니', 'Account and cart')) . '"><ul>';
         echo '<li><a href="' . esc_url(self::orderTrackingUrl()) . '">' . esc_html(self::text('주문 조회', 'Order lookup')) . '</a></li>';
@@ -124,12 +156,12 @@ final class OddRoom_Storefront
             </section>
 
             <section class="oddroom-story-grid" aria-label="<?php echo esc_attr(self::text('선택부터 주문 확인까지 이어지는 장면', 'Scenes from selection through order lookup')); ?>">
-                <article class="oddroom-story-order"><img src="<?php echo esc_url($packing); ?>" width="1600" height="1200" alt="<?php echo esc_attr(self::text('OFFSET 제품을 단정하게 포장하는 장면', 'An OFFSET object being carefully packed')); ?>"><div><p class="oddroom-kicker">FROM CHOICE TO ORDER · 01</p><h2><?php echo esc_html(self::text('선택한 그대로, 주문 완료까지.', 'Your choice, carried through the order.')); ?></h2><p><?php echo esc_html(self::text('선택한 제품과 옵션, 수량을 주문이 완료될 때까지 분명하게 확인할 수 있습니다.', 'The object, finish, and quantity you choose stay clear through every step of the order.')); ?></p></div></article>
+                <article class="oddroom-story-order"><img src="<?php echo esc_url($packing); ?>" width="1600" height="1200" alt="<?php echo esc_attr(self::text('OFFSET 제품을 단정하게 포장하는 장면', 'An OFFSET object being carefully packed')); ?>"><div><p class="oddroom-kicker">FROM CHOICE TO ORDER · 01</p><h2><?php echo esc_html(self::text('고른 제품을, 주문까지 분명하게.', 'Your selection, clear through checkout.')); ?></h2><p><?php echo esc_html(self::text('제품과 옵션, 수량을 주문이 끝날 때까지 한눈에 확인할 수 있습니다.', 'Keep the object, finish, and quantity in view through every step of the order.')); ?></p></div></article>
                 <article class="oddroom-story-operator"><img src="<?php echo esc_url($operator); ?>" width="1600" height="1200" alt="<?php echo esc_attr(self::text('OFFSET 주문을 확인하는 장면', 'Reviewing an OFFSET order')); ?>"><div><p class="oddroom-kicker">AFTER THE ORDER · 02</p><h2><?php echo esc_html(self::text('주문 뒤에도 찾기 쉽게.', 'Easy to find, even after the order.')); ?></h2><p><?php echo esc_html(self::text('완료 화면의 주문 번호로 처리 상태를 확인하고 필요한 기록을 다시 찾아볼 수 있습니다.', 'Use the order number from confirmation to check its status whenever you need it.')); ?></p></div></article>
             </section>
 
             <section id="offset-system" class="oddroom-section oddroom-flow" aria-labelledby="oddroom-flow-title">
-                <header><p class="oddroom-kicker">HOW YOUR ORDER WORKS</p><h2 id="oddroom-flow-title"><?php echo esc_html(self::text('선택하고, 주문하고, 확인하세요.', 'Choose. Order. Check in.')); ?></h2><p><?php echo esc_html(self::text('일반 스토어처럼 제품을 고르고 주문을 마친 뒤, 주문 번호로 처리 상태까지 확인할 수 있습니다.', 'Browse and place an order as you would in a store, then use the order number to check its status.')); ?></p></header>
+                <header><p class="oddroom-kicker">HOW YOUR ORDER WORKS</p><h2 id="oddroom-flow-title"><?php echo esc_html(self::text('살펴보고, 주문하고, 다시 확인하세요.', 'Browse. Order. Look it up.')); ?></h2><p><?php echo esc_html(self::text('마음에 드는 제품을 주문한 뒤, 주문 번호로 현재 상태를 언제든 다시 확인할 수 있습니다.', 'Find the object that suits you, place the order, and use its number to check the current status whenever you need it.')); ?></p></header>
                 <ol>
                     <li><span>01</span><div><p class="oddroom-flow-label">CHOOSE</p><h3><?php echo esc_html(self::text('선택하기', 'Choose')); ?></h3><p><?php echo esc_html(self::text('제품의 쓰임과 이미지를 살펴보고 원하는 마감과 수량을 선택합니다.', 'Explore each object, then select the finish and quantity that suit you.')); ?></p></div></li>
                     <li><span>02</span><div><p class="oddroom-flow-label">ORDER</p><h3><?php echo esc_html(self::text('주문하기', 'Order')); ?></h3><p><?php echo esc_html(self::text('장바구니와 쿠폰을 확인한 뒤 0원 데모 주문을 완료합니다.', 'Review the cart and coupon, then complete the 0 KRW demo order.')); ?></p></div></li>
@@ -240,7 +272,7 @@ final class OddRoom_Storefront
         echo '<p class="oddroom-commerce-marker">' . esc_html($marker) . '</p>';
         echo '<p class="oddroom-commerce-copy">' . esc_html($copy);
         if (is_checkout() && !$isOrderReceived) {
-            echo ' ' . esc_html(self::text('이름은 Synthetic / Buyer, 이메일은 소문자 @example.com 주소를 사용해 주세요.', 'Use Synthetic / Buyer and a lowercase @example.com email address.'));
+            echo ' ' . esc_html(self::text('체험에 필요한 예시 정보가 자동으로 입력되며, 실제 개인정보는 받지 않습니다.', 'Safe example details are filled in automatically; no real personal information is collected.'));
         } elseif ($isTracking) {
             echo ' ' . esc_html(self::text('주문할 때 사용한 @example.com 이메일을 입력해 주세요.', 'Use the @example.com email entered at checkout.'));
         }
@@ -256,6 +288,82 @@ final class OddRoom_Storefront
     public static function emptyCartMessage(string $message): string
     {
         return self::text('장바구니가 비어 있습니다. 당신의 책상과 이동에 맞는 OFFSET 오브젝트를 만나보세요.', 'Your cart is empty. Find the OFFSET object that fits your desk or carry.');
+    }
+
+    public static function singleAddToCartText(string $text = ''): string
+    {
+        return self::text('장바구니에 담기', 'Add to cart');
+    }
+
+    public static function loopAddToCartText(string $text, mixed $product): string
+    {
+        if ($product instanceof WC_Product && $product->is_type('variable')) {
+            return self::text('옵션 선택', 'Choose options');
+        }
+        return self::text('장바구니에 담기', 'Add to cart');
+    }
+
+    public static function attributeLabel(string $label, string $name, mixed $product = null): string
+    {
+        return strtolower($name) === 'finish' ? self::text('마감', 'Finish') : $label;
+    }
+
+    public static function resetVariationsLink(string $link = ''): string
+    {
+        return '<a class="reset_variations" href="#" aria-label="'
+            . esc_attr(self::text('선택한 옵션 초기화', 'Clear selected options'))
+            . '">' . esc_html(self::text('선택 초기화', 'Clear selection')) . '</a>';
+    }
+
+    public static function trackingStatus(string $status, WC_Order $order): string
+    {
+        $customerStatus = match ($order->get_status()) {
+            'pending' => self::text('접수 대기', 'Pending'),
+            'processing' => self::text('처리 중', 'Processing'),
+            'on-hold' => self::text('확인 중', 'On hold'),
+            'completed' => self::text('완료', 'Complete'),
+            'cancelled' => self::text('취소됨', 'Cancelled'),
+            'refunded' => self::text('환불됨', 'Refunded'),
+            'failed' => self::text('완료되지 않음', 'Failed'),
+            default => wc_get_order_status_name($order->get_status()),
+        };
+        return sprintf(
+            self::text(
+                '주문 <mark class="order-number">#%1$s</mark>은 <mark class="order-date">%2$s</mark>에 접수되었으며, 현재 고객 주문 상태는 <mark class="order-status">%3$s</mark>입니다.',
+                'Order <mark class="order-number">#%1$s</mark> was received on <mark class="order-date">%2$s</mark>. Its current customer order status is <mark class="order-status">%3$s</mark>.'
+            ),
+            esc_html($order->get_order_number()),
+            esc_html(wc_format_datetime($order->get_date_created())),
+            esc_html($customerStatus)
+        );
+    }
+
+    public static function formattedBillingAddress(array $address, WC_Order $order): array
+    {
+        return self::readableSyntheticName($address);
+    }
+
+    public static function formattedShippingAddress(array $address, WC_Order $order): array
+    {
+        return self::readableSyntheticName($address);
+    }
+
+    public static function checkoutDemoNote(): void
+    {
+        echo '<aside class="oddroom-demo-charge-note"><strong>'
+            . esc_html(self::text('결제 없이 주문을 체험합니다.', 'Try the order flow without payment.'))
+            . '</strong><span>'
+            . esc_html(self::text('상품 가격은 주문 구성을 보여주기 위한 데모 표시입니다. 실제 청구액은 0원이며 결제 정보는 받지 않습니다.', 'Product prices show the demo order contents. The amount charged is 0 KRW, and no payment details are collected.'))
+            . '</span></aside>';
+    }
+
+    public static function orderDemoNote(WC_Order $order): void
+    {
+        echo '<aside class="oddroom-order-context"><strong>'
+            . esc_html(self::text('구매자에게 필요한 주문 상태를 보여드립니다.', 'This page shows the order status a customer needs.'))
+            . '</strong><span>'
+            . esc_html(self::text('매장 내부의 전달과 복구 과정은 별도로 관리되므로 추가로 할 일은 없습니다. 표시된 상품 합계는 주문 구성을 기록하기 위한 데모 가격이며 실제 청구액은 0원입니다.', 'Store delivery and recovery work is managed separately, so no extra action is required here. Product totals record the demo order contents; the amount charged is 0 KRW.'))
+            . '</span></aside>';
     }
 
     public static function footer(): void
@@ -287,11 +395,44 @@ final class OddRoom_Storefront
 
     public static function removeThemeChrome(string $content, array $block): string
     {
-        if (is_admin() || ($block['blockName'] ?? null) !== 'core/template-part') {
+        if (is_admin()) {
+            return $content;
+        }
+        if (($block['blockName'] ?? null) === 'woocommerce/product-meta' && is_product()) {
+            return self::productMeta();
+        }
+        if (($block['blockName'] ?? null) !== 'core/template-part') {
             return $content;
         }
         $slug = (string) ($block['attrs']['slug'] ?? '');
         return in_array($slug, ['header', 'footer'], true) ? '' : $content;
+    }
+
+    private static function productMeta(): string
+    {
+        $product = wc_get_product(get_queried_object_id());
+        if (!$product instanceof WC_Product) {
+            return '';
+        }
+        $categoryUrl = get_term_link('offset-objects', 'product_cat');
+        $categoryUrl = is_wp_error($categoryUrl) ? wc_get_page_permalink('shop') : $categoryUrl;
+        return '<div class="wp-block-woocommerce-product-meta oddroom-product-meta"><span>'
+            . esc_html(self::text('컬렉션', 'Collection'))
+            . '</span><a href="' . esc_url($categoryUrl) . '">'
+            . esc_html(self::text('OFFSET 오브젝트', 'OFFSET Objects'))
+            . '</a></div>';
+    }
+
+    private static function readableSyntheticName(array $address): array
+    {
+        if (($address['first_name'] ?? '') === 'Synthetic'
+            && ($address['last_name'] ?? '') === 'Buyer'
+            && is_string($address['email'] ?? null)
+            && preg_match('/^[^@\s]+@example\.com$/Du', $address['email']) === 1) {
+            $address['first_name'] = 'Synthetic Buyer';
+            $address['last_name'] = '';
+        }
+        return $address;
     }
 
     public static function robots(array $robots): array
@@ -326,16 +467,179 @@ final class OddRoom_Storefront
         return isset($gateways['cod']) ? ['cod' => $gateways['cod']] : [];
     }
 
-    public static function rateLimitClassicCheckout(array $data, WP_Error $errors): void
+    public static function syntheticCheckoutFields(array $fields): array
     {
-        if (!self::isSyntheticIdentity([
+        if (!OddRoom_Repository::testMode()) {
+            return $fields;
+        }
+        $defaults = [
+            'billing_first_name' => 'Synthetic',
+            'billing_last_name' => 'Buyer',
+            'billing_email' => self::SYNTHETIC_CHECKOUT_EMAIL,
+        ];
+        $billing = is_array($fields['billing'] ?? null) ? $fields['billing'] : [];
+        foreach ($defaults as $key => $value) {
+            if (!isset($billing[$key]) || !is_array($billing[$key])) {
+                continue;
+            }
+            $billing[$key]['default'] = $value;
+            $billing[$key]['custom_attributes'] = array_merge(
+                is_array($billing[$key]['custom_attributes'] ?? null) ? $billing[$key]['custom_attributes'] : [],
+                ['readonly' => 'readonly', 'aria-readonly' => 'true']
+            );
+        }
+        $fields['billing'] = array_intersect_key($billing, $defaults);
+        $fields['shipping'] = [];
+        $fields['account'] = [];
+        if (isset($fields['order']['order_comments'])) {
+            unset($fields['order']['order_comments']);
+        }
+        return $fields;
+    }
+
+    public static function syntheticCheckoutValue(mixed $value, string $input): mixed
+    {
+        if (!OddRoom_Repository::testMode()) {
+            return $value;
+        }
+        return match ($input) {
+            'billing_first_name' => 'Synthetic',
+            'billing_last_name' => 'Buyer',
+            'billing_email' => self::SYNTHETIC_CHECKOUT_EMAIL,
+            default => $value,
+        };
+    }
+
+    public static function prepareClassicDemoCheckout(): void
+    {
+        if (!OddRoom_Repository::testMode()
+            || !function_exists('WC')
+            || !WC()->session
+            || !class_exists('WC_Customer')) {
+            return;
+        }
+        WC()->customer = new WC_Customer(0, true);
+    }
+
+    public static function sanitizeClassicCheckoutPostedData(array $data): array
+    {
+        if (!OddRoom_Repository::testMode()) {
+            return $data;
+        }
+        $billing = [
             'first_name' => $data['billing_first_name'] ?? null,
             'last_name' => $data['billing_last_name'] ?? null,
             'email' => $data['billing_email'] ?? null,
-        ])) {
+            'company' => $data['billing_company'] ?? null,
+            'country' => $data['billing_country'] ?? null,
+            'address_1' => $data['billing_address_1'] ?? null,
+            'address_2' => $data['billing_address_2'] ?? null,
+            'city' => $data['billing_city'] ?? null,
+            'state' => $data['billing_state'] ?? null,
+            'postcode' => $data['billing_postcode'] ?? null,
+            'phone' => $data['billing_phone'] ?? null,
+        ];
+        $shipping = [
+            'first_name' => $data['shipping_first_name'] ?? null,
+            'last_name' => $data['shipping_last_name'] ?? null,
+            'company' => $data['shipping_company'] ?? null,
+            'country' => $data['shipping_country'] ?? null,
+            'address_1' => $data['shipping_address_1'] ?? null,
+            'address_2' => $data['shipping_address_2'] ?? null,
+            'city' => $data['shipping_city'] ?? null,
+            'state' => $data['shipping_state'] ?? null,
+            'postcode' => $data['shipping_postcode'] ?? null,
+            'phone' => $data['shipping_phone'] ?? null,
+        ];
+        self::$classicCheckoutInputRejected = !self::isSyntheticIdentity($billing)
+            || !self::containsOnlySyntheticContact($billing)
+            || !self::containsOnlySyntheticContact($shipping, true)
+            || trim((string) ($data['order_comments'] ?? '')) !== ''
+            || !empty($data['createaccount'])
+            || trim((string) ($data['account_username'] ?? '')) !== ''
+            || trim((string) ($data['account_password'] ?? '')) !== '';
+
+        $data['billing_first_name'] = 'Synthetic';
+        $data['billing_last_name'] = 'Buyer';
+        $data['billing_email'] = self::SYNTHETIC_CHECKOUT_EMAIL;
+        foreach ([
+            'billing_company',
+            'billing_country',
+            'billing_address_1',
+            'billing_address_2',
+            'billing_city',
+            'billing_state',
+            'billing_postcode',
+            'billing_phone',
+            'shipping_first_name',
+            'shipping_last_name',
+            'shipping_company',
+            'shipping_country',
+            'shipping_address_1',
+            'shipping_address_2',
+            'shipping_city',
+            'shipping_state',
+            'shipping_postcode',
+            'shipping_phone',
+            'order_comments',
+            'account_username',
+            'account_password',
+        ] as $key) {
+            $data[$key] = '';
+        }
+        $data['createaccount'] = 0;
+        $data['ship_to_different_address'] = 0;
+        return $data;
+    }
+
+    public static function forceDemoCheckoutGuest(int $customerId): int
+    {
+        return OddRoom_Repository::testMode() ? 0 : $customerId;
+    }
+
+    public static function allowCheckoutCustomerUpdate(bool $allowed, WC_Checkout $checkout): bool
+    {
+        return OddRoom_Repository::testMode() ? false : $allowed;
+    }
+
+    public static function rateLimitClassicCheckout(array $data, WP_Error $errors): void
+    {
+        $billing = [
+            'first_name' => $data['billing_first_name'] ?? null,
+            'last_name' => $data['billing_last_name'] ?? null,
+            'email' => $data['billing_email'] ?? null,
+            'company' => $data['billing_company'] ?? null,
+            'country' => $data['billing_country'] ?? null,
+            'address_1' => $data['billing_address_1'] ?? null,
+            'address_2' => $data['billing_address_2'] ?? null,
+            'city' => $data['billing_city'] ?? null,
+            'state' => $data['billing_state'] ?? null,
+            'postcode' => $data['billing_postcode'] ?? null,
+            'phone' => $data['billing_phone'] ?? null,
+        ];
+        $shipping = [
+            'first_name' => $data['shipping_first_name'] ?? null,
+            'last_name' => $data['shipping_last_name'] ?? null,
+            'company' => $data['shipping_company'] ?? null,
+            'country' => $data['shipping_country'] ?? null,
+            'address_1' => $data['shipping_address_1'] ?? null,
+            'address_2' => $data['shipping_address_2'] ?? null,
+            'city' => $data['shipping_city'] ?? null,
+            'state' => $data['shipping_state'] ?? null,
+            'postcode' => $data['shipping_postcode'] ?? null,
+            'phone' => $data['shipping_phone'] ?? null,
+        ];
+        if (self::$classicCheckoutInputRejected
+            || !self::isSyntheticIdentity($billing)
+            || !self::containsOnlySyntheticContact($billing)
+            || !self::containsOnlySyntheticContact($shipping, true)
+            || trim((string) ($data['order_comments'] ?? '')) !== ''
+            || !empty($data['createaccount'])
+            || trim((string) ($data['account_username'] ?? '')) !== ''
+            || trim((string) ($data['account_password'] ?? '')) !== '') {
             $errors->add(
                 'oddroom_checkout_synthetic_identity_required',
-                self::text('데모 주문은 이름에 Synthetic / Buyer를, 이메일에는 소문자 @example.com 주소를 입력해 주세요.', 'For a demo order, enter Synthetic / Buyer and a lowercase @example.com email address.')
+                self::text('데모 주문에는 자동으로 준비된 예시 정보만 사용할 수 있습니다. 페이지를 새로고침한 뒤 그대로 주문해 주세요.', 'This demo accepts only the safe example details filled in automatically. Refresh the page and place the order without changing them.')
             );
             return;
         }
@@ -347,32 +651,193 @@ final class OddRoom_Storefront
         }
     }
 
-    public static function rateLimitStoreApiCheckout(mixed $result, WP_REST_Server $server, WP_REST_Request $request): mixed
+    public static function guardStoreApiCustomerData(mixed $result, WP_REST_Server $server, WP_REST_Request $request): mixed
     {
-        if ($result !== null
-            || strtoupper($request->get_method()) !== 'POST'
-            || !preg_match('#^/wc/store(?:/v\d+)?/checkout$#', $request->get_route())) {
+        if ($result !== null) {
             return $result;
+        }
+        $method = strtoupper($request->get_method());
+        $route = $request->get_route();
+        if (preg_match('#^/wc/store(?:/v\d+)?/cart/update-customer$#', $route)
+            && in_array($method, ['POST', 'PUT', 'PATCH'], true)) {
+            return new WP_Error(
+                'oddroom_store_api_customer_mutation_disabled',
+                self::text(
+                    '이 데모에서는 고객 정보 저장 기능을 사용하지 않습니다.',
+                    'Customer-profile storage is disabled in this demo.'
+                ),
+                ['status' => 403]
+            );
+        }
+        if (!preg_match('#^/wc/store(?:/v\d+)?/checkout$#', $route)) {
+            return $result;
+        }
+        if ($method !== 'POST') {
+            return new WP_Error(
+                'oddroom_store_api_checkout_method_disabled',
+                self::text(
+                    '이 데모의 주문은 한 번의 안전한 예시 주문으로만 완료할 수 있습니다.',
+                    'This demo completes checkout only as one safe example order.'
+                ),
+                ['status' => 405]
+            );
         }
         $body = $request->get_json_params();
         $billing = is_array($body) && is_array($body['billing_address'] ?? null)
             ? $body['billing_address']
             : [];
-        if (!self::isSyntheticIdentity($billing)) {
+        $shipping = is_array($body) && is_array($body['shipping_address'] ?? null)
+            ? $body['shipping_address']
+            : [];
+        $customerNote = is_array($body) ? trim((string) ($body['customer_note'] ?? '')) : '';
+        $createAccount = is_array($body) ? !empty($body['create_account']) : false;
+        $customerPassword = is_array($body) ? trim((string) ($body['customer_password'] ?? '')) : '';
+        if (!self::isSyntheticIdentity($billing)
+            || !self::isFixedStoreApiBilling($billing)
+            || !self::isFixedOrEmptyStoreApiShipping($shipping)
+            || $customerNote !== ''
+            || $createAccount
+            || $customerPassword !== '') {
             return new WP_Error(
                 'oddroom_checkout_synthetic_identity_required',
-                self::text('데모 주문은 이름에 Synthetic / Buyer를, 이메일에는 소문자 @example.com 주소를 입력해 주세요.', 'For a demo order, enter Synthetic / Buyer and a lowercase @example.com email address.'),
+                self::text('데모 주문에는 준비된 예시 정보만 사용할 수 있습니다. 실제 개인정보나 계정 정보는 입력하지 마세요.', 'This demo accepts only its fixed example details. Do not enter real personal or account information.'),
                 ['status' => 422]
             );
         }
+        return $result;
+    }
+
+    public static function rateLimitValidatedStoreApiCheckout(
+        mixed $response,
+        array $handler,
+        WP_REST_Request $request
+    ): mixed {
+        if ($response !== null
+            || strtoupper($request->get_method()) !== 'POST'
+            || !preg_match('#^/wc/store(?:/v\d+)?/checkout$#', $request->get_route())) {
+            return $response;
+        }
+        if (!function_exists('WC') || !WC()->cart || WC()->cart->is_empty()) {
+            return $response;
+        }
         if (self::consumeCheckoutAllowance()) {
-            return $result;
+            return $response;
         }
         return new WP_Error(
             'oddroom_checkout_rate_limited',
             self::text('잠시 동안 주문 가능한 횟수를 모두 사용했습니다. 조금 뒤에 다시 시도해 주세요.', 'The order limit for this period has been reached. Please try again shortly.'),
             ['status' => 429]
         );
+    }
+
+    private static function isFixedStoreApiBilling(array $value): bool
+    {
+        return trim((string) ($value['first_name'] ?? '')) === 'Synthetic'
+            && trim((string) ($value['last_name'] ?? '')) === 'Buyer'
+            && trim((string) ($value['email'] ?? '')) === self::SYNTHETIC_CHECKOUT_EMAIL
+            && strtoupper(trim((string) ($value['country'] ?? ''))) === 'KR'
+            && trim((string) ($value['address_1'] ?? '')) === self::SYNTHETIC_ADDRESS
+            && trim((string) ($value['address_2'] ?? '')) === ''
+            && trim((string) ($value['city'] ?? '')) === self::SYNTHETIC_CITY
+            && trim((string) ($value['state'] ?? '')) === ''
+            && trim((string) ($value['postcode'] ?? '')) === self::SYNTHETIC_POSTCODE
+            && trim((string) ($value['company'] ?? '')) === ''
+            && trim((string) ($value['phone'] ?? '')) === '';
+    }
+
+    private static function isFixedOrEmptyStoreApiShipping(array $value): bool
+    {
+        if ($value === [] || array_filter($value, static fn(mixed $item): bool => trim((string) $item) !== '') === []) {
+            return true;
+        }
+        return trim((string) ($value['first_name'] ?? '')) === 'Synthetic'
+            && trim((string) ($value['last_name'] ?? '')) === 'Buyer'
+            && strtoupper(trim((string) ($value['country'] ?? ''))) === 'KR'
+            && trim((string) ($value['address_1'] ?? '')) === self::SYNTHETIC_ADDRESS
+            && trim((string) ($value['address_2'] ?? '')) === ''
+            && trim((string) ($value['city'] ?? '')) === self::SYNTHETIC_CITY
+            && trim((string) ($value['state'] ?? '')) === ''
+            && trim((string) ($value['postcode'] ?? '')) === self::SYNTHETIC_POSTCODE
+            && trim((string) ($value['company'] ?? '')) === ''
+            && trim((string) ($value['phone'] ?? '')) === '';
+    }
+
+    private static function containsOnlySyntheticContact(array $value, bool $allowEmptyIdentity = false): bool
+    {
+        $firstName = trim((string) ($value['first_name'] ?? ''));
+        $lastName = trim((string) ($value['last_name'] ?? ''));
+        if ($allowEmptyIdentity) {
+            if (!in_array($firstName, ['', 'Synthetic'], true)
+                || !in_array($lastName, ['', 'Buyer'], true)) {
+                return false;
+            }
+        } elseif ($firstName !== 'Synthetic' || $lastName !== 'Buyer') {
+            return false;
+        }
+        if (!in_array(strtoupper(trim((string) ($value['country'] ?? ''))), ['', 'KR'], true)) {
+            return false;
+        }
+        foreach (['company', 'address_1', 'address_2', 'city', 'state', 'postcode', 'phone'] as $key) {
+            if (trim((string) ($value[$key] ?? '')) !== '') {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static function clearDemoOrderContact(WC_Order $order): void
+    {
+        $order->set_customer_id(0);
+        $order->set_customer_ip_address('');
+        $order->set_customer_user_agent('');
+        $order->set_billing_company('');
+        $order->set_billing_country('');
+        $order->set_billing_address_1('');
+        $order->set_billing_address_2('');
+        $order->set_billing_city('');
+        $order->set_billing_state('');
+        $order->set_billing_postcode('');
+        $order->set_billing_phone('');
+        $order->set_shipping_first_name('');
+        $order->set_shipping_last_name('');
+        $order->set_shipping_company('');
+        $order->set_shipping_country('');
+        $order->set_shipping_address_1('');
+        $order->set_shipping_address_2('');
+        $order->set_shipping_city('');
+        $order->set_shipping_state('');
+        $order->set_shipping_postcode('');
+        $order->set_customer_note('');
+        foreach ($order->get_meta_data() as $meta) {
+            $data = $meta->get_data();
+            $key = is_array($data) ? (string) ($data['key'] ?? '') : '';
+            if (str_starts_with($key, '_wc_order_attribution_')) {
+                $order->delete_meta_data($key);
+            }
+        }
+    }
+
+    public static function sanitizeClassicDemoOrder(WC_Order $order, array $data): void
+    {
+        if (OddRoom_Repository::testMode()) {
+            self::clearDemoOrderContact($order);
+        }
+    }
+
+    public static function sanitizeStoreApiDemoOrder(WC_Order $order, WP_REST_Request $request): void
+    {
+        if (OddRoom_Repository::testMode()) {
+            self::clearDemoOrderContact($order);
+        }
+    }
+
+    public static function sanitizeCreatedDemoOrder(WC_Order $order): void
+    {
+        if (!OddRoom_Repository::testMode()) {
+            return;
+        }
+        self::clearDemoOrderContact($order);
+        $order->save();
     }
 
     public static function isSyntheticIdentity(array $value): bool
@@ -387,8 +852,7 @@ final class OddRoom_Storefront
         $email = trim($value['email']);
         return $firstName === 'Synthetic'
             && $lastName === 'Buyer'
-            && $email === strtolower($email)
-            && preg_match('/^[^@\s]+@example\.com$/Du', $email) === 1;
+            && $email === self::SYNTHETIC_CHECKOUT_EMAIL;
     }
 
     public static function checkoutRateOptionPrefix(): string
@@ -416,24 +880,27 @@ final class OddRoom_Storefront
         update_option('blogname', 'OFFSET Objects');
         update_option('blogdescription', self::text('책상과 이동의 흐름을 정돈하는 오브젝트 컬렉션', 'Objects designed to bring order to desk and carry'));
         update_option('timezone_string', 'Asia/Seoul');
+        update_option('date_format', self::isEnglish() ? 'F j, Y' : 'Y년 n월 j일');
         update_option('woocommerce_currency', 'KRW');
         update_option('woocommerce_price_num_decimals', '2');
         update_option('woocommerce_default_country', 'KR');
         update_option('woocommerce_enable_guest_checkout', 'yes');
+        update_option('woocommerce_enable_signup_and_login_from_checkout', 'no');
+        update_option('woocommerce_enable_myaccount_registration', 'no');
         update_option('woocommerce_coming_soon', 'no');
         update_option('woocommerce_store_pages_only', 'no');
         update_option(
             'woocommerce_checkout_privacy_policy_text',
             self::text(
-                '입력한 데모 주문 정보는 이 화면에서 주문을 처리하고 조회하는 데만 사용됩니다. 실제 결제·이메일·배송은 발생하지 않습니다.',
-                'Demo order information is used only to process and look up the order on this site. No real payment, email, or delivery occurs.'
+                '실제 개인정보는 받지 않습니다. 미리 준비된 예시 정보로만 주문이 만들어지며, 실제 결제·이메일·배송은 발생하지 않습니다.',
+                'No personal information is collected. Orders use only the prepared example details, with no real payment, email, or delivery.'
             )
         );
         update_option(
             'woocommerce_registration_privacy_policy_text',
             self::text(
-                '데모 주문 정보는 이 사이트 안에서만 사용되며 외부로 전송되지 않습니다.',
-                'Demo order information remains inside this site and is not sent externally.'
+                '이 데모는 계정을 만들거나 실제 고객 정보를 저장하지 않습니다.',
+                'This demo creates no account and stores no real customer information.'
             )
         );
         update_option('oddroom_orderops_checkout_control_mode', self::CHECKOUT_MODE, false);
@@ -510,9 +977,13 @@ final class OddRoom_Storefront
         }
         global $wpdb;
         $address = isset($_SERVER['REMOTE_ADDR']) ? (string) $_SERVER['REMOTE_ADDR'] : 'unknown';
+        $sessionId = function_exists('WC') && WC()->session && method_exists(WC()->session, 'get_customer_id')
+            ? (string) WC()->session->get_customer_id()
+            : '';
+        $rateIdentity = $sessionId !== '' ? $address . "\n" . $sessionId : $address;
         $bucket = intdiv(time(), self::CHECKOUT_WINDOW_SECONDS);
         $currentPrefix = self::CHECKOUT_RATE_OPTION_PREFIX . $bucket . '_';
-        $optionName = $currentPrefix . hash_hmac('sha256', $address, wp_salt('nonce'));
+        $optionName = $currentPrefix . hash_hmac('sha256', $rateIdentity, wp_salt('nonce'));
 
         $allowed = self::incrementCheckoutCounter($optionName);
         $wpdb->query($wpdb->prepare(

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: OFFSET OrderOps
  * Description: Recoverable WooCommerce order delivery to a signed n8n adapter.
- * Version: 0.2.0
+ * Version: 0.2.1
  * Requires PHP: 8.1
  * Requires Plugins: woocommerce
  * License: GPL-2.0-or-later

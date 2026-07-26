@@ -1,10 +1,10 @@
 {
   "schema": "pf07.package-allowlist.v1",
   "artifact_id": "pf07-windows-x64",
-  "package_version": "1.0.3",
+  "package_version": "1.0.5",
   "platform": "windows",
   "architecture": "x86_64",
-  "root_name": "PF07-OrderOps-1.0.3-windows-x64",
+  "root_name": "PF07-OrderOps-1.0.5-windows-x64",
   "classification": "PUBLIC_DISTRIBUTION",
   "tested_boundary": "LINUX_CROSS_BUILD_AND_STATIC_ARTIFACT_VALIDATION_ONLY",
   "files": [
@@ -49,7 +49,7 @@
       "source": "packaging/windows/Start-PF07.ps1",
       "target": "Start-PF07.ps1",
       "mode": "0644",
-      "source_sha256": "a35e45718e2808a90a9a4a0b772e4412ae647f0061564e0bf3a49a0266ae607a"
+      "source_sha256": "a5f8dd75d0d51cf9d01d58d48f67b6c247db9e98a03955cd806290553885fde2"
     },
     {
       "source": "THIRD_PARTY_NOTICES.md",
@@ -61,61 +61,67 @@
       "source": "launcher/bin/pf07",
       "target": "launcher/bin/pf07",
       "mode": "0755",
-      "source_sha256": "38f4a6fca122f59e63e33640853e6ab8067886a532730254572061c642e6fe89"
+      "source_sha256": "70089df21f45d36a7cfc2a153370dbce5a5e071b7538f22bc0686f8087ee55eb"
     },
     {
       "source": "launcher/bin/pf07-hub",
       "target": "launcher/bin/pf07-hub",
       "mode": "0755",
-      "source_sha256": "5b2223fbda0fc33bb9737de6f96451cda6f85900d5059c48594d8b9bfb57fd97"
+      "source_sha256": "7185e3d01acdea4a0127f53bc1a1ffafb8a2f036e5ff37186f33039a6563713d"
     },
     {
       "source": "launcher/pf07_launcher/__init__.py",
       "target": "launcher/pf07_launcher/__init__.py",
       "mode": "0644",
-      "source_sha256": "aa56f7340af2c3a83bc298d08b93c2e7dd81900259e3454cf6a845f8454d7e6c"
+      "source_sha256": "6dcbc1e114291f0a239804e7b2666839c986806b93745aeeb10151afa7a87dac"
     },
     {
       "source": "launcher/pf07_launcher/action_contract.py",
       "target": "launcher/pf07_launcher/action_contract.py",
       "mode": "0644",
-      "source_sha256": "c891324bd015bc608809bb2852531fc9e0a2ac1c0f4e684ed1f4b0ad2e4f68f3"
+      "source_sha256": "b01be59d1e09780b00eef5d7941e2f865a18dc9f8c5f23bbf08b7e83709d4b39"
     },
     {
       "source": "launcher/pf07_launcher/cli.py",
       "target": "launcher/pf07_launcher/cli.py",
       "mode": "0644",
-      "source_sha256": "8c961492f79987e8c093a7b158c67d65078b3235ea29daebaa54574c89de051b"
+      "source_sha256": "c4516d99b1c3ef2643f6a2357326088cadaf13e1425cf95cb43199a0a973bd2d"
     },
     {
       "source": "launcher/pf07_launcher/core.py",
       "target": "launcher/pf07_launcher/core.py",
       "mode": "0644",
-      "source_sha256": "1b090a1901ec4cf03509bdf50580f46d937496eb1e7d78f14bd6395ca1e93dcf"
+      "source_sha256": "3c9cb83fd7ae9a35153d941b866448d4e54761c63cec52e3caa59de235c81530"
     },
     {
       "source": "launcher/pf07_launcher/hub.py",
       "target": "launcher/pf07_launcher/hub.py",
       "mode": "0644",
-      "source_sha256": "650b4fb110cb1008b422a2064906b20f1ecd895442b9b8bee285012475d46071"
+      "source_sha256": "0ea5aeb7837a9ad4813526468d388c9f58ddad4b53e6b1838d825c3483b1e390"
     },
     {
       "source": "launcher/pf07_launcher/tunnel_proxy.py",
       "target": "launcher/pf07_launcher/tunnel_proxy.py",
       "mode": "0644",
-      "source_sha256": "9f491bc072483c08a153c9d805fc31dc724b174391729143c47d351a39ffd215"
+      "source_sha256": "96892dd46bd85232e6fd57a4eda04ca102c53b0397b8be0d6fe0baaf957c028b"
+    },
+    {
+      "source": "launcher/pf07_launcher/tunnel_supervisor.py",
+      "target": "launcher/pf07_launcher/tunnel_supervisor.py",
+      "mode": "0644",
+      "source_sha256": "71cde0978df95d97331ff2ffda5930b06e59c0936474ea4dae75b1073a67d2b7"
     },
     {
       "source": "launcher/ui/app.css",
       "target": "launcher/ui/app.css",
       "mode": "0644",
-      "source_sha256": "07f8b750272c89f57df1327dccc00cfc016a78280a620fb5b02b97816422a92e"
+      "source_sha256": "ffcf8551caea4d1808a9ecda40db40da9c129fec90fc743785dbae8d434a724b"
     },
     {
       "source": "launcher/ui/app.js",
       "target": "launcher/ui/app.js",
       "mode": "0644",
-      "source_sha256": "87b20f8a6c2cf0520cf286d3084b577b5332717ef139a76ce7ab83653841d5a4"
+      "source_sha256": "76137d83b103e45ae17176ac30b4ed77d05e5f9e16374c9e6029aac0226e7ee4"
     },
     {
       "source": "launcher/ui/fonts/PretendardVariable.woff2",
@@ -127,13 +133,13 @@
       "source": "launcher/ui/index.en.html",
       "target": "launcher/ui/index.en.html",
       "mode": "0644",
-      "source_sha256": "a529547dfd1ca942bd34f7aed240ff4732339c5842c2cf83012fb97a740e75fd"
+      "source_sha256": "9ed5d6ddf0c37b13d86d9741bbf1642346f7f9a6f6f533b663bf2ccc9cdfda2e"
     },
     {
       "source": "launcher/ui/index.ko.html",
       "target": "launcher/ui/index.ko.html",
       "mode": "0644",
-      "source_sha256": "95fbe9745074e35e72505022d7fde71af0f628ffaa1d369a763e6177a31560e6"
+      "source_sha256": "7ed478f8e610610066f19cd23ba10ebfa16ad837ae31a9d8c3c2c5bf8c221f65"
     },
     {
       "source": "packaging/common/PACKAGE-README.en.md",
@@ -157,19 +163,19 @@
       "source": "packaging/common/bootstrap-manifest.json",
       "target": "packaging/common/bootstrap-manifest.json",
       "mode": "0644",
-      "source_sha256": "86e13791a618d4030966ddd47f889d294c990b40405ca8c0397ddfe6c23685c0"
+      "source_sha256": "03dc1ddf8a90e2e100d439ea1641035bed4ebb8d61ae92a62ceb21b134701261"
     },
     {
       "source": "packaging/common/compose.yaml",
       "target": "packaging/common/compose.yaml",
       "mode": "0644",
-      "source_sha256": "d7131f862a2d782c1e2219dbc99b6e7c4891a09371cbcd5f0a7d10034d7defac"
+      "source_sha256": "6885c3a1d53e7515157b6bde1e73a741b7fe6d6c38037ec5486a2fd2192b9ae1"
     },
     {
       "source": "packaging/common/distribution-content-bindings.json",
       "target": "packaging/common/distribution-content-bindings.json",
       "mode": "0644",
-      "source_sha256": "f1754bee7bacf03341e46df18b976407840ccfb99a235236d29d1f37b7d087d4"
+      "source_sha256": "f84124e132e933994318a5ac67ac5d004ed271a2cefa1e6c4b9dc3f5c4c4fda9"
     },
     {
       "source": "packaging/common/n8n-task-runners.json",
@@ -223,7 +229,7 @@
       "source": "packaging/common/workflows/connected-mode.json",
       "target": "packaging/common/workflows/connected-mode.json",
       "mode": "0644",
-      "source_sha256": "517db5d4966abbbc35bfd596266e04bc4c8711875416e0f634288357f3891300"
+      "source_sha256": "b57e5610c8019c8aa0f1a87b53e895dd67761a63e6f284768401f8a578b3b903"
     },
     {
       "source": "packaging/common/workflows/demo-mode.json",
@@ -235,19 +241,19 @@
       "source": "packaging/network/tunnel-route-allowlist.json",
       "target": "packaging/network/tunnel-route-allowlist.json",
       "mode": "0644",
-      "source_sha256": "9b01a5d619825c93ac4680eff87b2e07eaff6fc11b6673021aea270fbbec4566"
+      "source_sha256": "e8e68313564200ab69e5e21bea9285c922e878f252ad0fb2d3bfe2b046fdb0f7"
     },
     {
       "source": "plugin/oddroom-orderops/assets/css/admin.css",
       "target": "payload/oddroom-orderops/assets/css/admin.css",
       "mode": "0644",
-      "source_sha256": "e5724822d0c32e1d98db8a499f62be1b125b22a2b9272664618c235a6d7f3260"
+      "source_sha256": "25d24b911cf3c17a5e3ce19adc6303705ff10b2be310ff19d3b3eb9d49e683b7"
     },
     {
       "source": "plugin/oddroom-orderops/assets/css/storefront.css",
       "target": "payload/oddroom-orderops/assets/css/storefront.css",
       "mode": "0644",
-      "source_sha256": "5d3680561152c2e57c9f483b13dae604ffc0e4b97e565313297e6ecfa5d87fd0"
+      "source_sha256": "36caca29ac63271196c4484d5086b5c7b63f7b5a5c08c36fcadd75579bf810c8"
     },
     {
       "source": "plugin/oddroom-orderops/assets/fonts/DoHyeon-Regular.woff2",
@@ -457,13 +463,13 @@
       "source": "plugin/oddroom-orderops/assets/js/storefront.js",
       "target": "payload/oddroom-orderops/assets/js/storefront.js",
       "mode": "0644",
-      "source_sha256": "6a58cf5cc620b3c134566edfc545ea884a367fd6f555192cadbe7ed9623dad9c"
+      "source_sha256": "3ad9b4e74e575433f9bd5310fdc8382210d7b5fe538b0b7d521ecf312e4dcfe7"
     },
     {
       "source": "plugin/oddroom-orderops/includes/class-oddroom-admin.php",
       "target": "payload/oddroom-orderops/includes/class-oddroom-admin.php",
       "mode": "0644",
-      "source_sha256": "5457a9b8d265daa7f2697cf59faffeb92439121532c87061356961da00919c02"
+      "source_sha256": "b610b7175f1b43046a1bb8210a8b78b2e2235e03d2c3e8fb7adc0dcbf4cae71b"
     },
     {
       "source": "plugin/oddroom-orderops/includes/class-oddroom-canonical-payload.php",
@@ -505,7 +511,7 @@
       "source": "plugin/oddroom-orderops/includes/class-oddroom-package.php",
       "target": "payload/oddroom-orderops/includes/class-oddroom-package.php",
       "mode": "0644",
-      "source_sha256": "649a4229974233064cb54aa0ba4ad51775c5d9e00c48b43f4ac74867a48fcde9"
+      "source_sha256": "31347b6240ada018ef8b2d55ebd5876fa197dcba249781586cc6a970d58519da"
     },
     {
       "source": "plugin/oddroom-orderops/includes/class-oddroom-private-admin.php",
@@ -541,7 +547,7 @@
       "source": "plugin/oddroom-orderops/includes/class-oddroom-scheduler.php",
       "target": "payload/oddroom-orderops/includes/class-oddroom-scheduler.php",
       "mode": "0644",
-      "source_sha256": "5c2b193a4b74bab3bfdcd5690fc8d3c43b2705fdaa626933df5d1889fe49e5b9"
+      "source_sha256": "9d421aa383f96d615efdceccc70e9d5235fdba09e38a32936fe58411efac3168"
     },
     {
       "source": "plugin/oddroom-orderops/includes/class-oddroom-signature.php",
@@ -559,19 +565,19 @@
       "source": "plugin/oddroom-orderops/includes/class-oddroom-storefront.php",
       "target": "payload/oddroom-orderops/includes/class-oddroom-storefront.php",
       "mode": "0644",
-      "source_sha256": "c9245fed79e8947953ca7b1109d5958ba4bc18752a6d4874be3ebc4cceb4df14"
+      "source_sha256": "16afdbd07b44d7ef89b004139a1e06d4c28d2f6337c85b7277f5b48fa1e37aa6"
     },
     {
       "source": "plugin/oddroom-orderops/includes/class-oddroom-worker.php",
       "target": "payload/oddroom-orderops/includes/class-oddroom-worker.php",
       "mode": "0644",
-      "source_sha256": "9f91b9101525b6be4df60f7406169f0fc052e07efd54df186181d5819e1cd1d6"
+      "source_sha256": "0e1c5dc1c258763ab4da896f53a04fcf964130a326dd6e50e26e37341365038f"
     },
     {
       "source": "plugin/oddroom-orderops/oddroom-orderops.php",
       "target": "payload/oddroom-orderops/oddroom-orderops.php",
       "mode": "0644",
-      "source_sha256": "5f563cf086a67c2d57e9aa2383be7369f020786dcff5bc93515f87c1202e65e2"
+      "source_sha256": "36f86c4d122885aed4691c5a4597aa2b5b17c1f625ac2524e2932d67a38c4089"
     },
     {
       "source": "plugin/oddroom-orderops/tests/run.php",
@@ -595,7 +601,7 @@
       "source": "packaging/windows/pf07.cmd",
       "target": "pf07.cmd",
       "mode": "0644",
-      "source_sha256": "15d6b5ea90480e01fe8faef73b952ab89a2aecd582f79ef6b97436bcca2d2424"
+      "source_sha256": "5495ea6dc36ab176e552a4d0d5ed52abd720bc78a0b05da60b0b9b2dd4179bc5"
     }
   ],
   "generated_outputs": [

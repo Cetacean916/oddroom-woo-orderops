@@ -45,6 +45,12 @@ services:
         define('ODDROOM_ORDEROPS_RUN_ID', getenv('ODDROOM_RUN_ID'));
         define('ODDROOM_ORDEROPS_WEBHOOK_URL', getenv('ODDROOM_WEBHOOK_URL'));
         define('ODDROOM_ORDEROPS_TEST_MODE', true);
+        $$pf07_proxy_marker = isset($$_SERVER['HTTP_X_PF07_TRUSTED_PROXY']) ? (string) $$_SERVER['HTTP_X_PF07_TRUSTED_PROXY'] : '';
+        $$pf07_expected_proxy_marker = hash_hmac('sha256', 'pf07-tunnel-proxy-v1', (string) getenv('ODDROOM_WEBHOOK_HMAC_KEY'));
+        if ($$pf07_proxy_marker !== '' && hash_equals($$pf07_expected_proxy_marker, $$pf07_proxy_marker)) {
+          $$_SERVER['HTTPS'] = 'on';
+          $$_SERVER['SERVER_PORT'] = '443';
+        }
       ODDROOM_SHOP_INSTANCE_ID: ${ODDROOM_SHOP_INSTANCE_ID:?package-local runtime material is required}
       ODDROOM_RUN_ID: ${ODDROOM_RUN_ID:?package-local runtime material is required}
       ODDROOM_PUBLIC_BASE_URL: ${ODDROOM_PUBLIC_BASE_URL:?package-local public URL is required}
@@ -53,11 +59,13 @@ services:
       ODDROOM_TEST_MODE: "true"
       PF07_HUBSPOT_CONFIGURED: ${PF07_HUBSPOT_CONFIGURED:-false}
       PF07_SLACK_CONFIGURED: ${PF07_SLACK_CONFIGURED:-false}
+      PF07_CONTROLLED_UPDATE_GATE_FILE: /workspace/pf07-control/controlled-update-gate.json
       TZ: UTC
     volumes:
       - wordpress_data:/var/www/html
       - ../../payload/oddroom-orderops:/var/www/html/wp-content/plugins/oddroom-orderops:ro
       - ../../.pf07/downloads:/workspace/downloads:ro
+      - ../../.pf07/control:/workspace/pf07-control:ro
     ports:
       - "${PF07_BIND_ADDRESS:-127.0.0.1}:${PF07_WORDPRESS_PORT:?package-local port is required}:80"
     networks: [private]
@@ -82,11 +90,13 @@ services:
       PF07_ADMIN_USER: ${PF07_ADMIN_USER:?package-local administrator is required}
       PF07_HUBSPOT_CONFIGURED: ${PF07_HUBSPOT_CONFIGURED:-false}
       PF07_SLACK_CONFIGURED: ${PF07_SLACK_CONFIGURED:-false}
+      PF07_CONTROLLED_UPDATE_GATE_FILE: /workspace/pf07-control/controlled-update-gate.json
       TZ: UTC
     volumes:
       - wordpress_data:/var/www/html
       - ../../payload/oddroom-orderops:/var/www/html/wp-content/plugins/oddroom-orderops:ro
       - ../../.pf07/downloads:/workspace/downloads:ro
+      - ../../.pf07/control:/workspace/pf07-control:ro
     entrypoint: ["wp"]
     networks: [private]
     profiles: [tools]
@@ -167,16 +177,24 @@ services:
       ODDROOM_TEST_MODE: "true"
       PF07_HUBSPOT_CONFIGURED: ${PF07_HUBSPOT_CONFIGURED:-false}
       PF07_SLACK_CONFIGURED: ${PF07_SLACK_CONFIGURED:-false}
+      PF07_CONTROLLED_UPDATE_GATE_FILE: /workspace/pf07-control/controlled-update-gate.json
       TZ: UTC
     volumes:
       - wordpress_data:/var/www/html
       - ../../payload/oddroom-orderops:/var/www/html/wp-content/plugins/oddroom-orderops:ro
+      - ../../.pf07/control:/workspace/pf07-control:ro
     entrypoint: ["sh", "-c"]
     command:
       - >-
+        maintenance_cycle=15;
         while true; do
           wp oddroom-orderops recover --limit=50 >/dev/null 2>&1 || true;
           wp action-scheduler run --hooks=oddroom_orderops_process --batch-size=25 --batches=1 --force >/dev/null 2>&1 || true;
+          maintenance_cycle=$$((maintenance_cycle + 1));
+          if [ "$$maintenance_cycle" -ge 15 ]; then
+            wp action-scheduler run --batch-size=25 --batches=4 --force >/dev/null 2>&1 || true;
+            maintenance_cycle=0;
+          fi;
           sleep 2;
         done
     networks: [private]

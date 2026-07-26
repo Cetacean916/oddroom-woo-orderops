@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-if ! command -v python3 >/dev/null 2>&1; then
+if ! command -v python3 >/dev/null 2>&1 || ! python3 -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)'; then
   if command -v xdg-open >/dev/null 2>&1; then xdg-open 'https://www.python.org/downloads/' >/dev/null 2>&1 || true; fi
   printf '%s\n' 'Python 3.10+ is required. The official download page has been opened.' >&2
   exit 20

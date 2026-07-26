@@ -79,6 +79,15 @@ if ($null -eq $Python) {
     Open-PF07Prerequisite -State 'MISSING_PYTHON'
     exit 20
 }
+$VersionArguments = @() + $Python.Prefix + @(
+    '-c',
+    'import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)'
+)
+& $Python.File @VersionArguments
+if ($LASTEXITCODE -ne 0) {
+    Open-PF07Prerequisite -State 'MISSING_PYTHON'
+    exit 20
+}
 
 $env:PYTHONPATH = (Join-Path $PackageRoot 'launcher')
 $env:PYTHONDONTWRITEBYTECODE = '1'

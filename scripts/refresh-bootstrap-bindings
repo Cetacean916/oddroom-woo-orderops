@@ -65,7 +65,7 @@ def main() -> None:
     value = {
         "schema": "pf07.distribution-content-bindings.v1",
         "fixture_version": "offset-objects-1.0.0",
-        "plugin_version": "0.2.0",
+        "plugin_version": "0.2.1",
         "plugin_schema_version": "1.1.0",
         "payload_schema_version": "1",
         "file_count": len(rows),

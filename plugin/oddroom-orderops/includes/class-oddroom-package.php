@@ -32,6 +32,29 @@ final class OddRoom_Package
             : self::DEMO_MODE;
     }
 
+    public static function outboundProcessingAllowed(): bool
+    {
+        $path = trim((string) getenv('PF07_CONTROLLED_UPDATE_GATE_FILE'));
+        if ($path === '') {
+            return true;
+        }
+        if (!is_file($path) || is_link($path) || !is_readable($path)) {
+            return false;
+        }
+        $raw = file_get_contents($path);
+        if (!is_string($raw) || $raw === '') {
+            return false;
+        }
+        try {
+            $value = json_decode($raw, true, 16, JSON_THROW_ON_ERROR);
+        } catch (Throwable $error) {
+            return false;
+        }
+        return is_array($value)
+            && ($value['schema'] ?? null) === 'pf07.controlled-update-outbound-gate.v1'
+            && in_array(($value['state'] ?? null), ['NORMAL', 'COMMITTED'], true);
+    }
+
     public static function scenario(): string
     {
         $value = (string) get_option(self::SCENARIO_OPTION, 'normal');
@@ -47,11 +70,19 @@ final class OddRoom_Package
             $stored = [];
         }
         $remote = self::adapterState();
+        $hubspotAlias = self::boundedAlias($stored['hubspot_alias'] ?? 'OFFSET Customer Records');
+        $slackAlias = self::boundedAlias($stored['slack_alias'] ?? 'OFFSET Order Alerts');
+        if ($hubspotAlias === 'PF07HubSpotRuntime1') {
+            $hubspotAlias = 'OFFSET Customer Records';
+        }
+        if ($slackAlias === 'PF07SlackRuntime1') {
+            $slackAlias = 'OFFSET Order Alerts';
+        }
         return [
             'mode' => self::mode(),
             'scenario' => self::scenario(),
-            'hubspot_alias' => self::boundedAlias($stored['hubspot_alias'] ?? 'PF07HubSpotRuntime1'),
-            'slack_alias' => self::boundedAlias($stored['slack_alias'] ?? 'PF07SlackRuntime1'),
+            'hubspot_alias' => $hubspotAlias,
+            'slack_alias' => $slackAlias,
             'hubspot_configured' => filter_var(getenv('PF07_HUBSPOT_CONFIGURED'), FILTER_VALIDATE_BOOLEAN),
             'slack_configured' => filter_var(getenv('PF07_SLACK_CONFIGURED'), FILTER_VALIDATE_BOOLEAN),
             'demo_contacts' => count($remote['contacts']),
@@ -393,6 +424,6 @@ final class OddRoom_Package
             return '';
         }
         $value = trim(sanitize_text_field($value));
-        return preg_match('/\A[A-Za-z][A-Za-z0-9._-]{2,63}\z/D', $value) === 1 ? $value : '';
+        return preg_match('/\A[A-Za-z][A-Za-z0-9 ._-]{2,63}\z/D', $value) === 1 ? $value : '';
     }
 }

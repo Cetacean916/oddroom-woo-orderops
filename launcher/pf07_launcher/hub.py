@@ -15,7 +15,9 @@ from typing import Any
 from urllib.parse import urlparse
 
 from .core import (
+    CONTROLLED_UPDATE_PREDECESSOR_VERSION,
     LauncherError,
+    PACKAGE_VERSION,
     backup,
     configure_connected,
     controlled_update,
@@ -85,6 +87,19 @@ class HubHandler(BaseHTTPRequestHandler):
         provided = self.headers.get("X-PF07-Hub-Token", "")
         return bool(provided) and hmac.compare_digest(provided, self.server.session_token)
 
+    def _trusted_authority(self) -> bool:
+        expected = f"127.0.0.1:{self.server.server_address[1]}"
+        if self.headers.get("Host", "") != expected:
+            return False
+        origin = self.headers.get("Origin")
+        return origin is None or origin == f"http://{expected}"
+
+    def _reject_untrusted_authority(self) -> bool:
+        if self._trusted_authority():
+            return False
+        self._json({"error": "loopback hub authority required"}, HTTPStatus.MISDIRECTED_REQUEST)
+        return True
+
     def _request_json(self) -> dict[str, Any]:
         try:
             length = int(self.headers.get("Content-Length", "0"))
@@ -103,11 +118,15 @@ class HubHandler(BaseHTTPRequestHandler):
         return value
 
     def do_GET(self) -> None:
+        if self._reject_untrusted_authority():
+            return
         path = urlparse(self.path).path
         if path == "/":
             suffix = "en" if selected_locale() == "en_US" else "ko"
             html = (self.server.ui_root / f"index.{suffix}.html").read_text(encoding="utf-8")
             html = html.replace("__PF07_SESSION_TOKEN__", self.server.session_token)
+            html = html.replace("__PF07_PACKAGE_VERSION__", PACKAGE_VERSION)
+            html = html.replace("__PF07_PREDECESSOR_VERSION__", CONTROLLED_UPDATE_PREDECESSOR_VERSION)
             self._bytes(html.encode("utf-8"), "text/html; charset=utf-8")
             return
         if path == "/app.css":
@@ -118,6 +137,10 @@ class HubHandler(BaseHTTPRequestHandler):
             return
         if path == "/fonts/PretendardVariable.woff2":
             self._bytes((self.server.ui_root / "fonts" / "PretendardVariable.woff2").read_bytes(), "font/woff2")
+            return
+        if path == "/fonts/NotoSerifKR-Variable-PF07Subset.woff2":
+            editorial = package_root() / "payload" / "oddroom-orderops" / "assets" / "fonts" / "NotoSerifKR-Variable-PF07Subset.woff2"
+            self._bytes(editorial.read_bytes(), "font/woff2")
             return
         if path == "/brand-symbol.svg":
             symbol = package_root() / "payload" / "oddroom-orderops" / "assets" / "images" / "brand" / "symbol.svg"
@@ -150,6 +173,8 @@ class HubHandler(BaseHTTPRequestHandler):
         self._json({"error": "not found"}, HTTPStatus.NOT_FOUND)
 
     def do_POST(self) -> None:
+        if self._reject_untrusted_authority():
+            return
         if not self._authorized():
             self._json({"error": "hub session authorization required"}, HTTPStatus.FORBIDDEN)
             return
