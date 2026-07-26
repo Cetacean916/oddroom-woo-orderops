@@ -237,7 +237,7 @@ claims = (root / "docs/CLAIMS-BOUNDARY.md").read_text(encoding="utf-8")
 architecture = (root / "case-study/architecture.svg").read_text(encoding="utf-8")
 for phrase in [
     "구매자가 겪는 문제", "Proof scorecard", "What this proves", "What this does not prove",
-    "ON_DEMAND_ONLY", "Buyer fit / non-fit", "60–90", "recovery-clip.mp4",
+    "ON_DEMAND_ONLY", "Buyer fit / non-fit", "여섯 영상", "원속도",
     "Formal exactly-once", "captured, still-valid signed request", "source-available dependency",
 ]:
     if phrase.lower() not in (case + claims + architecture).lower():
