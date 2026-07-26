@@ -121,6 +121,9 @@ class TunnelProxy(ThreadingHTTPServer):
         canonical_path = quote(normalized, safe="/-._~!$&'()*+,;=:@")
         return canonical_path + (f"?{query}" if query else "")
 
+    def route_allowed(self, path: str, query: str = "") -> bool:
+        return self.canonical_route(path, query) is not None
+
 
 class TunnelProxyHandler(BaseHTTPRequestHandler):
     server: TunnelProxy

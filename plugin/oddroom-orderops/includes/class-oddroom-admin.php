@@ -425,7 +425,7 @@ final class OddRoom_Admin
             self::text('자동 처리 번호', 'Automation number') => $row->action_id ?? '—',
             self::text('현재 작업 보유 시간', 'Current work hold') => $row->lock_age_seconds === null ? self::text('현재 작업 없음', 'No active work') : self::duration((int) $row->lock_age_seconds),
             self::text('오류 코드', 'Error code') => $row->error_code ?? '—',
-            self::text('최근 오류 안내', 'Latest error') => $row->last_error ?? '—',
+            self::text('정제된 오류', 'Sanitized error') => $row->last_error ?? '—',
             self::text('고객 연락처', 'Customer contact') => self::maskIdentifier($row->remote_contact_id),
             self::text('거래 기록', 'Deal record') => self::maskIdentifier($row->remote_deal_id),
             self::text('주문 알림', 'Order notification') => self::notificationLabel((string) $row->slack_status) . ' / ' . self::maskIdentifier($row->slack_message_ts),

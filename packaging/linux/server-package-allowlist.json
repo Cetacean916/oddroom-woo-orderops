@@ -1,10 +1,10 @@
 {
   "schema": "pf07.package-allowlist.v1",
   "artifact_id": "pf07-linux-server",
-  "package_version": "1.0.4",
+  "package_version": "1.0.5",
   "platform": "linux-server",
   "architecture": "x86_64",
-  "root_name": "PF07-OrderOps-1.0.4-linux-server",
+  "root_name": "PF07-OrderOps-1.0.5-linux-server",
   "classification": "PUBLIC_DISTRIBUTION",
   "tested_boundary": "ACTUAL_ISOLATED_LINUX_SERVER_EXECUTION_REQUIRED_ON_CANONICAL_CI_BYTES_IN_STEP_090",
   "files": [
@@ -61,7 +61,7 @@
       "source": "launcher/pf07_launcher/__init__.py",
       "target": "launcher/pf07_launcher/__init__.py",
       "mode": "0644",
-      "source_sha256": "0d55f02ce3e76e41cfcc631fbecb6bce87671cbafb13448b967df7a43340caf2"
+      "source_sha256": "6dcbc1e114291f0a239804e7b2666839c986806b93745aeeb10151afa7a87dac"
     },
     {
       "source": "launcher/pf07_launcher/action_contract.py",
@@ -79,7 +79,7 @@
       "source": "launcher/pf07_launcher/core.py",
       "target": "launcher/pf07_launcher/core.py",
       "mode": "0644",
-      "source_sha256": "455edfedd2b264c816d703d907acb6360d7a1ecd45b8bd1b9a10389cde7b9194"
+      "source_sha256": "3c9cb83fd7ae9a35153d941b866448d4e54761c63cec52e3caa59de235c81530"
     },
     {
       "source": "launcher/pf07_launcher/hub.py",
@@ -91,7 +91,7 @@
       "source": "launcher/pf07_launcher/tunnel_proxy.py",
       "target": "launcher/pf07_launcher/tunnel_proxy.py",
       "mode": "0644",
-      "source_sha256": "dc8e5370305cf3a5d5ccefacadd79bbb3fb0e04190e9726a9ef177aaccd0e044"
+      "source_sha256": "96892dd46bd85232e6fd57a4eda04ca102c53b0397b8be0d6fe0baaf957c028b"
     },
     {
       "source": "launcher/pf07_launcher/tunnel_supervisor.py",
@@ -151,7 +151,7 @@
       "source": "packaging/common/bootstrap-manifest.json",
       "target": "packaging/common/bootstrap-manifest.json",
       "mode": "0644",
-      "source_sha256": "90bc57e04b88972eeb1faba76cbab7769b1bb17b738f533f2819309c14ec9e83"
+      "source_sha256": "03dc1ddf8a90e2e100d439ea1641035bed4ebb8d61ae92a62ceb21b134701261"
     },
     {
       "source": "packaging/common/compose.yaml",
@@ -163,7 +163,7 @@
       "source": "packaging/common/distribution-content-bindings.json",
       "target": "packaging/common/distribution-content-bindings.json",
       "mode": "0644",
-      "source_sha256": "db2a2d2dd6daecb760b4a044449e986b8d20b67d9586251603d5a1d12b119cc0"
+      "source_sha256": "f84124e132e933994318a5ac67ac5d004ed271a2cefa1e6c4b9dc3f5c4c4fda9"
     },
     {
       "source": "packaging/common/n8n-task-runners.json",
@@ -457,7 +457,7 @@
       "source": "plugin/oddroom-orderops/includes/class-oddroom-admin.php",
       "target": "payload/oddroom-orderops/includes/class-oddroom-admin.php",
       "mode": "0644",
-      "source_sha256": "447c00f99c99d56de0fcca1bb8e119754637eaec86ac0e9a6c921147db18a9f8"
+      "source_sha256": "b610b7175f1b43046a1bb8210a8b78b2e2235e03d2c3e8fb7adc0dcbf4cae71b"
     },
     {
       "source": "plugin/oddroom-orderops/includes/class-oddroom-canonical-payload.php",

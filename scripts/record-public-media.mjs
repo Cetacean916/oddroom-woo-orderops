@@ -81,12 +81,36 @@ const runtime = Object.fromEntries(
 for (const key of ["PF07_WORDPRESS_PORT", "PF07_ADMIN_USER", "PF07_ADMIN_PASSWORD", "PF07_COMPOSE_PROJECT"]) {
   if (!runtime[key]) throw new Error(`missing final package runtime value: ${key}`);
 }
-const syntheticContactEmail = "pf07-demo@example.com";
+const defaultSyntheticContactEmailPool = [
+  "pf07-media-ko-purchase@example.com",
+  "pf07-media-ko-recovery@example.com",
+  "pf07-media-en-purchase@example.com",
+  "pf07-media-en-recovery@example.com",
+];
+const syntheticContactEmailPool = (
+  process.env.PF07_SYNTHETIC_CONTACT_EMAIL_POOL
+  || defaultSyntheticContactEmailPool.join(",")
+).split(",").map((value) => value.trim());
+if (syntheticContactEmailPool.length < 4
+  || syntheticContactEmailPool.length > 64
+  || new Set(syntheticContactEmailPool).size !== syntheticContactEmailPool.length
+  || syntheticContactEmailPool.some((value) => !/^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@example\.com$/.test(value))) {
+  throw new Error("PF07_SYNTHETIC_CONTACT_EMAIL_POOL must contain 4 to 64 distinct lowercase @example.com addresses");
+}
+const usedSyntheticContactEmails = [];
+function nextSyntheticContactEmail() {
+  if (usedSyntheticContactEmails.length >= syntheticContactEmailPool.length) {
+    throw new Error("PF07 synthetic contact email pool was exhausted before media recording completed");
+  }
+  const value = syntheticContactEmailPool[usedSyntheticContactEmails.length];
+  usedSyntheticContactEmails.push(value);
+  return value;
+}
 const artifactManifestBytes = await fsp.readFile(artifactManifestPath);
 const artifactManifest = JSON.parse(artifactManifestBytes.toString("utf8"));
 if (artifactManifest.schema !== "pf07.artifact-manifest.v1"
   || artifactManifest.artifact_id !== "pf07-linux-x86_64"
-  || artifactManifest.package_version !== "1.0.4"
+  || artifactManifest.package_version !== "1.0.5"
   || typeof artifactManifest.build_id !== "string"
   || !artifactManifest.build_id.startsWith("pf07-build-")
   || artifactManifest.actual_os_runtime_execution !== false
@@ -431,6 +455,7 @@ async function createOrderThroughCheckout(page, timelineState = null) {
   const checkoutLink = page.locator("a.checkout-button").first();
   await clickAndWait(checkoutLink, page);
   await page.locator("#billing_email").waitFor();
+  await slowFill(page, "#billing_email", nextSyntheticContactEmail(), { protect: true, instant: true });
   if (timelineState) {
     await caption(page, words.checkout[0], words.checkout[1]);
     mark(timelineState.capture, timelineState.timeline, "CHECKOUT_INPUT", "synthetic_checkout_input_visible");
@@ -661,7 +686,7 @@ async function createRecoveryOrderViaWpCli() {
   const result = await compose(
     "--profile", "tools", "run", "--rm", "-T", "wpcli",
     "oddroom-orderops", "create-order", "--shape=variable", `--alias=${alias}`,
-    `--email=${syntheticContactEmail}`,
+    `--email=${nextSyntheticContactEmail()}`,
   );
   const record = JSON.parse(result.stdout.toString("utf8"));
   if (!Number.isInteger(record.order_id) || record.order_id < 1
@@ -857,7 +882,7 @@ async function recordLocale(locale, targets) {
     capture: purchaseCapture,
     timeline: purchaseTimeline,
     event: "WORKER_RUN",
-    observation: "visible_order_processing",
+    observation: "visible_terminal_foreground_worker_exit_zero",
   });
   await reloadAdmin(adminPage);
   if (!(await newestClass(adminPage)).includes("status-normal")) throw new Error("purchase row did not complete");
@@ -903,7 +928,7 @@ async function recordLocale(locale, targets) {
     capture: recoveryCapture,
     timeline: recoveryTimeline,
     event: "FAILURE_WORKER_RUN",
-    observation: "visible_interrupted_processing",
+    observation: "visible_terminal_failure_worker_exit_zero",
   });
   await reloadAdmin(recoveryAdmin);
   if (!(await newestClass(recoveryAdmin)).includes("status-failed")) throw new Error("recovery row did not enter failed");
@@ -944,7 +969,7 @@ async function recordLocale(locale, targets) {
     capture: recoveryCapture,
     timeline: recoveryTimeline,
     event: "RECOVERY_WORKER_RUN",
-    observation: "visible_recovery_processing",
+    observation: "visible_terminal_recovery_worker_exit_zero",
   });
   await reloadAdmin(recoveryAdmin);
   if (!(await newestClass(recoveryAdmin)).includes("status-recovered")) throw new Error("recovery row did not reach recovered");
@@ -983,7 +1008,10 @@ const proof = {
   package_artifact_id: artifactManifest.artifact_id,
   package_build_id: artifactManifest.build_id,
   package_artifact_manifest_sha256: sha256(artifactManifestBytes),
-  synthetic_checkout_identity: syntheticContactEmail,
+  synthetic_checkout_identity: "distinct lowercase @example.com identities",
+  synthetic_checkout_identity_count: usedSyntheticContactEmails.length,
+  actual_checkout_observed: true,
+  visible_worker_terminal_observed: true,
   videos: {},
 };
 

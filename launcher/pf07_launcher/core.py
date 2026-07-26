@@ -34,14 +34,14 @@ from .action_contract import PrerequisiteFacts, RuntimeFacts, classify_prerequis
 
 ADMIN_USER = "pf07-operator"
 ADMIN_EMAIL = "pf07-admin@example.com"
-PACKAGE_VERSION = "1.0.4"
-CONTROLLED_UPDATE_PREDECESSOR_VERSION = "1.0.3"
-CONTROLLED_UPDATE_PREDECESSOR_BUILD_ID = "pf07-build-c14f8fe0b8e95bea97bf"
+PACKAGE_VERSION = "1.0.5"
+CONTROLLED_UPDATE_PREDECESSOR_VERSION = "1.0.4"
+CONTROLLED_UPDATE_PREDECESSOR_BUILD_ID = "pf07-build-7fefca73ae30774c9a09"
 CONTROLLED_UPDATE_PREDECESSOR_MANIFEST_SHA256 = {
-    "pf07-linux-server": "456f3b60c34fa23fac9b58a21c0d06b584ab2e64fbdf21ca33306812b5bb56fd",
-    "pf07-linux-x86_64": "4507f33a5c79d8fdf019023fecbcffc8664c2e8078a1edbfd88b83d6d37e43aa",
-    "pf07-macos-universal": "f994a1e6e4262a926e6247e62d60b7eb7454b7208a8cc37332505f9750ff6416",
-    "pf07-windows-x64": "eb8296d0dabdab4e61715b8fe297c897cd741093ad705a56907a9ef94e49b57f",
+    "pf07-linux-server": "c2fbe286b1555dfb3eab55408f29e14b7d9c6a85c0fb04b8de8878cd8c251a7a",
+    "pf07-linux-x86_64": "cd20448ac0fb53be2b745d815429bd5452f543614e2f0f74c9d3546325b82429",
+    "pf07-macos-universal": "15767b1b3861d7de2c7296c27e2958e66ccd8106a08489758bf80d0822d4d9f4",
+    "pf07-windows-x64": "7f84549318e023c0cad8495af85bfa8f46aad562ff81faac05ce61fee44b345b",
 }
 DEFAULT_WORDPRESS_PORT = 19081
 STATE_DIR_NAME = ".pf07"
@@ -1610,11 +1610,11 @@ def _release_owned_lock(lock_path: Path, descriptor: int | None) -> None:
 
 
 def start(*, _controlled_update_tentative: bool = False) -> dict[str, Any]:
+    # Establish the host runtime prerequisite before operation locking can
+    # create package-local state.
+    _docker_preflight({})
     with _operation_lock():
         try:
-            # A missing or stopped runtime must not create package identity or
-            # secrets before the prerequisite boundary is established.
-            _docker_preflight({})
             package_state_existed = (state_dir() / "runtime.env").is_file()
             values = _synchronize_runtime_mode(ensure_runtime())
             if package_state_existed:
@@ -3874,8 +3874,9 @@ def _running_project_containers(values: dict[str, str]) -> list[str]:
 
 
 def _controlled_update_missing_runtime_keys(values: dict[str, str]) -> list[str]:
-    """Require the complete reviewed 1.0.3 runtime identity before migration."""
-    return sorted(REQUIRED_ENV_KEYS - values.keys())
+    """Require the reviewed 1.0.4 runtime identity before migration."""
+    predecessor_keys = REQUIRED_ENV_KEYS - {"PF07_NETWORK_SUBNET"}
+    return sorted(predecessor_keys - values.keys())
 
 
 def _controlled_update_scratch_paths(transaction: dict[str, Any]) -> tuple[Path, Path, Path]:
@@ -4359,7 +4360,7 @@ def _controlled_update_locked(predecessor_name: str, confirmation: str) -> dict[
         or predecessor_identity["build_id"] != CONTROLLED_UPDATE_PREDECESSOR_BUILD_ID
         or predecessor_identity["artifact_manifest_sha256"] != approved_manifest
     ):
-        raise LauncherError("The predecessor is not an exact approved public PF07 1.0.3 package.")
+        raise LauncherError("The predecessor is not an exact approved public PF07 1.0.4 package.")
     expected_update = (CONTROLLED_UPDATE_PREDECESSOR_VERSION, PACKAGE_VERSION)
     observed_update = (predecessor_identity["package_version"], current_identity["package_version"])
     if observed_update != expected_update:
@@ -4587,7 +4588,7 @@ def _controlled_update_locked(predecessor_name: str, confirmation: str) -> dict[
             "from_build_id": predecessor_identity["build_id"],
             "to_build_id": current_identity["build_id"],
             "package_version": current_identity["package_version"],
-            "migration_id": "controlled-1.0.3-to-1.0.4-v1",
+            "migration_id": "controlled-1.0.4-to-1.0.5-v1",
             "manifest_migrations": [
                 "oddroom-orderops-schema-1.1.0",
                 "package-config-v1",

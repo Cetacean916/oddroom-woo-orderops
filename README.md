@@ -98,7 +98,7 @@ node scripts/record-public-media.mjs <NEW_OUTPUT_DIRECTORY>
 
 - `ko|en-guided-overview.mp4`, one distinct poster, WebVTT captions, and chapter metadata for each locale
 - `ko|en-purchase-delivery.mp4` and `ko|en-failure-recovery.mp4`, each with its own poster, WebVTT captions, and chapter metadata
-- `execution-proof.json`, bound to the exact 1.0.4 Linux artifact manifest and the four focused recordings
+- `execution-proof.json`, bound to the exact 1.0.5 Linux artifact manifest and the four focused recordings
 
 The recordings are original-speed captures from the delivered runtime. They are not sped-up derivatives of one another.
 

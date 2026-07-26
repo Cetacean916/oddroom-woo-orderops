@@ -5,7 +5,7 @@
   "plugin_schema_version": "1.1.0",
   "payload_schema_version": "1",
   "file_count": 86,
-  "content_set_sha256": "e6a0a29689afa058c27609b346eb86b261b7c41caea4125f7ece13239e1a7fc8",
+  "content_set_sha256": "476523247124d5cf3b65a9cf662024d89a824fb559c29087fdd0e04ee5071e57",
   "files": [
     {
       "source": "launcher/bin/pf07",
@@ -22,7 +22,7 @@
     {
       "source": "launcher/pf07_launcher/__init__.py",
       "package_path": "launcher/pf07_launcher/__init__.py",
-      "sha256": "0d55f02ce3e76e41cfcc631fbecb6bce87671cbafb13448b967df7a43340caf2",
+      "sha256": "6dcbc1e114291f0a239804e7b2666839c986806b93745aeeb10151afa7a87dac",
       "bytes": 87
     },
     {
@@ -40,8 +40,8 @@
     {
       "source": "launcher/pf07_launcher/core.py",
       "package_path": "launcher/pf07_launcher/core.py",
-      "sha256": "455edfedd2b264c816d703d907acb6360d7a1ecd45b8bd1b9a10389cde7b9194",
-      "bytes": 240138
+      "sha256": "3c9cb83fd7ae9a35153d941b866448d4e54761c63cec52e3caa59de235c81530",
+      "bytes": 240146
     },
     {
       "source": "launcher/pf07_launcher/hub.py",
@@ -52,8 +52,8 @@
     {
       "source": "launcher/pf07_launcher/tunnel_proxy.py",
       "package_path": "launcher/pf07_launcher/tunnel_proxy.py",
-      "sha256": "dc8e5370305cf3a5d5ccefacadd79bbb3fb0e04190e9726a9ef177aaccd0e044",
-      "bytes": 9639
+      "sha256": "96892dd46bd85232e6fd57a4eda04ca102c53b0397b8be0d6fe0baaf957c028b",
+      "bytes": 9766
     },
     {
       "source": "launcher/pf07_launcher/tunnel_supervisor.py",
@@ -394,8 +394,8 @@
     {
       "source": "plugin/oddroom-orderops/includes/class-oddroom-admin.php",
       "package_path": "payload/oddroom-orderops/includes/class-oddroom-admin.php",
-      "sha256": "447c00f99c99d56de0fcca1bb8e119754637eaec86ac0e9a6c921147db18a9f8",
-      "bytes": 50226
+      "sha256": "b610b7175f1b43046a1bb8210a8b78b2e2235e03d2c3e8fb7adc0dcbf4cae71b",
+      "bytes": 50225
     },
     {
       "source": "plugin/oddroom-orderops/includes/class-oddroom-canonical-payload.php",
