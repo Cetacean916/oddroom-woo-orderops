@@ -89,7 +89,7 @@ def compact_state(state: dict) -> dict:
 
 
 def create_payment_fixture(runtime: ProbeRuntime, alias: str) -> tuple[dict, dict, dict]:
-    created = runtime.create_order("simple", alias, "30000.00")
+    created = runtime.create_fresh_order("simple", alias, "30000.00")
     runtime.run_action(created["action_id"])
     payment = runtime.wpcli_json([
         "oddroom-orderops", "emit-event", str(created["order_id"]), "PAYMENT_CONFIRMED",

@@ -78,7 +78,7 @@ def order_shapes(runtime: ProbeRuntime, prefix: str) -> tuple[list[dict], dict]:
         ("variable", "23000.00"),
         ("coupon", "31000.00"),
     ), start=1):
-        order = runtime.create_order(shape, f"{prefix}-{shape}-{index}", amount)
+        order = runtime.create_fresh_order(shape, f"{prefix}-{shape}-{index}", amount)
         runtime.run_action(order["action_id"])
         created.append(order)
     observed = runtime.order_rows([order["order_id"] for order in created])
@@ -555,17 +555,17 @@ def gate08(runtime: ProbeRuntime, suffix: str) -> None:
         runtime.wpcli(["eval", f"do_action('oddroom_orderops_capture_order_created',{created_order});"])
         missing.append(("ORDER_CREATED", "date_created", created_order))
 
-        payment_order = runtime.create_order("simple", f"{suffix}-payment", "21000.00")
+        payment_order = runtime.create_fresh_order("simple", f"{suffix}-payment", "21000.00")
         enable_fault(runtime, payment_order["order_id"], "PAYMENT_CONFIRMED", "SUPPRESS_OUTBOX_INSERT")
         emit_suppressed_fact(runtime, payment_order["order_id"], "PAYMENT_CONFIRMED")
         missing.append(("PAYMENT_CONFIRMED", "date_paid", payment_order["order_id"]))
 
-        cancel_order = runtime.create_order("simple", f"{suffix}-cancel", "22000.00")
+        cancel_order = runtime.create_fresh_order("simple", f"{suffix}-cancel", "22000.00")
         enable_fault(runtime, cancel_order["order_id"], "ORDER_CANCELLED", "SUPPRESS_OUTBOX_INSERT")
         emit_suppressed_fact(runtime, cancel_order["order_id"], "ORDER_CANCELLED")
         missing.append(("ORDER_CANCELLED", "_oddroom_orderops_cancelled_at_utc", cancel_order["order_id"]))
 
-        refund_order = runtime.create_order("simple", f"{suffix}-refund", "23000.00")
+        refund_order = runtime.create_fresh_order("simple", f"{suffix}-refund", "23000.00")
         runtime.wpcli(["oddroom-orderops", "emit-event", str(refund_order["order_id"]), "PAYMENT_CONFIRMED"])
         enable_fault(runtime, refund_order["order_id"], "ORDER_REFUNDED", "SUPPRESS_OUTBOX_INSERT")
         emit_suppressed_fact(runtime, refund_order["order_id"], "ORDER_REFUNDED")
@@ -634,7 +634,7 @@ try{{
 
 
 def gate04(runtime: ProbeRuntime, suffix: str) -> None:
-    created = runtime.create_order("simple", f"g04-{suffix}", "27000.00")
+    created = runtime.create_fresh_order("simple", f"g04-{suffix}", "27000.00")
     runtime.run_action(created["action_id"])
     payment = runtime.wpcli_json([
         "oddroom-orderops", "emit-event", str(created["order_id"]), "PAYMENT_CONFIRMED",
@@ -764,7 +764,7 @@ def wait_for_followup(runtime: ProbeRuntime, row_id: int, prior_action_id: int) 
 def gate02(runtime: ProbeRuntime, suffix: str) -> None:
     shop_id = runtime.env["ODDROOM_SHOP_INSTANCE_ID"]
 
-    delayed_created_order = runtime.create_order("simple", f"g02-created-{suffix}", "32000.00")
+    delayed_created_order = runtime.create_fresh_order("simple", f"g02-created-{suffix}", "32000.00")
     delayed_created_payment = runtime.wpcli_json([
         "oddroom-orderops", "emit-event", str(delayed_created_order["order_id"]), "PAYMENT_CONFIRMED",
     ])
@@ -782,7 +782,7 @@ def gate02(runtime: ProbeRuntime, suffix: str) -> None:
     require(payment_execution.get("envelope", {}).get("result") == "completed", "GATE-02 higher-rank payment did not complete")
     require(delayed_created_execution.get("envelope", {}).get("result") == "stale_ignored", "GATE-02 delayed ORDER_CREATED was not stale-ignored")
 
-    delayed_payment_order = runtime.create_order("simple", f"g02-refund-{suffix}", "33000.00")
+    delayed_payment_order = runtime.create_fresh_order("simple", f"g02-refund-{suffix}", "33000.00")
     refund = runtime.wpcli_json([
         "oddroom-orderops", "emit-event", str(delayed_payment_order["order_id"]), "ORDER_REFUNDED",
     ])
@@ -802,7 +802,7 @@ def gate02(runtime: ProbeRuntime, suffix: str) -> None:
     require(refund_execution.get("envelope", {}).get("result") == "completed", "GATE-02 refund did not complete")
     require(delayed_payment_execution.get("envelope", {}).get("result") == "stale_ignored" and delayed_payment_execution.get("slack_outbound_call_count") == 0, "GATE-02 delayed payment was not a zero-Slack stale short-circuit")
 
-    cancel_order = runtime.create_order("simple", f"g02-cancel-{suffix}", "34000.00")
+    cancel_order = runtime.create_fresh_order("simple", f"g02-cancel-{suffix}", "34000.00")
     cancel = runtime.wpcli_json([
         "oddroom-orderops", "emit-event", str(cancel_order["order_id"]), "ORDER_CANCELLED",
     ])

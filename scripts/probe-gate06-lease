@@ -147,7 +147,7 @@ def run_with_environment(runtime: ProbeRuntime, action_id: int, environment: dic
 
 
 def create_payment_fixture(runtime: ProbeRuntime, alias: str) -> tuple[dict, dict]:
-    created = runtime.create_order("simple", alias, "29000.00")
+    created = runtime.create_fresh_order("simple", alias, "29000.00")
     runtime.run_action(created["action_id"])
     payment = runtime.wpcli_json([
         "oddroom-orderops", "emit-event", str(created["order_id"]), "PAYMENT_CONFIRMED",
@@ -230,7 +230,7 @@ try:
     runtime.assert_run_identity()
     suffix = uuid.uuid4().hex[:10]
 
-    not_started = runtime.create_order("simple", f"g06-not-started-{suffix}", "25000.00")
+    not_started = runtime.create_fresh_order("simple", f"g06-not-started-{suffix}", "25000.00")
     external_before = runtime.execution_state()
     crash_worker(
         runtime,
@@ -256,7 +256,7 @@ try:
         "not-started recovery did not converge after one sweep",
     )
 
-    exhausted = runtime.create_order("simple", f"g06-sixth-{suffix}", "26000.00")
+    exhausted = runtime.create_fresh_order("simple", f"g06-sixth-{suffix}", "26000.00")
     row_id = exhausted["outbox_id"]
     action_id = exhausted["action_id"]
     for attempt in range(1, 6):

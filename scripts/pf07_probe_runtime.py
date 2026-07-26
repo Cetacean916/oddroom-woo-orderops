@@ -11,6 +11,8 @@ import sqlite3
 import subprocess
 import tempfile
 import time
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 import uuid
 
 
@@ -347,6 +349,109 @@ class ProbeRuntime:
             if not isinstance(value.get(key), int) or value[key] < 1:
                 raise ProbeRuntimeError("synthetic order creation returned an invalid identity")
         return value
+
+    def hubspot_deal_count(self, order_key: str) -> int:
+        token = self.env.get("HUBSPOT_RUNTIME_TOKEN", "")
+        if token == "" or order_key == "":
+            raise ProbeRuntimeError("protected HubSpot collision preflight is unavailable")
+        body = json.dumps({
+            "idProperty": "oddroom_wc_order_key",
+            "properties": ["oddroom_wc_order_key"],
+            "inputs": [{"id": order_key}],
+        }, separators=(",", ":")).encode("utf-8")
+        request = Request(
+            "https://api.hubapi.com/crm/objects/2026-03/deals/batch/read",
+            data=body,
+            method="POST",
+            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        )
+        try:
+            with urlopen(request, timeout=60) as response:
+                value = json.loads(response.read())
+        except HTTPError as error:
+            if error.code == 404:
+                return 0
+            raise ProbeRuntimeError(
+                f"HubSpot rejected collision preflight with HTTP {error.code}"
+            ) from error
+        except (URLError, TimeoutError, json.JSONDecodeError) as error:
+            raise ProbeRuntimeError(
+                f"HubSpot collision preflight failed: {type(error).__name__}"
+            ) from error
+        results = value.get("results") if isinstance(value, dict) else None
+        if not isinstance(results, list):
+            raise ProbeRuntimeError("HubSpot collision preflight shape differs")
+        return sum(
+            1 for item in results
+            if isinstance(item, dict)
+            and item.get("properties", {}).get("oddroom_wc_order_key") == order_key
+        )
+
+    def discard_unprocessed_order(self, created: dict) -> None:
+        order_id = int(created.get("order_id", 0))
+        row_id = int(created.get("outbox_id", 0))
+        action_id = int(created.get("action_id", 0))
+        if min(order_id, row_id, action_id) < 1:
+            raise ProbeRuntimeError("collision candidate identity is invalid")
+        code = f"""
+global $wpdb;
+$orderId={order_id};$rowId={row_id};$actionId={action_id};
+$initial=OddRoom_Scheduler::exactCandidates(OddRoom_Scheduler::HOOK,$rowId);
+if($initial!==[$actionId]){{throw new RuntimeException('COLLISION_ACTION_MISMATCH');}}
+if(!class_exists('ActionScheduler')){{throw new RuntimeException('ACTION_SCHEDULER_UNAVAILABLE');}}
+ActionScheduler::store()->cancel_action($actionId);
+$remaining=OddRoom_Scheduler::exactCandidates(OddRoom_Scheduler::HOOK,$rowId);
+if($remaining!==[]){{throw new RuntimeException('COLLISION_ACTION_REMAINS');}}
+$order=wc_get_order($orderId);
+if(!($order instanceof WC_Order)){{throw new RuntimeException('COLLISION_ORDER_MISSING');}}
+$order->delete(true);
+$deleted=(int)$wpdb->delete(OddRoom_Installer::outboxTable(),['order_id'=>$orderId],['%d']);
+$leases=(int)$wpdb->get_var($wpdb->prepare(
+    'SELECT COUNT(*) FROM '.OddRoom_Installer::leaseTable().' WHERE holder_outbox_id=%d',
+    $rowId
+));
+echo wp_json_encode([
+    'initial_candidate_count'=>count($initial),
+    'remaining_candidate_count'=>count($remaining),
+    'deleted_outbox_count'=>$deleted,
+    'order_exists_after'=>wc_get_order($orderId) instanceof WC_Order,
+    'lease_count_after'=>$leases,
+]);
+"""
+        value = self.wpcli_json(["eval", code])
+        expected = {
+            "initial_candidate_count": 1,
+            "remaining_candidate_count": 0,
+            "deleted_outbox_count": 1,
+            "order_exists_after": False,
+            "lease_count_after": 0,
+        }
+        if value != expected:
+            raise ProbeRuntimeError("colliding order candidate was not discarded locally")
+
+    def create_fresh_order(
+        self,
+        shape: str,
+        alias: str,
+        amount: str,
+        *,
+        maximum_candidates: int = 20,
+    ) -> dict:
+        if maximum_candidates < 1 or maximum_candidates > 100:
+            raise ProbeRuntimeError("collision-preflight candidate bound is invalid")
+        shop_instance = self.env.get("ODDROOM_SHOP_INSTANCE_ID", "")
+        if shop_instance == "":
+            raise ProbeRuntimeError("shop identity is unavailable for collision preflight")
+        for candidate in range(1, maximum_candidates + 1):
+            created = self.create_order(shape, f"{alias}-candidate-{candidate}", amount)
+            order_key = f"{shop_instance}:{created['order_id']}"
+            count = self.hubspot_deal_count(order_key)
+            if count == 0:
+                return created
+            if count != 1:
+                raise ProbeRuntimeError("candidate order key has duplicate preexisting Deals")
+            self.discard_unprocessed_order(created)
+        raise ProbeRuntimeError("no unused order key was found within the bounded selection window")
 
     def run_action(self, action_id: int) -> None:
         if action_id < 1:
