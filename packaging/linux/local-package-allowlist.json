@@ -91,7 +91,7 @@
       "source": "launcher/pf07_launcher/core.py",
       "target": "launcher/pf07_launcher/core.py",
       "mode": "0644",
-      "source_sha256": "4b27be269d56ea4990e929b7fdc9881560a87a793dfd9e94f9cc0f4806b2e4eb"
+      "source_sha256": "cc1cf0a18373bc289aff66798576f44d5646559191b108bd43bcadfa72cba3f7"
     },
     {
       "source": "launcher/pf07_launcher/hub.py",
@@ -163,7 +163,7 @@
       "source": "packaging/common/bootstrap-manifest.json",
       "target": "packaging/common/bootstrap-manifest.json",
       "mode": "0644",
-      "source_sha256": "07f317320e69b7cad3fcbcbdb2488c2eb3a780f743760e2154cec7e3f8440f3c"
+      "source_sha256": "040b4282b5bf8a66c9c69b43236b90ffd7103328835437d55ae99df846f64fb6"
     },
     {
       "source": "packaging/common/compose.yaml",
@@ -175,7 +175,7 @@
       "source": "packaging/common/distribution-content-bindings.json",
       "target": "packaging/common/distribution-content-bindings.json",
       "mode": "0644",
-      "source_sha256": "e86c1185157f458bb466d41838c587c28c4a4a6c4dd90b09b9b52284e9249150"
+      "source_sha256": "914b1cfe4b96f11790e5d5bfe113296ccd951738c1342ca5a8c91496be1e776e"
     },
     {
       "source": "packaging/common/n8n-task-runners.json",

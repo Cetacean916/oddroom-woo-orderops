@@ -46,25 +46,23 @@ const sampleDynamics = (videoPath) => {
   return { sampled: hashes.length, unique: new Set(hashes).size };
 };
 
+const expectedPackageVersion = "1.0.6";
+const expectedReleaseTag = "pf07-v1.0.6";
+const immutablePredecessorTag = "pf07-v1.0.5";
+const repositoryRoot = new URL("https://github.com/Cetacean916/oddroom-woo-orderops/");
 const deploymentRoot = new URL("https://cetacean916.github.io/portfolio-showcase/");
-const publicEvidenceRoot = new URL("https://raw.githubusercontent.com/Cetacean916/oddroom-woo-orderops/main/");
+const publicEvidenceRoot = new URL(
+  `https://raw.githubusercontent.com/Cetacean916/oddroom-woo-orderops/${expectedReleaseTag}/`,
+);
+const releaseManifestUrl = new URL(
+  `releases/download/${expectedReleaseTag}/PF07-RELEASE-MANIFEST.json`,
+  repositoryRoot,
+);
 const caseRoutes = {
   ko: new URL("case-pf07-ko.html", deploymentRoot).href,
   en: new URL("case-pf07-en.html", deploymentRoot).href,
 };
-const expectedRelease = {
-  package_version: "1.0.3",
-  release_tag: "pf07-v1.0.3",
-  immutable_predecessor_tag: "pf07-v1.0.2",
-  source_commit: "4085e87f5d221d36ba5a58e859f12806e4b10d36",
-  source_tree: "214ee2e8773a1f6109641869f06a8d13d4cd5310",
-  package_build_id: "pf07-build-c14f8fe0b8e95bea97bf",
-  artifact_set_sha256: "74b458a861d51da2e681b1201f138527731a2b87cde38f2f5f47438b3d20833e",
-  release_manifest_sha256: "2880647f7d40e98f6af0c53eefa392941d9af01cc2efb50bcf46fc54c0b41b89",
-  linux_package_filename: "pf07-linux-x86_64-1.0.3.tar.gz",
-  linux_package_sha256: "cd60c8b6b280f1347123262d4895b0fdf53e8d6de07eb59020d57fb8c4c67f2e",
-  linux_package_manifest_sha256: "4507f33a5c79d8fdf019023fecbcffc8664c2e8078a1edbfd88b83d6d37e43aa",
-};
+let expectedRelease;
 const expectedTimelines = {
   "purchase-delivery": [
     ["LAUNCH_HUB", "final_package_hub_ready"],
@@ -163,6 +161,43 @@ const fetchBytes = async (url, label) => {
   return Buffer.from(await response.arrayBuffer());
 };
 const fetchDeployment = (relative) => fetchBytes(new URL(relative, deploymentRoot), relative);
+
+async function resolveExpectedRelease() {
+  const manifestBytes = await fetchBytes(releaseManifestUrl, "PF07 release manifest");
+  const manifest = JSON.parse(manifestBytes.toString("utf8"));
+  const linuxPackage = manifest.package_assets?.find(
+    (asset) => asset.artifact_id === "pf07-linux-x86_64",
+  );
+  requireCondition(
+    manifest.schema === "pf07.public-release-manifest.v1"
+      && manifest.package_version === expectedPackageVersion
+      && manifest.release_tag === expectedReleaseTag
+      && manifest.public_package_delivery_mode === "GITHUB_RELEASE_ASSETS"
+      && /^pf07-build-[0-9a-f]{20}$/.test(manifest.build_id)
+      && /^[0-9a-f]{40}$/.test(manifest.repository?.source_commit)
+      && /^[0-9a-f]{40}$/.test(manifest.repository?.source_tree)
+      && manifest.intended_published_release?.tag_target_commit === manifest.repository.source_commit
+      && manifest.intended_published_release?.tag_target_tree === manifest.repository.source_tree
+      && manifest.build_identity?.release_manifest_is_build_input === false
+      && manifest.build_identity?.release_manifest_is_inside_source_commit_or_package === false
+      && manifest.package_assets?.length === 5
+      && linuxPackage,
+    "published PF07 release manifest identity failed",
+  );
+  return {
+    package_version: manifest.package_version,
+    release_tag: manifest.release_tag,
+    immutable_predecessor_tag: immutablePredecessorTag,
+    source_commit: manifest.repository.source_commit,
+    source_tree: manifest.repository.source_tree,
+    package_build_id: manifest.build_id,
+    artifact_set_sha256: manifest.build_identity.artifact_set_manifest.sha256,
+    release_manifest_sha256: sha256(manifestBytes),
+    linux_package_filename: linuxPackage.filename,
+    linux_package_sha256: linuxPackage.sha256,
+    linux_package_manifest_sha256: linuxPackage.artifact_manifest_sha256,
+  };
+}
 
 async function validatePublicEvidence() {
   const matrixBytes = await fetchBytes(
@@ -278,7 +313,7 @@ async function validateExecutionMedia() {
     JSON.stringify(manifest.release) === JSON.stringify(expectedRelease)
       && JSON.stringify(proof.release) === JSON.stringify(expectedRelease)
       && JSON.stringify(currentUi.release) === JSON.stringify(expectedRelease),
-    "deployed 1.0.3 release identity commitment failed",
+    "deployed current release identity commitment failed",
   );
   requireCondition(
     !hasProtectedValue(manifestBytes.toString("utf8"))
@@ -297,10 +332,10 @@ async function validateExecutionMedia() {
 
   const expectedAuthorityFiles = {
     still_capture: "assets/media/pf07/provenance/capture-final-stills.mjs",
-    retry_state_capture: "assets/media/pf07/provenance/capture-v1.0.3-retry-state.mjs",
+    retry_state_capture: "assets/media/pf07/provenance/capture-v1.0.6-retry-state.mjs",
     ko_recording_capture: "assets/media/pf07/provenance/record-public-media-ko-capture.mjs",
     current_recording_capture: "assets/media/pf07/provenance/record-public-media.mjs",
-    release_evidence_builder: "assets/media/pf07/provenance/build-v1.0.3-release-evidence.mjs",
+    release_evidence_builder: "assets/media/pf07/provenance/build-v1.0.6-release-evidence.mjs",
   };
   const authorityHashes = new Map();
   await Promise.all(Object.entries(expectedAuthorityFiles).map(async ([id, relative]) => {
@@ -714,21 +749,21 @@ async function validateExecutionMedia() {
 }
 
 const expectedEvidenceLinks = [
-  "https://github.com/Cetacean916/oddroom-woo-orderops",
-  "https://github.com/Cetacean916/oddroom-woo-orderops/blob/main/evidence/refinement/public/acceptance-matrix.json",
-  "https://github.com/Cetacean916/oddroom-woo-orderops/blob/main/plugin/oddroom-orderops/tests/run.php",
-  "https://github.com/Cetacean916/oddroom-woo-orderops/blob/main/workflow/oddroom-orderops-vsl.json",
-  "https://github.com/Cetacean916/oddroom-woo-orderops/blob/main/docs/RECOVERY-RUNBOOK.md",
-  "https://github.com/Cetacean916/oddroom-woo-orderops/releases/download/pf07-v1.0.3/PF07-RELEASE-MANIFEST.json",
+  `https://github.com/Cetacean916/oddroom-woo-orderops/tree/${expectedReleaseTag}`,
+  `https://github.com/Cetacean916/oddroom-woo-orderops/blob/${expectedReleaseTag}/evidence/refinement/public/acceptance-matrix.json`,
+  `https://github.com/Cetacean916/oddroom-woo-orderops/blob/${expectedReleaseTag}/plugin/oddroom-orderops/tests/run.php`,
+  `https://github.com/Cetacean916/oddroom-woo-orderops/blob/${expectedReleaseTag}/workflow/oddroom-orderops-vsl.json`,
+  `https://github.com/Cetacean916/oddroom-woo-orderops/blob/${expectedReleaseTag}/docs/RECOVERY-RUNBOOK.md`,
+  releaseManifestUrl.href,
   new URL("assets/media/pf07/execution-proof.json", deploymentRoot).href,
 ];
 const expectedDownloadLinks = [
-  "pf07-windows-x64-1.0.3.zip",
-  "pf07-windows-kvm-test-kit-1.0.3.zip",
-  "pf07-macos-universal-1.0.3.zip",
-  "pf07-linux-x86_64-1.0.3.tar.gz",
-  "pf07-linux-server-1.0.3.tar.gz",
-].map((filename) => `https://github.com/Cetacean916/oddroom-woo-orderops/releases/download/pf07-v1.0.3/${filename}`);
+  `pf07-windows-x64-${expectedPackageVersion}.zip`,
+  `pf07-windows-kvm-test-kit-${expectedPackageVersion}.zip`,
+  `pf07-macos-universal-${expectedPackageVersion}.zip`,
+  `pf07-linux-x86_64-${expectedPackageVersion}.tar.gz`,
+  `pf07-linux-server-${expectedPackageVersion}.tar.gz`,
+].map((filename) => `https://github.com/Cetacean916/oddroom-woo-orderops/releases/download/${expectedReleaseTag}/${filename}`);
 
 async function validateBuyerPages(evidence) {
   await Promise.all(expectedEvidenceLinks.map(async (url) => {
@@ -854,7 +889,7 @@ async function validateBuyerPages(evidence) {
             JSON.stringify(audit.scorecard) === JSON.stringify(evidence.scorecards[locale])
               && JSON.stringify(audit.evidenceLinks) === JSON.stringify(expectedEvidenceLinks)
               && JSON.stringify(audit.downloadLinks) === JSON.stringify(expectedDownloadLinks)
-              && audit.releaseBoundary.includes("pf07-v1.0.3")
+              && audit.releaseBoundary.includes(expectedReleaseTag)
               && audit.releaseBoundary.includes("PUBLIC_PACKAGE_RELEASE_PASS"),
             `${locale}/${width}: evidence, download, or release-boundary presentation failed`,
           );
@@ -908,6 +943,7 @@ async function validateBuyerPages(evidence) {
   return observations;
 }
 
+expectedRelease = await resolveExpectedRelease();
 const evidence = await validatePublicEvidence();
 const media = await validateExecutionMedia();
 const observations = await validateBuyerPages(evidence);

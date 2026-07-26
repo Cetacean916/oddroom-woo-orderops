@@ -3874,7 +3874,7 @@ def _running_project_containers(values: dict[str, str]) -> list[str]:
 
 
 def _controlled_update_missing_runtime_keys(values: dict[str, str]) -> list[str]:
-    """Require the reviewed 1.0.4 runtime identity before migration."""
+    """Require the reviewed 1.0.5 runtime identity before migration."""
     predecessor_keys = REQUIRED_ENV_KEYS - {"PF07_NETWORK_SUBNET"}
     return sorted(predecessor_keys - values.keys())
 
@@ -4360,7 +4360,7 @@ def _controlled_update_locked(predecessor_name: str, confirmation: str) -> dict[
         or predecessor_identity["build_id"] != CONTROLLED_UPDATE_PREDECESSOR_BUILD_ID
         or predecessor_identity["artifact_manifest_sha256"] != approved_manifest
     ):
-        raise LauncherError("The predecessor is not an exact approved public PF07 1.0.4 package.")
+        raise LauncherError("The predecessor is not an exact approved public PF07 1.0.5 package.")
     expected_update = (CONTROLLED_UPDATE_PREDECESSOR_VERSION, PACKAGE_VERSION)
     observed_update = (predecessor_identity["package_version"], current_identity["package_version"])
     if observed_update != expected_update:
