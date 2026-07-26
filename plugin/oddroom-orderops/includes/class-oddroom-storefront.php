@@ -89,9 +89,11 @@ final class OddRoom_Storefront
                 '주문 안내' => home_url('/#offset-system'),
             ];
         echo '<a class="oddroom-skip" href="#oddroom-main">' . esc_html(self::text('본문으로 건너뛰기', 'Skip to content')) . '</a>';
-        echo '<aside class="oddroom-announcement"><span>OFFSET / OBJECTS</span><p>'
+        echo '<section class="oddroom-announcement" aria-label="'
+            . esc_attr(self::text('서비스 안내', 'Service notice'))
+            . '"><span>OFFSET / OBJECTS</span><p>'
             . esc_html(self::text('책상과 이동의 흐름을 정돈하는 두 가지 오브젝트', 'Two objects designed to bring order to desk and carry'))
-            . '</p><span>DEMO · 0 KRW</span></aside>';
+            . '</p><span>DEMO · 0 KRW</span></section>';
         echo '<header class="oddroom-frontbar"><nav class="oddroom-nav-primary" aria-label="' . esc_attr(self::text('주요 탐색', 'Primary navigation')) . '"><ul>';
         foreach ($primary as $label => $url) {
             echo '<li><a href="' . esc_url($url) . '">' . esc_html($label) . '</a></li>';

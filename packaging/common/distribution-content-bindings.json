@@ -5,7 +5,7 @@
   "plugin_schema_version": "1.1.0",
   "payload_schema_version": "1",
   "file_count": 86,
-  "content_set_sha256": "fb9e6dde1d616c4ed4e9d8eb56784203e24f0db4e6b1b2d1e1e055b7cee8faed",
+  "content_set_sha256": "aa8d704afcc3383021dd49d62a0367b6137299b689a1b776209375ff91728d72",
   "files": [
     {
       "source": "launcher/bin/pf07",
@@ -490,8 +490,8 @@
     {
       "source": "plugin/oddroom-orderops/includes/class-oddroom-storefront.php",
       "package_path": "payload/oddroom-orderops/includes/class-oddroom-storefront.php",
-      "sha256": "16afdbd07b44d7ef89b004139a1e06d4c28d2f6337c85b7277f5b48fa1e37aa6",
-      "bytes": 74913
+      "sha256": "9f49d3cfc9ddee66d4ca21bbf3a378c93599bab5f52ab3382145aa66599e0e13",
+      "bytes": 75021
     },
     {
       "source": "plugin/oddroom-orderops/includes/class-oddroom-worker.php",
@@ -508,14 +508,14 @@
     {
       "source": "plugin/oddroom-orderops/tests/run.php",
       "package_path": "payload/oddroom-orderops/tests/run.php",
-      "sha256": "37e1eb3d65347c99e18008c82920247652026279db284147955d67cd5469f7ed",
-      "bytes": 19287
+      "sha256": "a4e71d948b11ebfde8effd7163fcd0b3977c8ed455e3b746d90f98d8e0c8798a",
+      "bytes": 19283
     },
     {
       "source": "plugin/oddroom-orderops/tests/scheduler-branches.php",
       "package_path": "payload/oddroom-orderops/tests/scheduler-branches.php",
-      "sha256": "07679752fe43947aef073b50bfb9741624df317c2c1b96a929680742054a0452",
-      "bytes": 10144
+      "sha256": "da0f14c8bfe302c426f8fa947fe555c307ac75baa29d43bae0baed15e532d0fa",
+      "bytes": 10271
     },
     {
       "source": "plugin/oddroom-orderops/uninstall.php",

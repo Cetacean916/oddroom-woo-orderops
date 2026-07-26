@@ -114,6 +114,14 @@ final class ActionScheduler_SystemInformation
     }
 }
 
+final class OddRoom_Package
+{
+    public static function outboundProcessingAllowed(): bool
+    {
+        return true;
+    }
+}
+
 final class OddRoom_Repository
 {
     public static array $rows = [];

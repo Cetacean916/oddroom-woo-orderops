@@ -161,7 +161,7 @@ $assert($canonicalRejected($extraFieldInput), 'An additional order property was 
 $assert(OddRoom_Storefront::isSyntheticIdentity([
     'first_name' => 'Synthetic',
     'last_name' => 'Buyer',
-    'email' => 'pf07-checkout@example.com',
+    'email' => 'pf07-demo@example.com',
 ]), 'The documented synthetic checkout identity was rejected.');
 $assert(!OddRoom_Storefront::isSyntheticIdentity([
     'first_name' => 'Real',

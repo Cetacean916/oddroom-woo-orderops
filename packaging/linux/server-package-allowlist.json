@@ -151,7 +151,7 @@
       "source": "packaging/common/bootstrap-manifest.json",
       "target": "packaging/common/bootstrap-manifest.json",
       "mode": "0644",
-      "source_sha256": "913be5a6ef16040633a5b2a53629ea2cade0d33ece74ad682bfa7fedf9433f08"
+      "source_sha256": "07f317320e69b7cad3fcbcbdb2488c2eb3a780f743760e2154cec7e3f8440f3c"
     },
     {
       "source": "packaging/common/compose.yaml",
@@ -163,7 +163,7 @@
       "source": "packaging/common/distribution-content-bindings.json",
       "target": "packaging/common/distribution-content-bindings.json",
       "mode": "0644",
-      "source_sha256": "0c5a248f6e81d35f76adabba7458d540d7ee756f780c8ebb2509f13aa4d7b052"
+      "source_sha256": "e86c1185157f458bb466d41838c587c28c4a4a6c4dd90b09b9b52284e9249150"
     },
     {
       "source": "packaging/common/n8n-task-runners.json",
@@ -553,7 +553,7 @@
       "source": "plugin/oddroom-orderops/includes/class-oddroom-storefront.php",
       "target": "payload/oddroom-orderops/includes/class-oddroom-storefront.php",
       "mode": "0644",
-      "source_sha256": "16afdbd07b44d7ef89b004139a1e06d4c28d2f6337c85b7277f5b48fa1e37aa6"
+      "source_sha256": "9f49d3cfc9ddee66d4ca21bbf3a378c93599bab5f52ab3382145aa66599e0e13"
     },
     {
       "source": "plugin/oddroom-orderops/includes/class-oddroom-worker.php",
@@ -571,13 +571,13 @@
       "source": "plugin/oddroom-orderops/tests/run.php",
       "target": "payload/oddroom-orderops/tests/run.php",
       "mode": "0644",
-      "source_sha256": "37e1eb3d65347c99e18008c82920247652026279db284147955d67cd5469f7ed"
+      "source_sha256": "a4e71d948b11ebfde8effd7163fcd0b3977c8ed455e3b746d90f98d8e0c8798a"
     },
     {
       "source": "plugin/oddroom-orderops/tests/scheduler-branches.php",
       "target": "payload/oddroom-orderops/tests/scheduler-branches.php",
       "mode": "0644",
-      "source_sha256": "07679752fe43947aef073b50bfb9741624df317c2c1b96a929680742054a0452"
+      "source_sha256": "da0f14c8bfe302c426f8fa947fe555c307ac75baa29d43bae0baed15e532d0fa"
     },
     {
       "source": "plugin/oddroom-orderops/uninstall.php",
