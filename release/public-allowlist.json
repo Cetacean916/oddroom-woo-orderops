@@ -72,6 +72,7 @@
     "launcher/pf07_launcher/core.py",
     "launcher/pf07_launcher/hub.py",
     "launcher/pf07_launcher/tunnel_proxy.py",
+    "launcher/pf07_launcher/tunnel_supervisor.py",
     "launcher/ui/app.css",
     "launcher/ui/app.js",
     "launcher/ui/fonts/PretendardVariable.woff2",

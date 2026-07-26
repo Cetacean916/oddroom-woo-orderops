@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "builder_sha256": "2cb55275eb1c02003c03815b6c9f8641c00157af001ca39af298398df2fe165f",
-  "allowlist_sha256": "e2f4333de6f87c77e004edce518090d37df4830c312827087b6dff94c76a0c81",
+  "allowlist_sha256": "55290acab608574848ee7afa01599e7dad557897f933e39fb0be38d4fd9433bd",
   "files": [
     {
       "path": ".env.example",
@@ -357,6 +357,11 @@
       "path": "launcher/pf07_launcher/tunnel_proxy.py",
       "mode": "0644",
       "sha256": "96892dd46bd85232e6fd57a4eda04ca102c53b0397b8be0d6fe0baaf957c028b"
+    },
+    {
+      "path": "launcher/pf07_launcher/tunnel_supervisor.py",
+      "mode": "0644",
+      "sha256": "71cde0978df95d97331ff2ffda5930b06e59c0936474ea4dae75b1073a67d2b7"
     },
     {
       "path": "launcher/ui/app.css",
@@ -951,7 +956,7 @@
     {
       "path": "release/public-allowlist.json",
       "mode": "0644",
-      "sha256": "e2f4333de6f87c77e004edce518090d37df4830c312827087b6dff94c76a0c81"
+      "sha256": "55290acab608574848ee7afa01599e7dad557897f933e39fb0be38d4fd9433bd"
     },
     {
       "path": "scripts/acceptance_semantics.py",
