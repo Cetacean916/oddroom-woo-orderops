@@ -8,10 +8,11 @@ WooCommerce 주문을 사람이 CRM에 옮기면 누락과 중복 효과가 생�
 
 ## 공개 영상
 
-- [62초 실제 end-to-end walkthrough](https://cetacean916.github.io/portfolio-showcase/assets/media/pf07/demo-video.mp4) — 계약의 60–90초 구간 안에서 실제 상품 선택·키 입력·주문 제출과 관리자 `pending → completed` 전이, 캡처 당시 Linux 패키지 worker 실행을 한 번의 연속 녹화로 보여줍니다.
-- [28초 실제 실패 → 수동 재시도 → 복구 클립](https://cetacean916.github.io/portfolio-showcase/assets/media/pf07/recovery-clip.mp4) — 패키지 허브의 제한된 terminal-failure 전환, 화면에 나타나는 실패·복구 worker, 관리자 수동 재시도와 동일 row의 `pending → failed → pending → recovered` 전이를 이어서 보여줍니다.
+- 전체 서비스 둘러보기 — [한국어](https://cetacean916.github.io/portfolio-showcase/assets/media/pf07/videos/ko/guided-overview.mp4) · [English](https://cetacean916.github.io/portfolio-showcase/assets/media/pf07/videos/en/guided-overview.mp4): 상점 홈부터 상품·장바구니·주문과 별도의 운영자 경험까지 전체 구성을 차례로 보여줍니다.
+- 구매부터 운영 전달까지 — [한국어](https://cetacean916.github.io/portfolio-showcase/assets/media/pf07/videos/ko/purchase-delivery.mp4) · [English](https://cetacean916.github.io/portfolio-showcase/assets/media/pf07/videos/en/purchase-delivery.mp4): 상품 선택과 0원 합성 주문, outbox 처리, 관리자 완료 상태를 한 흐름으로 보여줍니다.
+- 실패 후 재시도와 복구 — [한국어](https://cetacean916.github.io/portfolio-showcase/assets/media/pf07/videos/ko/failure-recovery.mp4) · [English](https://cetacean916.github.io/portfolio-showcase/assets/media/pf07/videos/en/failure-recovery.mp4): 동일 row의 실패, 수동 재시도, 복구 결과를 이어서 보여줍니다.
 
-이 릴리즈 시점에 링크된 두 영상은 최종 Linux 1.0.2 패키지 소유 런타임에서 캡처한 이전 showcase입니다. 함께 배포된 [`execution-proof.json`](https://cetacean916.github.io/portfolio-showcase/assets/media/pf07/execution-proof.json)의 `package_build_id`가 캡처 정체성의 기준이며, 이 영상은 1.0.3 패키지 실행을 입증하지 않습니다. 1.0.3 정체성과 동작은 이 저장소의 package manifest, platform validation, current acceptance evidence로 별도 입증합니다. 합성 주문과 마스킹된 별칭만 사용하며, 보호 계정·호스트·webhook·토큰·개인 식별자는 포함하지 않습니다.
+공개 포트폴리오의 여섯 영상은 최종 Linux 1.0.6 패키지 소유 런타임에서 원속도로 캡처한 한국어·영어 기록입니다. 함께 배포된 [`execution-proof.json`](https://cetacean916.github.io/portfolio-showcase/assets/media/pf07/execution-proof.json)은 정확한 1.0.6 Linux artifact manifest와 네 개의 집중 시연 영상을 결속하고, media/current-UI manifest가 전체 여섯 영상과 현재 화면 자산을 연결합니다. 합성 주문과 마스킹된 별칭만 사용하며, 보호 계정·호스트·webhook·토큰·개인 식별자는 포함하지 않습니다.
 
 ## 전달 구조와 운영 결과
 
