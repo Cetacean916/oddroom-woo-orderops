@@ -73,7 +73,14 @@ During an authorized on-demand acceptance window, the foreground queue process i
 ./scripts/queue-runner --loop
 ```
 
-To regenerate the two public execution videos from an already bootstrapped final Linux package, first start a private X display and then run the recorder. The recorder verifies the package build identity and local storefront, performs real no-funds synthetic checkouts, types checkout input visibly, and records the live administrator row transitions. It opens a captured terminal for the actual final-package worker commands and uses the package hub for the bounded terminal-failure scenario, so the result is a continuous execution walkthrough rather than narrated static screens. It refuses to overwrite any accepted-looking output file:
+The public presentation uses six locale-specific recordings: a complete guided service tour, a focused purchase-to-operations demonstration, and a failure-recovery demonstration in both Korean and English. The guided tour moves deliberately through the whole storefront and the separate operator experience without time compression:
+
+```bash
+PF07_PACKAGE_ROOT=<BOOTSTRAPPED_FINAL_LINUX_PACKAGE_ROOT> \
+node scripts/record-guided-service-tour.mjs <NEW_GUIDED_OUTPUT_DIRECTORY>
+```
+
+The focused purchase and recovery recordings use a private X display. They use the fixed `Synthetic` / `Buyer` / `pf07-demo@example.com` demo identity, never ask for an address, and record the matching localized storefront and operator experience:
 
 ```bash
 Xvfb :99 -screen 0 1280x720x24 -nolisten tcp &
@@ -87,7 +94,13 @@ PF07_SCRATCH_ROOT=<PRIVATE_SCRATCH_ROOT> \
 node scripts/record-public-media.mjs <NEW_OUTPUT_DIRECTORY>
 ```
 
-`PF07_TERMINAL_PATH` may point to a maintained graphical terminal when it is not available at `/usr/bin/xfce4-terminal`. The output must contain `demo-video.mp4`, `recovery-clip.mp4`, `video-poster.png`, and `execution-proof.json`. The showcase validator independently re-decodes both videos, recomputes their hashes and sampled-frame dynamics, re-extracts every committed event frame, OCR-checks checkout and the visible final-package worker terminals, verifies the `pending → failed → manual retry → recovered` sequence, and regenerates the poster from its source frame.
+`PF07_TERMINAL_PATH` may point to a maintained graphical terminal when it is not available at `/usr/bin/xfce4-terminal`. The two recorders produce:
+
+- `ko|en-guided-overview.mp4`, one distinct poster, WebVTT captions, and chapter metadata for each locale
+- `ko|en-purchase-delivery.mp4` and `ko|en-failure-recovery.mp4`, each with its own poster, WebVTT captions, and chapter metadata
+- `execution-proof.json`, bound to the exact 1.0.4 Linux artifact manifest and the four focused recordings
+
+The recordings are original-speed captures from the delivered runtime. They are not sped-up derivatives of one another.
 
 The first public detail still is rebuilt from the exact committed `LIVE_STOREFRONT`, `PRODUCT_SELECTED`, and `CHECKOUT_INPUT` frames rather than a separate mock or an old screenshot:
 

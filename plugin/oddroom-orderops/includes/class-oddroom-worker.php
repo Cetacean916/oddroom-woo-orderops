@@ -17,6 +17,9 @@ final class OddRoom_Worker
     {
         $executionId = OddRoom_Scheduler::currentExecutionId();
         try {
+            if (!OddRoom_Package::outboundProcessingAllowed()) {
+                return;
+            }
             $row = OddRoom_Repository::find($rowId);
             $guard = OddRoom_Scheduler::guard(true);
             if (!$row || !$guard['ok'] || !$executionId || (int) $row->action_id !== $executionId) {
@@ -35,6 +38,9 @@ final class OddRoom_Worker
                 return;
             }
 
+            if (!OddRoom_Package::outboundProcessingAllowed()) {
+                return;
+            }
             $claim = OddRoom_Repository::claim($rowId, $executionId);
             if (!$claim) {
                 OddRoom_Scheduler::deferContentionRequeue($rowId, $executionId);
@@ -93,7 +99,7 @@ final class OddRoom_Worker
                 'body' => $body,
                 'data_format' => 'body',
                 'limit_response_size' => OddRoom_Canonical_Payload::MAX_BODY_BYTES,
-                'user-agent' => 'OFFSET-OrderOps/0.2.0',
+                'user-agent' => 'OFFSET-OrderOps/0.2.1',
             ]);
 
             self::pauseForCrashFixture($claimed, OddRoom_Faults::PAUSE_AFTER_RESPONSE);

@@ -1,7 +1,7 @@
 {
   "schema": "pf07.bootstrap-manifest.v2",
-  "package_version": "1.0.3",
-  "release_tag": "pf07-v1.0.3",
+  "package_version": "1.0.4",
+  "release_tag": "pf07-v1.0.4",
   "delivery_mode": "GITHUB_RELEASE_ASSETS",
   "default_runtime_mode": "DEMO_MODE",
   "supported_modes": [
@@ -48,8 +48,8 @@
   },
   "content_bindings": {
     "path": "packaging/common/distribution-content-bindings.json",
-    "sha256": "f1754bee7bacf03341e46df18b976407840ccfb99a235236d29d1f37b7d087d4",
-    "content_set_sha256": "5ade2203fa60cdaa22284ac87947c6f262605f1548c6626188aa53ba9729b38a",
+    "sha256": "db2a2d2dd6daecb760b4a044449e986b8d20b67d9586251603d5a1d12b119cc0",
+    "content_set_sha256": "e6a0a29689afa058c27609b346eb86b261b7c41caea4125f7ece13239e1a7fc8",
     "includes": [
       "sanitized deterministic seed",
       "PF07 plugin",
@@ -159,7 +159,7 @@
     "wordpress": "7.0.2",
     "woocommerce": "10.9.4",
     "action_scheduler": "4.0.0",
-    "oddroom_orderops_plugin": "0.2.0",
+    "oddroom_orderops_plugin": "0.2.1",
     "oddroom_orderops_schema": "1.1.0",
     "canonical_payload_schema": "1",
     "n8n": "2.25.7",
@@ -254,9 +254,9 @@
   },
   "controlled_update": {
     "confirmation": "UPDATE PF07",
-    "predecessor_requirement": "separate complete published PF07 1.0.2 extraction with the same artifact ID and a different reviewed build ID",
-    "successor_requirement": "this exact complete PF07 1.0.3 extraction",
-    "migration_id": "controlled-1.0.2-to-1.0.3-v1",
+    "predecessor_requirement": "separate complete published PF07 1.0.3 extraction with the same artifact ID and a different reviewed build ID",
+    "successor_requirement": "this exact complete PF07 1.0.4 extraction",
+    "migration_id": "controlled-1.0.3-to-1.0.4-v1",
     "state_transfer": "copy package-local configuration and bind the same three package-owned volumes only after predecessor quiescence",
     "workflow_update": "replace definitions by stable workflow ID without creating duplicate workflow identities",
     "successor_writer_count": 1,

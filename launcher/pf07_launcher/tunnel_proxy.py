@@ -3,12 +3,14 @@ from __future__ import annotations
 import argparse
 import http.client
 import json
+import os
 import posixpath
+import re
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
-from urllib.parse import quote, unquote, urlparse
+from urllib.parse import parse_qsl, quote, unquote, urlparse
 
 
 HOP_BY_HOP = {
@@ -21,6 +23,8 @@ HOP_BY_HOP = {
     "transfer-encoding",
     "upgrade",
 }
+UNSAFE_ENCODED_PATH_OCTET = re.compile(r"%(?:00|25|2e|2f|5c)", re.IGNORECASE)
+MALFORMED_PERCENT_ESCAPE = re.compile(r"%(?![0-9a-fA-F]{2})")
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -43,6 +47,10 @@ class TunnelProxy(ThreadingHTTPServer):
         self.public_base_file = public_base_file
         self.public_routes = tuple(policy["public_routes"])
         self.denied_routes = tuple(policy["denied_routes"])
+        marker = os.environ.get("PF07_TUNNEL_PROXY_MARKER", "")
+        if not re.fullmatch(r"[0-9a-f]{64}", marker):
+            raise ValueError("trusted tunnel marker is unavailable")
+        self.trusted_marker = marker
 
     def public_bases(self) -> tuple[str, str]:
         value = _load_json(self.public_base_file)
@@ -56,22 +64,62 @@ class TunnelProxy(ThreadingHTTPServer):
     def _matches(path: str, rule: dict[str, Any]) -> bool:
         target = str(rule.get("path", ""))
         kind = rule.get("match")
-        return (kind == "exact" and path == target) or (kind == "prefix" and path.startswith(target))
-
-    def route_allowed(self, path: str) -> bool:
-        decoded = unquote(path)
-        if "\x00" in decoded or "\\" in decoded or ".." in decoded.split("/"):
+        if kind == "exact":
+            return path == target
+        if kind != "prefix" or not target.startswith("/"):
             return False
+        if target.endswith("/"):
+            return path.startswith(target)
+        return path == target or path.startswith(target + "/")
+
+    def canonical_route(self, path: str, query: str = "") -> str | None:
+        try:
+            query_fields = parse_qsl(query, keep_blank_values=True, max_num_fields=100)
+        except ValueError:
+            return None
+        if any(
+            key.casefold() == "rest_route" or key.casefold().startswith("rest_route[")
+            for key, _ in query_fields
+        ):
+            return None
+        if not path.startswith("/") or len(path) > 8192:
+            return None
+        decoded = path
+        for _ in range(4):
+            if (
+                "\x00" in decoded
+                or "\\" in decoded
+                or MALFORMED_PERCENT_ESCAPE.search(decoded)
+                or UNSAFE_ENCODED_PATH_OCTET.search(decoded)
+            ):
+                return None
+            try:
+                next_value = unquote(decoded, errors="strict")
+            except UnicodeDecodeError:
+                return None
+            if next_value == decoded:
+                break
+            decoded = next_value
+        else:
+            return None
+        segments = decoded.split("/")
+        if any(segment in {".", ".."} for segment in segments):
+            return None
         normalized = posixpath.normpath(decoded)
+        if not normalized.startswith("/"):
+            return None
         if decoded.endswith("/") and not normalized.endswith("/"):
             normalized += "/"
         matches: list[tuple[int, bool]] = []
         matches.extend((len(str(rule["path"])), True) for rule in self.public_routes if self._matches(normalized, rule))
         matches.extend((len(str(rule["path"])), False) for rule in self.denied_routes if self._matches(normalized, rule))
         if not matches:
-            return False
+            return None
         longest = max(length for length, _ in matches)
-        return all(allowed for length, allowed in matches if length == longest)
+        if not all(allowed for length, allowed in matches if length == longest):
+            return None
+        canonical_path = quote(normalized, safe="/-._~!$&'()*+,;=:@")
+        return canonical_path + (f"?{query}" if query else "")
 
 
 class TunnelProxyHandler(BaseHTTPRequestHandler):
@@ -94,7 +142,8 @@ class TunnelProxyHandler(BaseHTTPRequestHandler):
 
     def _proxy(self) -> None:
         parsed = urlparse(self.path)
-        if not self.server.route_allowed(parsed.path):
+        upstream_target = self.server.canonical_route(parsed.path, parsed.query)
+        if upstream_target is None:
             self._deny()
             return
         try:
@@ -112,6 +161,9 @@ class TunnelProxyHandler(BaseHTTPRequestHandler):
             key: value
             for key, value in self.headers.items()
             if key.lower() not in HOP_BY_HOP | {"host", "content-length", "accept-encoding"}
+            and key.lower() not in {"forwarded", "x-real-ip", "x-oddroom-private-admin"}
+            and not key.lower().startswith("x-forwarded-")
+            and not key.lower().startswith("x-pf07-")
         }
         headers.update(
             {
@@ -120,11 +172,12 @@ class TunnelProxyHandler(BaseHTTPRequestHandler):
                 "X-Forwarded-Proto": "https",
                 "X-Forwarded-Host": public_host,
                 "X-PF07-Tunnel-Policy": "store-and-protected-admin-only",
+                "X-PF07-Trusted-Proxy": self.server.trusted_marker,
             }
         )
         upstream = http.client.HTTPConnection("127.0.0.1", self.server.upstream_port, timeout=60)
         try:
-            upstream.request(self.command, self.path, body=body, headers=headers)
+            upstream.request(self.command, upstream_target, body=body, headers=headers)
             response = upstream.getresponse()
             payload = response.read()
             content_type = response.getheader("Content-Type", "")

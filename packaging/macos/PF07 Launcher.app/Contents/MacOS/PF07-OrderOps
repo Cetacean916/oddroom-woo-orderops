@@ -4,6 +4,7 @@ set -eu
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 package_root=$(CDPATH= cd -- "$script_dir/../../.." && pwd)
 resume_path="$package_root/.pf07/prerequisite-resume.json"
+export PATH="$HOME/.rd/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin${PATH:+:$PATH}"
 
 show_dialog() {
   /usr/bin/osascript -e "display dialog \"$1\" with title \"OFFSET OrderOps\" buttons {\"OK\"} default button \"OK\" with icon caution" >/dev/null
@@ -25,6 +26,12 @@ if ! command -v python3 >/dev/null 2>&1; then
   mkdir -p "$package_root/.pf07"
   printf '%s\n' '{"schema":"pf07.prerequisite-resume.v1","state":"MISSING_PYTHON","next_action":"Hub"}' > "$resume_path"
   offer_url "Python 3.10 or newer is required. Install it from the official page, then open PF07 Launcher.app again to resume." "https://www.python.org/downloads/macos/"
+  exit 20
+fi
+if ! python3 -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)'; then
+  mkdir -p "$package_root/.pf07"
+  printf '%s\n' '{"schema":"pf07.prerequisite-resume.v1","state":"MISSING_PYTHON","next_action":"Hub"}' > "$resume_path"
+  offer_url "Python 3.10 or newer is required. Update Python from the official page, then open PF07 Launcher.app again to resume." "https://www.python.org/downloads/macos/"
   exit 20
 fi
 

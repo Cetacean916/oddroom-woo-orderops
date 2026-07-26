@@ -59,6 +59,8 @@ def classify_runtime(facts: RuntimeFacts) -> RuntimeState:
         if not facts.requested_port_available:
             return "PORT_OCCUPIED"
         return "FIRST_RUN"
+    if not facts.requested_port_available:
+        return "PORT_OCCUPIED"
     if not facts.services_running:
         return "STOPPED"
     if not facts.health_ready:

@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "builder_sha256": "2cb55275eb1c02003c03815b6c9f8641c00157af001ca39af298398df2fe165f",
-  "allowlist_sha256": "2d6ca253e04305d78945798d089cd59b185d7aee6f314a93d6dd46e819393472",
+  "allowlist_sha256": "e2f4333de6f87c77e004edce518090d37df4830c312827087b6dff94c76a0c81",
   "files": [
     {
       "path": ".env.example",
@@ -36,7 +36,7 @@
     {
       "path": "README.md",
       "mode": "0644",
-      "sha256": "4d169f6e698f0d5696ec8c265341deefd02b1eb19ca9db53114a6085b5954566"
+      "sha256": "b4d6af1cbb61ab55fbb58fac204ffb9162a5aee1c93e709f93f8907dd63c7e38"
     },
     {
       "path": "THIRD_PARTY_NOTICES.md",
@@ -56,7 +56,7 @@
     {
       "path": "docs/ARCHITECTURE.md",
       "mode": "0644",
-      "sha256": "e15b0df44d638e100bf708aeb36b3d5ca7a4d31a64884658b544042776d1afd4"
+      "sha256": "d026552c1e34b415a80ab74f0bc52c78a35c769912ceb77bacfdbcfdbee08b98"
     },
     {
       "path": "docs/CLAIMS-BOUNDARY.md",
@@ -321,52 +321,52 @@
     {
       "path": "launcher/bin/pf07",
       "mode": "0755",
-      "sha256": "38f4a6fca122f59e63e33640853e6ab8067886a532730254572061c642e6fe89"
+      "sha256": "70089df21f45d36a7cfc2a153370dbce5a5e071b7538f22bc0686f8087ee55eb"
     },
     {
       "path": "launcher/bin/pf07-hub",
       "mode": "0755",
-      "sha256": "5b2223fbda0fc33bb9737de6f96451cda6f85900d5059c48594d8b9bfb57fd97"
+      "sha256": "7185e3d01acdea4a0127f53bc1a1ffafb8a2f036e5ff37186f33039a6563713d"
     },
     {
       "path": "launcher/pf07_launcher/__init__.py",
       "mode": "0644",
-      "sha256": "aa56f7340af2c3a83bc298d08b93c2e7dd81900259e3454cf6a845f8454d7e6c"
+      "sha256": "0d55f02ce3e76e41cfcc631fbecb6bce87671cbafb13448b967df7a43340caf2"
     },
     {
       "path": "launcher/pf07_launcher/action_contract.py",
       "mode": "0644",
-      "sha256": "c891324bd015bc608809bb2852531fc9e0a2ac1c0f4e684ed1f4b0ad2e4f68f3"
+      "sha256": "b01be59d1e09780b00eef5d7941e2f865a18dc9f8c5f23bbf08b7e83709d4b39"
     },
     {
       "path": "launcher/pf07_launcher/cli.py",
       "mode": "0644",
-      "sha256": "8c961492f79987e8c093a7b158c67d65078b3235ea29daebaa54574c89de051b"
+      "sha256": "c4516d99b1c3ef2643f6a2357326088cadaf13e1425cf95cb43199a0a973bd2d"
     },
     {
       "path": "launcher/pf07_launcher/core.py",
       "mode": "0644",
-      "sha256": "1b090a1901ec4cf03509bdf50580f46d937496eb1e7d78f14bd6395ca1e93dcf"
+      "sha256": "455edfedd2b264c816d703d907acb6360d7a1ecd45b8bd1b9a10389cde7b9194"
     },
     {
       "path": "launcher/pf07_launcher/hub.py",
       "mode": "0644",
-      "sha256": "650b4fb110cb1008b422a2064906b20f1ecd895442b9b8bee285012475d46071"
+      "sha256": "0ea5aeb7837a9ad4813526468d388c9f58ddad4b53e6b1838d825c3483b1e390"
     },
     {
       "path": "launcher/pf07_launcher/tunnel_proxy.py",
       "mode": "0644",
-      "sha256": "9f491bc072483c08a153c9d805fc31dc724b174391729143c47d351a39ffd215"
+      "sha256": "dc8e5370305cf3a5d5ccefacadd79bbb3fb0e04190e9726a9ef177aaccd0e044"
     },
     {
       "path": "launcher/ui/app.css",
       "mode": "0644",
-      "sha256": "07f8b750272c89f57df1327dccc00cfc016a78280a620fb5b02b97816422a92e"
+      "sha256": "ffcf8551caea4d1808a9ecda40db40da9c129fec90fc743785dbae8d434a724b"
     },
     {
       "path": "launcher/ui/app.js",
       "mode": "0644",
-      "sha256": "87b20f8a6c2cf0520cf286d3084b577b5332717ef139a76ce7ab83653841d5a4"
+      "sha256": "76137d83b103e45ae17176ac30b4ed77d05e5f9e16374c9e6029aac0226e7ee4"
     },
     {
       "path": "launcher/ui/fonts/PretendardVariable.woff2",
@@ -376,12 +376,12 @@
     {
       "path": "launcher/ui/index.en.html",
       "mode": "0644",
-      "sha256": "a529547dfd1ca942bd34f7aed240ff4732339c5842c2cf83012fb97a740e75fd"
+      "sha256": "9ed5d6ddf0c37b13d86d9741bbf1642346f7f9a6f6f533b663bf2ccc9cdfda2e"
     },
     {
       "path": "launcher/ui/index.ko.html",
       "mode": "0644",
-      "sha256": "95fbe9745074e35e72505022d7fde71af0f628ffaa1d369a763e6177a31560e6"
+      "sha256": "7ed478f8e610610066f19cd23ba10ebfa16ad837ae31a9d8c3c2c5bf8c221f65"
     },
     {
       "path": "package-lock.json",
@@ -411,17 +411,17 @@
     {
       "path": "packaging/common/bootstrap-manifest.json",
       "mode": "0644",
-      "sha256": "86e13791a618d4030966ddd47f889d294c990b40405ca8c0397ddfe6c23685c0"
+      "sha256": "90bc57e04b88972eeb1faba76cbab7769b1bb17b738f533f2819309c14ec9e83"
     },
     {
       "path": "packaging/common/compose.yaml",
       "mode": "0644",
-      "sha256": "d7131f862a2d782c1e2219dbc99b6e7c4891a09371cbcd5f0a7d10034d7defac"
+      "sha256": "6885c3a1d53e7515157b6bde1e73a741b7fe6d6c38037ec5486a2fd2192b9ae1"
     },
     {
       "path": "packaging/common/distribution-content-bindings.json",
       "mode": "0644",
-      "sha256": "f1754bee7bacf03341e46df18b976407840ccfb99a235236d29d1f37b7d087d4"
+      "sha256": "db2a2d2dd6daecb760b4a044449e986b8d20b67d9586251603d5a1d12b119cc0"
     },
     {
       "path": "packaging/common/n8n-task-runners.json",
@@ -466,7 +466,7 @@
     {
       "path": "packaging/common/workflows/connected-mode.json",
       "mode": "0644",
-      "sha256": "517db5d4966abbbc35bfd596266e04bc4c8711875416e0f634288357f3891300"
+      "sha256": "b57e5610c8019c8aa0f1a87b53e895dd67761a63e6f284768401f8a578b3b903"
     },
     {
       "path": "packaging/common/workflows/demo-mode.json",
@@ -476,7 +476,7 @@
     {
       "path": "packaging/linux/PF07-Launcher",
       "mode": "0755",
-      "sha256": "2e1da387193692958327e3130eebf50f1e247a44c43dd10f90310ff8d01a624d"
+      "sha256": "e28d8072baad0865608ff3987f1cf0f4b6b1e5e508d5282766495faf1ad75f0f"
     },
     {
       "path": "packaging/linux/PF07-OrderOps.desktop",
@@ -496,17 +496,17 @@
     {
       "path": "packaging/linux/local-package-allowlist.json",
       "mode": "0644",
-      "sha256": "084baffad2c4069dcf2d530090dc5776d522b7d327bd6b038287c9105be2f4fd"
+      "sha256": "12934c536e29eed8da5c841913182f9232fd8a21abafdaed1737a42fbd3e4382"
     },
     {
       "path": "packaging/linux/pf07",
       "mode": "0755",
-      "sha256": "68b0d745b67f448b4454941cf3f86152e9a0495cd7d4a913f7fb1865da04003b"
+      "sha256": "c79e14403e2f2c15d9182ea127971e60de114f287e557a63a8a2df50295f865f"
     },
     {
       "path": "packaging/linux/server-package-allowlist.json",
       "mode": "0644",
-      "sha256": "f7d4dd2edf14f87919d74ed64e4c76532f1bd4da0e0f4812a3906f8f3aa3443b"
+      "sha256": "017d18d51470e24e07824aaa17cea790f77fc2967f3f1288890bb5b06b2d64d3"
     },
     {
       "path": "packaging/linux/server/README.en.md",
@@ -531,7 +531,7 @@
     {
       "path": "packaging/linux/server/pf07-server",
       "mode": "0755",
-      "sha256": "27f3c9a5c92a2a19d635d77dc8d1e5e614914d2149569e7e3a00d873467e3b76"
+      "sha256": "4356080901c567d236be41ffd8ddad5b0fbdecef56f2076ab3609c4360b743b5"
     },
     {
       "path": "packaging/linux/server/pf07-server.env.example",
@@ -541,12 +541,12 @@
     {
       "path": "packaging/macos/PF07 Launcher.app/Contents/Info.plist",
       "mode": "0644",
-      "sha256": "1156a093f1a37253d02f0c7c5cd3d42b9c04c6b7f1d2c6e6222b7dc3535fae49"
+      "sha256": "d6b93e83ad6e4144cbf3657658364d51f5b81097819eae21b0b2524b7c3ba133"
     },
     {
       "path": "packaging/macos/PF07 Launcher.app/Contents/MacOS/PF07-OrderOps",
       "mode": "0755",
-      "sha256": "200d505af883b42cac073dfbfa0ff8da0790019555a452e1e1b5a087e062e1ab"
+      "sha256": "48a9ed3006798a70ec262b5c8ba21623ebd80327835de18d86c35be6a8e4312b"
     },
     {
       "path": "packaging/macos/PF07 Launcher.app/Contents/Resources/architecture.json",
@@ -566,12 +566,12 @@
     {
       "path": "packaging/macos/package-allowlist.json",
       "mode": "0644",
-      "sha256": "701488af19b0af3562e4a19fc0541b2f97b6e7cf2bfb68768b113271335e4ee5"
+      "sha256": "bf6068a9fe990836d245aa6aa11f7f207d02bab90199e2ebc42b0f399eed8a21"
     },
     {
       "path": "packaging/macos/pf07",
       "mode": "0755",
-      "sha256": "68b0d745b67f448b4454941cf3f86152e9a0495cd7d4a913f7fb1865da04003b"
+      "sha256": "7adb3fc79b5da3aecfbc638cad16c06be393e0ec9841f571ef939c88a57e2125"
     },
     {
       "path": "packaging/macos/pf07.command",
@@ -581,7 +581,7 @@
     {
       "path": "packaging/network/tunnel-route-allowlist.json",
       "mode": "0644",
-      "sha256": "9b01a5d619825c93ac4680eff87b2e07eaff6fc11b6673021aea270fbbec4566"
+      "sha256": "e8e68313564200ab69e5e21bea9285c922e878f252ad0fb2d3bfe2b046fdb0f7"
     },
     {
       "path": "packaging/windows/README.en.md",
@@ -601,12 +601,12 @@
     {
       "path": "packaging/windows/Start-PF07.ps1",
       "mode": "0644",
-      "sha256": "a35e45718e2808a90a9a4a0b772e4412ae647f0061564e0bf3a49a0266ae607a"
+      "sha256": "a5f8dd75d0d51cf9d01d58d48f67b6c247db9e98a03955cd806290553885fde2"
     },
     {
       "path": "packaging/windows/kvm-test-kit-allowlist.json",
       "mode": "0644",
-      "sha256": "e51f2135c223837f9cd0e963385987119d03774ed767d48f1284e1e121629a4f"
+      "sha256": "1c16c4eda02a62276d26ab8444dbe1fed1bfe9ded4d40df81d40babf1736fd77"
     },
     {
       "path": "packaging/windows/kvm/PF07-KVM-Evidence.ps1",
@@ -641,27 +641,27 @@
     {
       "path": "packaging/windows/native/PF07-Launcher.rc",
       "mode": "0644",
-      "sha256": "2d0e0622cd132df63e2f7b893848bf709742ac95414d4a445a2762c509b34560"
+      "sha256": "05788e299dd57f3bfdd6d5b351d3b676797c714c86529c3b9d68a0ec6acdf6f8"
     },
     {
       "path": "packaging/windows/package-allowlist.json",
       "mode": "0644",
-      "sha256": "c4ba902535adae8618f84be3564dfe7d6834cef4989cd97d394a8583f7e7024f"
+      "sha256": "e35748e77ea31c0761de3b32e4836ba923ae0ec2dc126f1fa0fafcc4596a611e"
     },
     {
       "path": "packaging/windows/pf07.cmd",
       "mode": "0644",
-      "sha256": "15d6b5ea90480e01fe8faef73b952ab89a2aecd582f79ef6b97436bcca2d2424"
+      "sha256": "5495ea6dc36ab176e552a4d0d5ed52abd720bc78a0b05da60b0b9b2dd4179bc5"
     },
     {
       "path": "plugin/oddroom-orderops/assets/css/admin.css",
       "mode": "0644",
-      "sha256": "e5724822d0c32e1d98db8a499f62be1b125b22a2b9272664618c235a6d7f3260"
+      "sha256": "25d24b911cf3c17a5e3ce19adc6303705ff10b2be310ff19d3b3eb9d49e683b7"
     },
     {
       "path": "plugin/oddroom-orderops/assets/css/storefront.css",
       "mode": "0644",
-      "sha256": "5d3680561152c2e57c9f483b13dae604ffc0e4b97e565313297e6ecfa5d87fd0"
+      "sha256": "36caca29ac63271196c4484d5086b5c7b63f7b5a5c08c36fcadd75579bf810c8"
     },
     {
       "path": "plugin/oddroom-orderops/assets/fonts/DoHyeon-Regular.woff2",
@@ -836,12 +836,12 @@
     {
       "path": "plugin/oddroom-orderops/assets/js/storefront.js",
       "mode": "0644",
-      "sha256": "6a58cf5cc620b3c134566edfc545ea884a367fd6f555192cadbe7ed9623dad9c"
+      "sha256": "3ad9b4e74e575433f9bd5310fdc8382210d7b5fe538b0b7d521ecf312e4dcfe7"
     },
     {
       "path": "plugin/oddroom-orderops/includes/class-oddroom-admin.php",
       "mode": "0644",
-      "sha256": "5457a9b8d265daa7f2697cf59faffeb92439121532c87061356961da00919c02"
+      "sha256": "447c00f99c99d56de0fcca1bb8e119754637eaec86ac0e9a6c921147db18a9f8"
     },
     {
       "path": "plugin/oddroom-orderops/includes/class-oddroom-canonical-payload.php",
@@ -876,7 +876,7 @@
     {
       "path": "plugin/oddroom-orderops/includes/class-oddroom-package.php",
       "mode": "0644",
-      "sha256": "649a4229974233064cb54aa0ba4ad51775c5d9e00c48b43f4ac74867a48fcde9"
+      "sha256": "31347b6240ada018ef8b2d55ebd5876fa197dcba249781586cc6a970d58519da"
     },
     {
       "path": "plugin/oddroom-orderops/includes/class-oddroom-private-admin.php",
@@ -906,7 +906,7 @@
     {
       "path": "plugin/oddroom-orderops/includes/class-oddroom-scheduler.php",
       "mode": "0644",
-      "sha256": "5c2b193a4b74bab3bfdcd5690fc8d3c43b2705fdaa626933df5d1889fe49e5b9"
+      "sha256": "9d421aa383f96d615efdceccc70e9d5235fdba09e38a32936fe58411efac3168"
     },
     {
       "path": "plugin/oddroom-orderops/includes/class-oddroom-signature.php",
@@ -921,17 +921,17 @@
     {
       "path": "plugin/oddroom-orderops/includes/class-oddroom-storefront.php",
       "mode": "0644",
-      "sha256": "c9245fed79e8947953ca7b1109d5958ba4bc18752a6d4874be3ebc4cceb4df14"
+      "sha256": "16afdbd07b44d7ef89b004139a1e06d4c28d2f6337c85b7277f5b48fa1e37aa6"
     },
     {
       "path": "plugin/oddroom-orderops/includes/class-oddroom-worker.php",
       "mode": "0644",
-      "sha256": "9f91b9101525b6be4df60f7406169f0fc052e07efd54df186181d5819e1cd1d6"
+      "sha256": "0e1c5dc1c258763ab4da896f53a04fcf964130a326dd6e50e26e37341365038f"
     },
     {
       "path": "plugin/oddroom-orderops/oddroom-orderops.php",
       "mode": "0644",
-      "sha256": "5f563cf086a67c2d57e9aa2383be7369f020786dcff5bc93515f87c1202e65e2"
+      "sha256": "36f86c4d122885aed4691c5a4597aa2b5b17c1f625ac2524e2932d67a38c4089"
     },
     {
       "path": "plugin/oddroom-orderops/tests/run.php",
@@ -951,7 +951,7 @@
     {
       "path": "release/public-allowlist.json",
       "mode": "0644",
-      "sha256": "2d6ca253e04305d78945798d089cd59b185d7aee6f314a93d6dd46e819393472"
+      "sha256": "e2f4333de6f87c77e004edce518090d37df4830c312827087b6dff94c76a0c81"
     },
     {
       "path": "scripts/acceptance_semantics.py",
@@ -961,7 +961,7 @@
     {
       "path": "scripts/build-platform-packages",
       "mode": "0755",
-      "sha256": "2269745f4ab8edf49d1ae19e6504d4e43f414c55b9f0941d2fa8897862ac378b"
+      "sha256": "d20768bbea087180fbcc97e90effc637625ab53f86f8059e1326557ffe90c349"
     },
     {
       "path": "scripts/build-public-media-manifest.mjs",
@@ -981,12 +981,12 @@
     {
       "path": "scripts/build-workflow",
       "mode": "0755",
-      "sha256": "4ebb15c45873837c41071be145c17b6e4bd18de1390105e3b59ede9765c28c40"
+      "sha256": "4b03ab15fa8aa6c4f5397e4d1707e815a3a515ad6c1f4a77bcdd9a13501ea0c3"
     },
     {
       "path": "scripts/capture-final-stills.mjs",
       "mode": "0644",
-      "sha256": "cb0264eb0adc29e68b1201cb06c53c24418ae07735efd1ff79ee77b69b6964c1"
+      "sha256": "20ec5ff2e02c25192f9e9d655be618961fc59ceb270362e9aeb939940b4d585f"
     },
     {
       "path": "scripts/ci",
@@ -1064,9 +1064,14 @@
       "sha256": "12cc70450662ef83553abc33069b4e62e02e30cb07ed487c41979cf5ab7dd4db"
     },
     {
+      "path": "scripts/record-guided-service-tour.mjs",
+      "mode": "0644",
+      "sha256": "97efc2e1b59cc968ac2ce45be8bbf257eddcef68eca06c3ab8fec244994dfe7a"
+    },
+    {
       "path": "scripts/record-public-media.mjs",
       "mode": "0644",
-      "sha256": "b0fc4ec1fa05c26e8c01dd2fc3bc72473a35a50aac0feb26afc906c238ce2fb4"
+      "sha256": "e41bb86c312d1b66ab0092047d6f2866dba62ed0ab22c36c3df5ffe17a447a9b"
     },
     {
       "path": "scripts/refinement_evidence_paths.py",
@@ -1076,12 +1081,12 @@
     {
       "path": "scripts/refresh-bootstrap-bindings",
       "mode": "0755",
-      "sha256": "5398d7df9851ba0a3f306dc1e0ffe34cd30b0837d5555b3f6a12166d272d08bb"
+      "sha256": "fa296d0ce94d7bd0a20056c137fb920809e59c44eb2263130c7677e421dc5e35"
     },
     {
       "path": "scripts/refresh-package-allowlists",
       "mode": "0755",
-      "sha256": "4f1dbf174bb77890fa9ae72019c93d22e68c69590eb137b4d76040be4ea09df9"
+      "sha256": "0030434eada577e239d83909a9e7a47b71cf88f374226511291a8ede30bbb980"
     },
     {
       "path": "scripts/runtime-import-credentials",

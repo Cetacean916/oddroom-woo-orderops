@@ -153,7 +153,7 @@ final class OddRoom_Scheduler
 
     public static function scheduleEligibleRows(): void
     {
-        if (!self::guard(true)['ok']) {
+        if (!OddRoom_Package::outboundProcessingAllowed() || !self::guard(true)['ok']) {
             return;
         }
         self::repairFinishedEligibleLinks();
@@ -167,6 +167,9 @@ final class OddRoom_Scheduler
 
     public static function scheduleBusiness(int $rowId, ?int $timestamp = null): int
     {
+        if (!OddRoom_Package::outboundProcessingAllowed()) {
+            return 0;
+        }
         $guard = self::guard(true);
         if (!$guard['ok']) {
             OddRoom_Repository::recordSchedulingError($rowId, $guard['code'], false);

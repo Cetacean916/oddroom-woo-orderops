@@ -180,6 +180,10 @@ body:not(.wp-admin) a {
   justify-content: flex-end;
 }
 
+.oddroom-mobile-nav {
+  display: none;
+}
+
 .oddroom-wordmark,
 .oddroom-wordmark:visited {
   display: grid;
@@ -965,6 +969,22 @@ body.oddroom-order-tracking .woocommerce-form-track-order {
   background: var(--offset-white);
 }
 
+body.oddroom-order-tracking .order-info {
+  margin: 32px 0 0;
+  padding: 24px 0;
+  border-top: 1px solid var(--offset-ink);
+  border-bottom: 1px solid var(--offset-line);
+  color: var(--offset-soft-ink);
+}
+
+body.oddroom-order-tracking .order-info mark {
+  padding: 0;
+  border-bottom: 1px solid var(--offset-accent);
+  background: transparent;
+  color: var(--offset-ink);
+  font-weight: 700;
+}
+
 body:not(.wp-admin) .woocommerce-result-count,
 body:not(.wp-admin) .woocommerce-ordering,
 body:not(.wp-admin) .wc-block-product-results-count,
@@ -1134,6 +1154,12 @@ body.single-product .wp-block-add-to-cart-form .variations td {
   text-align: left;
 }
 
+body.single-product .wp-block-add-to-cart-form .reset_variations {
+  display: inline-block;
+  margin-left: 10px;
+  white-space: nowrap;
+}
+
 body.single-product .wp-block-add-to-cart-form .quantity input {
   min-height: 52px;
 }
@@ -1143,6 +1169,28 @@ body.single-product .wp-block-woocommerce-product-meta {
   border-top: 1px solid var(--offset-line);
   color: var(--offset-soft-ink);
   font-size: 10px;
+}
+
+.oddroom-product-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.oddroom-product-meta span {
+  color: var(--offset-soft-ink);
+}
+
+.oddroom-product-meta a {
+  color: var(--offset-ink);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.oddroom-product-meta a:hover {
+  color: var(--offset-accent);
 }
 
 body.single-product main > .wp-block-woocommerce-product-details,
@@ -1240,6 +1288,12 @@ body:not(.wp-admin) .woocommerce div.product form.cart .variations td {
   text-align: left;
 }
 
+body:not(.wp-admin) .woocommerce div.product form.cart .reset_variations {
+  display: inline-block;
+  margin-left: 10px;
+  white-space: nowrap;
+}
+
 body:not(.wp-admin) .woocommerce div.product form.cart .button {
   min-width: 220px;
 }
@@ -1330,6 +1384,29 @@ body:not(.wp-admin) .woocommerce table.shop_table th,
 body:not(.wp-admin) .woocommerce table.shop_table td {
   padding: 18px 12px;
   border-color: var(--offset-line);
+}
+
+.oddroom-demo-charge-note,
+.oddroom-order-context {
+  margin: 0 0 28px;
+  padding: 22px 24px;
+  border-left: 3px solid var(--offset-sage);
+  background: #ecefe9;
+  color: var(--offset-soft-ink);
+  display: grid;
+  gap: 5px;
+}
+
+.oddroom-demo-charge-note strong,
+.oddroom-order-context strong {
+  color: var(--offset-ink);
+  font-size: 14px;
+}
+
+.oddroom-demo-charge-note span,
+.oddroom-order-context span {
+  font-size: 13px;
+  line-height: 1.7;
 }
 
 body:not(.wp-admin) .wc-block-components-notice-banner,
@@ -1443,21 +1520,121 @@ body:not(.wp-admin) .woocommerce-MyAccount-navigation li {
   }
 
   .oddroom-frontbar {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: auto 1fr auto;
+    gap: clamp(12px, 3vw, 28px);
   }
 
   .oddroom-wordmark {
-    grid-column: 1;
+    grid-column: 2;
     grid-row: 1;
-    justify-items: start;
+    justify-items: center;
   }
 
   .oddroom-nav-primary {
     display: none;
   }
 
+  .oddroom-mobile-nav {
+    position: static;
+    grid-column: 1;
+    grid-row: 1;
+    display: block;
+  }
+
+  .oddroom-mobile-nav summary {
+    min-width: 48px;
+    padding: 8px 0;
+    color: var(--offset-ink);
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 700;
+    list-style: none;
+  }
+
+  .oddroom-mobile-nav summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .oddroom-mobile-nav summary > span,
+  .oddroom-mobile-nav summary > span::before,
+  .oddroom-mobile-nav summary > span::after {
+    width: 16px;
+    height: 1px;
+    background: currentColor;
+    display: block;
+    content: "";
+  }
+
+  .oddroom-mobile-nav summary > span {
+    position: relative;
+  }
+
+  .oddroom-mobile-nav summary > span::before {
+    position: absolute;
+    top: -5px;
+  }
+
+  .oddroom-mobile-nav summary > span::after {
+    position: absolute;
+    top: 5px;
+  }
+
+  .oddroom-mobile-nav[open] summary > span {
+    background: transparent;
+  }
+
+  .oddroom-mobile-nav[open] summary > span::before {
+    top: 0;
+    transform: rotate(45deg);
+  }
+
+  .oddroom-mobile-nav[open] summary > span::after {
+    top: 0;
+    transform: rotate(-45deg);
+  }
+
+  .oddroom-mobile-nav nav {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    left: 0;
+    padding: 22px clamp(20px, 5vw, 48px) 28px;
+    border-top: 1px solid var(--offset-line);
+    border-bottom: 1px solid var(--offset-ink);
+    background: rgb(255 255 255 / 98%);
+    box-shadow: 0 20px 45px rgb(20 20 18 / 14%);
+  }
+
+  .oddroom-mobile-nav nav ul {
+    display: grid;
+    gap: 0;
+  }
+
+  .oddroom-mobile-nav nav li {
+    border-bottom: 1px solid var(--offset-line);
+  }
+
+  .oddroom-mobile-nav nav li:last-child {
+    border-bottom: 0;
+  }
+
+  .oddroom-mobile-nav nav a {
+    padding: 13px 0;
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+  }
+
+  .oddroom-mobile-nav nav a::after {
+    content: "↗";
+    color: var(--offset-accent);
+  }
+
   .oddroom-nav-utility {
-    grid-column: 2;
+    grid-column: 3;
     grid-row: 1;
   }
 
@@ -1508,6 +1685,7 @@ body:not(.wp-admin) .woocommerce-MyAccount-navigation li {
   .oddroom-frontbar {
     min-height: 70px;
     padding: 0 16px;
+    gap: 10px;
   }
 
   .oddroom-wordmark strong {
@@ -1524,6 +1702,11 @@ body:not(.wp-admin) .woocommerce-MyAccount-navigation li {
 
   .oddroom-frontbar .oddroom-nav-utility a {
     font-size: 11px;
+  }
+
+  .oddroom-mobile-nav summary {
+    min-width: 38px;
+    font-size: 0;
   }
 
   .oddroom-hero-visual {
@@ -1732,6 +1915,39 @@ body:not(.wp-admin) .woocommerce-MyAccount-navigation li {
   body:not(.wp-admin) .cart_totals,
   body:not(.wp-admin) #order_review {
     padding: 20px !important;
+  }
+
+  body:not(.wp-admin) .woocommerce-table--order-details {
+    table-layout: fixed;
+  }
+
+  body:not(.wp-admin) .woocommerce-table--order-details .product-name {
+    width: 68%;
+    padding-right: 16px;
+    overflow-wrap: anywhere !important;
+    word-break: normal !important;
+  }
+
+  html[lang^="ko"] body:not(.wp-admin) .woocommerce-table--order-details .product-name {
+    overflow-wrap: normal !important;
+    word-break: keep-all !important;
+  }
+
+  body:not(.wp-admin) .woocommerce-table--order-details .product-total {
+    width: 32%;
+    padding-left: 8px;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  body:not(.wp-admin) .woocommerce-table--order-details .wc-item-meta {
+    margin: 8px 0 0;
+    font-size: 12px;
+  }
+
+  .oddroom-demo-charge-note,
+  .oddroom-order-context {
+    padding: 19px 18px;
   }
 
   .oddroom-demo-footer {

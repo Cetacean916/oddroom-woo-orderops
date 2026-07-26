@@ -6,6 +6,14 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: "Offset Editorial";
+  src: url("../fonts/NotoSerifKR-Variable-PF07Subset.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 200 900;
+  font-display: swap;
+}
+
 :root {
   --ops-canvas: #f5f6f3;
   --ops-surface: #fff;
@@ -24,14 +32,40 @@
   --ops-review: #694b76;
 }
 
+html.wp-toolbar:has(body.oddroom-orderops-page) {
+  padding-top: 0;
+}
+
+body.oddroom-orderops-page #wpadminbar,
+body.oddroom-orderops-page #adminmenumain,
+body.oddroom-orderops-page #wpfooter,
+body.oddroom-orderops-page #screen-meta-links {
+  display: none;
+}
+
+body.oddroom-orderops-page #wpcontent {
+  margin-left: 0;
+  padding-left: 0;
+}
+
+body.oddroom-orderops-page #wpbody {
+  padding-top: 0;
+}
+
+body.oddroom-orderops-page #wpbody-content {
+  min-height: 100vh;
+  padding-bottom: 0;
+}
+
 #wpcontent,
 #wpbody-content {
   background: var(--ops-canvas);
 }
 
 .oddroom-orderops {
-  max-width: 1540px;
-  margin: 0 20px 80px 0;
+  width: min(1540px, calc(100% - 40px));
+  max-width: none;
+  margin: 0 auto 80px;
   color: var(--ops-ink);
   font-family: "Offset Grotesk", "Apple SD Gothic Neo", system-ui, sans-serif;
   line-height: 1.55;
@@ -48,6 +82,11 @@
 .oddroom-orderops h3,
 .oddroom-orderops p {
   word-break: keep-all;
+}
+
+.oddroom-orderops h1,
+.oddroom-orderops h2 {
+  font-family: "Offset Editorial", "Noto Serif KR", serif;
 }
 
 .oddroom-orderops button,
@@ -177,6 +216,35 @@
   color: var(--ops-ink);
 }
 
+.oddroom-hero nav .oddroom-nav-out {
+  margin-left: auto;
+}
+
+.oddroom-hero nav .oddroom-nav-out + .oddroom-nav-out {
+  margin-left: -16px;
+}
+
+.oddroom-admin-context {
+  margin: 18px 0 0;
+  padding: 18px 24px;
+  border-left: 4px solid var(--ops-blue);
+  background: #edf3f6;
+  color: #3f5663;
+  display: grid;
+  grid-template-columns: minmax(220px, .75fr) minmax(0, 1.6fr);
+  gap: 20px;
+  align-items: baseline;
+}
+
+.oddroom-admin-context strong {
+  color: var(--ops-ink);
+  font-size: 13px;
+}
+
+.oddroom-admin-context span {
+  font-size: 12px;
+}
+
 .oddroom-stat-grid {
   margin: 18px 0 0;
   border-top: 1px solid var(--ops-ink);
@@ -231,6 +299,49 @@
 
 .oddroom-stat.tone-mode > span {
   color: rgb(255 255 255 / 55%);
+}
+
+.oddroom-stat-breakdown ul {
+  margin: 13px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  list-style: none;
+}
+
+.oddroom-stat-breakdown li {
+  min-width: 0;
+  padding-right: 8px;
+  border-right: 1px solid var(--ops-line);
+}
+
+.oddroom-stat-breakdown li:last-child {
+  padding-right: 0;
+  border-right: 0;
+}
+
+.oddroom-stat-breakdown strong,
+.oddroom-stat-breakdown small {
+  display: block;
+}
+
+.oddroom-stat-breakdown strong {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.oddroom-stat-breakdown small {
+  margin-top: 5px;
+  color: var(--ops-muted);
+  font-size: 9px;
+}
+
+.oddroom-stat-breakdown .oddroom-stat-note {
+  max-width: 18ch;
+  margin-top: 18px;
+  font-size: 15px;
+  line-height: 1.45;
 }
 
 .oddroom-two-column {
@@ -335,6 +446,14 @@
   color: var(--ops-muted);
   font-size: 11px;
   font-weight: 600;
+}
+
+.oddroom-orderops label > small {
+  display: block;
+  margin-top: 5px;
+  color: var(--ops-muted);
+  font-size: 9px;
+  font-weight: 500;
 }
 
 .oddroom-orderops input[type="text"],
@@ -548,6 +667,7 @@
 
 .status-normal .oddroom-status,
 .status-recovered .oddroom-status { background: var(--ops-success-bg); color: var(--ops-success); }
+.status-processing .oddroom-status { background: #e8f0f4; color: var(--ops-blue); }
 .status-retrying .oddroom-status { background: var(--ops-warning-bg); color: var(--ops-warning); }
 .status-failed .oddroom-status { background: var(--ops-danger-bg); color: var(--ops-danger); }
 .status-operator .oddroom-status { background: #f1ebf3; color: var(--ops-review); }
@@ -751,11 +871,23 @@
   .oddroom-fact-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .oddroom-hero nav {
+    flex-wrap: wrap;
+  }
+
+  .oddroom-hero nav .oddroom-nav-out {
+    margin-left: 0;
+  }
+
+  .oddroom-hero nav .oddroom-nav-out + .oddroom-nav-out {
+    margin-left: -16px;
+  }
 }
 
 @media (max-width: 782px) {
   .oddroom-orderops {
-    margin-right: 10px;
+    width: calc(100% - 20px);
   }
 
   .oddroom-hero {
@@ -780,6 +912,11 @@
   .oddroom-hero nav {
     margin-top: 38px;
     gap: 18px;
+  }
+
+  .oddroom-admin-context {
+    grid-template-columns: 1fr;
+    gap: 6px;
   }
 
   .oddroom-fields,

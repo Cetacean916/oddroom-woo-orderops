@@ -213,6 +213,7 @@
     "scripts/probe-gate09-compatibility",
     "scripts/probe-gate09-product-quality",
     "scripts/queue-runner",
+    "scripts/record-guided-service-tour.mjs",
     "scripts/record-public-media.mjs",
     "scripts/refinement_evidence_paths.py",
     "scripts/refresh-bootstrap-bindings",

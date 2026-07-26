@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="pf07-session-token" content="__PF07_SESSION_TOKEN__">
   <meta name="pf07-locale" content="ko_KR">
-  <title>OFFSET / PF07 · Runtime Hub</title>
+  <title>OFFSET · 주문 운영</title>
   <link rel="icon" href="/brand-symbol.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/app.css">
 </head>
@@ -13,59 +13,63 @@
   <main>
     <header class="masthead">
       <div class="rail-brand">
-        <a class="brand" href="#top" aria-label="PF07 실행 허브 홈"><span class="brand-chip" aria-hidden="true"></span>OFFSET <span>/ PF07</span></a>
-        <p>ORDEROPS RUNTIME<br>PACKAGE 1.0.3</p>
+        <a class="brand" href="#top" aria-label="OFFSET 주문 운영 홈"><span class="brand-chip" aria-hidden="true"></span>OFFSET <span>/ ORDERS</span></a>
+        <p>ORDER MANAGEMENT<br>RELEASE __PF07_PACKAGE_VERSION__</p>
       </div>
       <nav class="rail-nav" aria-label="허브 섹션">
-        <a href="#top"><span>01</span>런타임 상태</a>
-        <a href="#access"><span>02</span>접근과 모드</a>
-        <a href="#recovery-panel"><span>03</span>상태와 복구</a>
-        <a href="#operations-panel"><span>04</span>패키지 수명주기</a>
+        <a href="#top"><span>01</span>시작과 상태</a>
+        <a href="#access"><span>02</span>상점과 주문 관리</a>
+        <a href="#recovery-panel"><span>03</span>데모 주문 설정</a>
+        <a href="#operations-panel"><span>04</span>추가 관리</a>
       </nav>
       <div class="masthead-tools">
         <label for="language-select">표시 언어</label>
         <select id="language-select" aria-label="표시 언어"><option value="ko_KR" selected>한국어</option><option value="en_US">English</option></select>
-        <p id="mode-pill" class="mode">DEMO MODE · 0 KRW</p>
+        <p id="mode-pill" class="mode">데모 운영 · 0원</p>
       </div>
     </header>
 
     <section id="top" class="hero" aria-labelledby="hub-title">
       <div class="hero-copy">
         <div class="hero-title-block">
-          <p class="eyebrow">PF07 / LOCAL RUNTIME / 01</p>
-          <h1 id="hub-title">주문 운영 허브</h1>
-          <p class="hero-summary">상점과 관리자 화면을 시작하고, 필수 서비스의 준비 상태와 복구 작업을 이 화면에서 관리합니다.</p>
+          <p class="eyebrow">LOCAL ORDER SERVICE / 01</p>
+          <h1 id="hub-title">상점과 주문 운영을 시작하세요.</h1>
+          <p class="hero-summary">상점과 주문 관리 도구를 한 번에 시작하고, 준비 과정과 현재 상태를 확인하세요. 문제가 생기면 필요한 복구 작업도 여기서 이어갈 수 있습니다.</p>
         </div>
         <div class="hero-command">
           <p class="command-label">시작 및 이동</p>
-          <p id="mode-description" class="lede">DEMO_MODE는 자격 증명 없이 합성 주문만 처리합니다. 실제 결제, HubSpot, Slack에는 연결하지 않습니다.
+          <p id="mode-description" class="lede">데모 운영은 별도 계정 연결 없이 합성 주문만 처리합니다. 실제 결제, HubSpot, Slack에는 연결하지 않습니다.
           </p>
           <div class="actions primary-actions">
-            <button id="start-button" class="button button-primary" type="button">런타임 시작</button>
+            <button id="start-button" class="button button-primary" type="button">서비스 시작</button>
             <button id="store-button" class="button" type="button" disabled>상점 열기</button>
             <button id="admin-button" class="button" type="button" disabled>관리자 열기</button>
           </div>
-          <p class="hero-note">준비 검사를 통과한 화면만 열 수 있습니다.</p>
+          <p class="hero-note">준비가 끝나면 상점과 주문 관리 버튼이 활성화됩니다.</p>
         </div>
       </div>
 
       <aside class="status-card" aria-labelledby="status-title">
         <div class="status-heading">
           <div>
-            <p class="eyebrow">SERVICE READINESS</p>
-            <h2 id="status-title">서비스 준비 상태</h2>
+            <p class="eyebrow">SERVICE STATUS</p>
+            <h2 id="status-title">현재 준비 상태</h2>
           </div>
           <span id="status-badge" class="badge badge-idle">확인 중</span>
         </div>
         <div class="signal" aria-hidden="true"><span id="signal-fill"></span></div>
+        <div class="progress-meta" aria-hidden="true">
+          <span id="operation-step">시작 준비</span>
+          <span id="operation-percent">0%</span>
+        </div>
         <dl class="facts">
-          <div><dt>운영 모드</dt><dd id="mode-fact">DEMO_MODE</dd></div>
+          <div><dt>운영 방식</dt><dd id="mode-fact">데모 운영</dd></div>
           <div><dt>필수 서비스</dt><dd id="service-fact">0 / 5</dd></div>
           <div><dt>상점</dt><dd id="store-fact">대기</dd></div>
           <div><dt>관리자</dt><dd id="admin-fact">대기</dd></div>
-          <div><dt>자동화</dt><dd id="n8n-fact">대기</dd></div>
-          <div><dt>코드 실행기</dt><dd id="runner-fact">대기</dd></div>
-          <div><dt>백그라운드 작업자</dt><dd id="worker-fact">대기</dd></div>
+          <div><dt>주문 전달</dt><dd id="n8n-fact">대기</dd></div>
+          <div><dt>작업 실행</dt><dd id="runner-fact">대기</dd></div>
+          <div><dt>백그라운드 처리</dt><dd id="worker-fact">대기</dd></div>
         </dl>
         <p id="operation-message" class="operation" role="status" aria-live="polite">패키지 상태를 확인하고 있습니다.
         </p>
@@ -75,27 +79,27 @@
     <section id="access" class="control-grid" aria-label="운영 도구">
       <article>
         <p class="step">01</p>
-        <h2>런타임과 모드</h2>
-        <p>로컬 런타임을 시작하고 DEMO_MODE 또는 CONNECTED_MODE를 선택합니다. 모드를 바꿔도 같은 주문과 설정을 사용합니다.</p>
-        <button id="setup-button" class="text-button" type="button">모드 설정</button>
+        <h2>운영 방식</h2>
+        <p>별도 계정 연결이 없는 데모 운영과, 보호된 외부 서비스 연결 운영 중에서 선택합니다. 방식을 바꿔도 같은 주문과 설정을 이어갑니다.</p>
+        <button id="setup-button" class="text-button" type="button">운영 방식 설정</button>
       </article>
       <article>
         <p class="step">02</p>
-        <h2>상점과 관리자</h2>
-        <p>준비 검사를 통과한 WooCommerce 상점과 관리자 화면을 엽니다. 관리자 계정은 이 패키지 안에서 생성됩니다.</p>
-        <button id="credential-button" class="text-button" type="button">관리자 계정 보기</button>
+        <h2>상점과 주문 관리</h2>
+        <p>고객용 상점과 운영자용 주문 관리 도구를 각각 엽니다. 관리자 계정은 이 배포 파일 안에서 안전하게 생성됩니다.</p>
+        <button id="credential-button" class="text-button" type="button" disabled>주문 관리 계정 보기</button>
       </article>
       <article>
         <p class="step">03</p>
-        <h2>데모 상태와 복구</h2>
-        <p>다음 합성 주문의 정상·재시도·실패·검토 상태를 선택합니다. 처리 결과와 복구 흐름은 관리자 화면에서 확인합니다.</p>
-        <button id="recovery-button" class="text-button" type="button">데모 상태 설정</button>
+        <h2>데모 주문 설정</h2>
+        <p>다음 주문이 정상 완료될지, 재시도나 관리자 확인이 필요할지 선택합니다. 결과와 복구 과정은 주문 관리에서 확인합니다.</p>
+        <button id="recovery-button" class="text-button" type="button">다음 주문 설정</button>
       </article>
       <article>
         <p class="step">04</p>
-        <h2>런타임 중지</h2>
-        <p>컨테이너를 중지하고 주문·설정·볼륨은 보존합니다. 다시 시작하면 같은 상태를 이어갑니다.</p>
-        <button id="stop-button" class="text-button text-button-muted" type="button">런타임 중지</button>
+        <h2>서비스 멈추기</h2>
+        <p>서비스를 멈춰도 주문과 설정은 그대로 보존됩니다. 다시 시작하면 같은 상태에서 이어집니다.</p>
+        <button id="stop-button" class="text-button text-button-muted" type="button">서비스 멈추기</button>
       </article>
     </section>
 
@@ -117,7 +121,7 @@
           <p class="eyebrow">CONNECTED MODE</p>
           <h2 id="connection-title">외부 서비스 연결</h2>
         </div>
-        <p>연결 검사를 통과한 자격 증명만 패키지의 권한 제한 저장소에 기록합니다. 검사는 HubSpot 파이프라인 조회와 Slack 인증 확인만 수행하며 토큰은 다시 표시하지 않습니다.</p>
+        <p>HubSpot의 선택한 파이프라인과 Slack의 선택한 알림 채널까지 확인된 경우에만 연결 정보를 보호 저장소에 기록합니다. 토큰은 다시 표시하지 않습니다.</p>
       </div>
       <form id="connected-form" class="connected-form">
         <fieldset>
@@ -125,18 +129,19 @@
           <label for="hubspot-token">Private app 토큰<input id="hubspot-token" type="password" autocomplete="new-password" required></label>
           <label for="hubspot-pipeline">Deal 파이프라인 ID<input id="hubspot-pipeline" type="text" autocomplete="off" required placeholder="default"></label>
           <label for="hubspot-stage">초기 단계 ID<input id="hubspot-stage" type="text" autocomplete="off" required></label>
-          <label for="hubspot-alias">표시 이름<input id="hubspot-alias" type="text" value="PF07HubSpotRuntime1" required></label>
+          <label for="hubspot-alias">고객 관리 이름<input id="hubspot-alias" type="text" value="OFFSET Customer Records" required></label>
         </fieldset>
         <fieldset>
           <legend>Slack</legend>
           <label for="slack-token">Bot 토큰<input id="slack-token" type="password" autocomplete="new-password" required></label>
           <label for="slack-channel">채널 ID<input id="slack-channel" type="text" autocomplete="off" required placeholder="C…"></label>
-          <label for="slack-alias">표시 이름<input id="slack-alias" type="text" value="PF07SlackRuntime1" required></label>
-          <p class="form-note">CONNECTED_MODE에서도 합성 주문만 사용하며 실제 고객·결제 데이터는 처리하지 않습니다.</p>
+          <label for="slack-alias">주문 알림 이름<input id="slack-alias" type="text" value="OFFSET Order Alerts" required></label>
+          <label class="confirmation-check" for="slack-test-confirmation"><input id="slack-test-confirmation" type="checkbox" required> 선택한 채널에 고객·주문 정보가 없는 설정 확인 메시지 1건을 보내는 데 동의합니다.</label>
+          <p class="form-note">외부 서비스를 연결해도 합성 주문만 사용하며 실제 고객·결제 데이터는 처리하지 않습니다.</p>
         </fieldset>
         <div class="connected-actions">
-          <button id="connected-button" class="button button-primary" type="submit">연결 검사 후 CONNECTED_MODE 적용</button>
-          <button id="demo-mode-button" class="button" type="button">DEMO_MODE로 전환</button>
+          <button id="connected-button" class="button button-primary" type="submit">확인 메시지 전송 후 적용</button>
+          <button id="demo-mode-button" class="button" type="button">데모 운영으로 전환</button>
         </div>
       </form>
       <p id="connection-result" class="panel-result" role="status" aria-live="polite"></p>
@@ -166,7 +171,7 @@
           <label for="reset-confirmation">데모 데이터 초기화 확인</label>
           <input id="reset-confirmation" type="text" autocomplete="off" spellcheck="false" placeholder="RESET PF07 DEMO">
           <button id="reset-button" class="button button-danger" type="submit" disabled>합성 데모 데이터 초기화</button>
-          <p class="form-note">정확히 <code>RESET PF07 DEMO</code>를 입력해야 합니다. 관리자 계정·카탈로그·런타임 볼륨은 보존됩니다.</p>
+          <p class="form-note">정확히 <code>RESET PF07 DEMO</code>를 입력해야 합니다. 관리자 계정·카탈로그·저장된 서비스 데이터는 보존됩니다.</p>
         </form>
       </div>
       <p id="recovery-result" class="panel-result" role="status" aria-live="polite"></p>
@@ -175,17 +180,24 @@
     <section id="operations-panel" class="recovery-panel operations-panel" aria-labelledby="operations-title">
       <div class="panel-heading">
         <div>
-          <p class="eyebrow">PACKAGE OPERATIONS</p>
-          <h2 id="operations-title">백업·복원·이관</h2>
+          <p class="eyebrow">ADDITIONAL MANAGEMENT</p>
+          <h2 id="operations-title">추가 관리가 필요할 때</h2>
         </div>
-        <p>이 영역의 작업은 PF07 Compose 프로젝트와 볼륨만 대상으로 합니다. 백업과 증거 파일은 추출 폴더 밖에 만들며 토큰과 관리자 비밀번호는 진단에서 제외합니다.</p>
+        <p>서비스 다시 시작과 복구는 바로 실행할 수 있습니다. 백업, 복원, 이전 버전 가져오기, 외부 접속, 제거는 필요할 때만 펼쳐보세요.</p>
       </div>
       <div class="operation-actions" aria-label="즉시 운영 작업">
-        <button id="preflight-button" class="button" type="button">필수 구성요소 재검사</button>
-        <button id="restart-button" class="button" type="button">같은 런타임 재시작</button>
-        <button id="recover-button" class="button" type="button">복구 실행</button>
-        <button id="diagnostics-button" class="button" type="button">진단 보기</button>
-        <button id="evidence-button" class="button" type="button">증거 ZIP 내보내기</button>
+        <button id="preflight-button" class="button" type="button">시작 환경 다시 확인</button>
+        <button id="restart-button" class="button" type="button">서비스 다시 시작</button>
+        <button id="recover-button" class="button" type="button">문제 복구</button>
+      </div>
+      <details class="operations-disclosure">
+        <summary>
+          <span>고급 패키지 관리</span>
+          <small>백업 · 복원 · 상태 가져오기 · HTTPS · 제거</small>
+        </summary>
+      <div class="operation-actions operation-actions-secondary" aria-label="상세 상태 자료">
+        <button id="diagnostics-button" class="button" type="button">상세 상태 보기</button>
+        <button id="evidence-button" class="button" type="button">상태 자료 ZIP 저장</button>
       </div>
       <div class="operations-grid">
         <form id="backup-form" class="control-form">
@@ -207,13 +219,13 @@
           <p class="form-note">현재 상태가 있으면 복원 전 백업을 먼저 만들고, 기존 런타임을 중지한 뒤 PF07 볼륨만 교체합니다.</p>
         </form>
         <form id="update-form" class="control-form">
-          <h3>1.0.1 상태 이관</h3>
-          <label for="update-predecessor">1.0.1 패키지 추출 폴더 절대 경로</label>
+          <h3>이전 버전 상태 가져오기</h3>
+          <label for="update-predecessor">이전 공개 패키지(__PF07_PREDECESSOR_VERSION__) 추출 폴더 절대 경로</label>
           <input id="update-predecessor" type="text" autocomplete="off" required>
           <label for="update-confirmation">확인 문구</label>
           <input id="update-confirmation" type="text" autocomplete="off" placeholder="UPDATE PF07" required>
-          <button class="button" type="submit">1.0.1 상태를 이 패키지로 이관</button>
-          <p class="form-note">두 패키지의 무결성과 build ID를 확인하고 기존 런타임을 중지한 뒤 `SHOP_INSTANCE_ID`와 세 볼륨을 이 패키지에 연결합니다.</p>
+          <button class="button" type="submit">기존 상태 가져오기</button>
+          <p class="form-note">두 패키지의 신원을 확인하고 이전 런타임을 안전하게 중지한 뒤 같은 상점 식별자와 데이터를 새 패키지에서 이어갑니다.</p>
         </form>
         <form id="tunnel-form" class="control-form">
           <h3>HTTPS 터널</h3>
@@ -225,30 +237,33 @@
           <input id="tunnel-config" type="text" autocomplete="off">
           <label for="tunnel-confirmation">활성화 확인 문구</label>
           <input id="tunnel-confirmation" type="text" autocomplete="off" placeholder="ENABLE PF07 TUNNEL">
+          <label for="tunnel-disable-confirmation">중지 확인 문구</label>
+          <input id="tunnel-disable-confirmation" type="text" autocomplete="off" placeholder="DISABLE PF07 TUNNEL">
           <div class="operation-actions">
             <button id="tunnel-on-button" class="button" type="submit">터널 켜기</button>
             <button id="tunnel-off-button" class="button" type="button">터널 끄기</button>
             <button id="tunnel-store-button" class="button" type="button" disabled>HTTPS 상점</button>
             <button id="tunnel-admin-button" class="button" type="button" disabled>HTTPS 관리자</button>
           </div>
-          <p class="form-note">상점과 WordPress 관리자 경로만 공개합니다. n8n·DB·Docker API·로그·증거는 공개하지 않으며 터널을 중지해도 로컬 상점은 계속 동작합니다.</p>
+          <p class="form-note">켜려면 ENABLE PF07 TUNNEL, 끄려면 DISABLE PF07 TUNNEL을 각 입력란에 적으세요. 상점과 WordPress 관리자 경로만 공개하며, 터널을 중지해도 로컬 상점은 계속 동작합니다.</p>
         </form>
         <form id="uninstall-form" class="control-form control-form-danger">
-          <h3>패키지 제거</h3>
+          <h3>런타임 자원 정리</h3>
           <label for="uninstall-data-choice">데이터 선택</label>
           <select id="uninstall-data-choice"><option value="preserve">볼륨과 로컬 상태 보존</option><option value="remove">PF07 볼륨과 로컬 상태 제거</option></select>
           <label for="uninstall-confirmation">확인 문구</label>
           <input id="uninstall-confirmation" type="text" autocomplete="off" placeholder="UNINSTALL PF07" required>
           <button class="button button-danger" type="submit">확인된 PF07 자원만 제거</button>
-          <p class="form-note">필요한 암호화 백업을 먼저 만드세요. 다른 Compose 프로젝트·볼륨·파일은 건드리지 않습니다.</p>
+          <p class="form-note">추출한 패키지 파일은 남습니다. 보존을 선택하면 다음 시작 때 같은 상태를 다시 연결하고, 제거를 선택하면 다음 시작 때 새 로컬 상태를 만듭니다. 필요한 암호화 백업을 먼저 만드세요.</p>
         </form>
       </div>
+      </details>
       <pre id="operations-result" class="operations-result" role="status" aria-live="polite"></pre>
     </section>
 
     <footer>
       <p>OFFSET · OBJECTS / ORDER SYSTEM</p>
-      <p>합성 데이터 전용 · 실제 결제 없음 · 로컬 루프백 전용</p>
+      <p>합성 데이터 전용 · 실제 결제 없음 · 기본은 로컬, 확인 후에만 HTTPS 공개</p>
     </footer>
   </main>
   <script src="/app.js" defer></script>

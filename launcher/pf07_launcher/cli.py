@@ -95,10 +95,15 @@ def main() -> int:
     connected_parser.add_argument("--hubspot-token-file", required=True)
     connected_parser.add_argument("--hubspot-pipeline-id", required=True)
     connected_parser.add_argument("--hubspot-initial-stage-id", required=True)
-    connected_parser.add_argument("--hubspot-alias", default="PF07HubSpotRuntime1")
+    connected_parser.add_argument("--hubspot-alias", default="OFFSET Customer Records")
     connected_parser.add_argument("--slack-token-file", required=True)
     connected_parser.add_argument("--slack-channel-id", required=True)
-    connected_parser.add_argument("--slack-alias", default="PF07SlackRuntime1")
+    connected_parser.add_argument("--slack-alias", default="OFFSET Order Alerts")
+    connected_parser.add_argument(
+        "--confirm-slack-test",
+        required=True,
+        help="Type SEND PF07 SLACK TEST to authorize one synthetic setup message",
+    )
     scenario_parser = subparsers.add_parser("scenario", help="Choose the next deterministic demo delivery state")
     scenario_parser.add_argument("scenario", choices=("normal", "fail_once", "terminal", "operator_review"))
     reset_parser = subparsers.add_parser("reset-demo", help="Reset only package-owned demo business data")
@@ -169,6 +174,7 @@ def main() -> int:
                 "slack_token": Path(args.slack_token_file).read_text(encoding="utf-8").strip(),
                 "slack_channel_id": args.slack_channel_id,
                 "slack_alias": args.slack_alias,
+                "slack_test_confirmation": args.confirm_slack_test,
             })
         elif args.command == "scenario":
             result = set_demo_scenario(args.scenario)

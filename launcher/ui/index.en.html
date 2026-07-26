@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="pf07-session-token" content="__PF07_SESSION_TOKEN__">
   <meta name="pf07-locale" content="en_US">
-  <title>OFFSET / PF07 · Runtime Hub</title>
+  <title>OFFSET · Order management</title>
   <link rel="icon" href="/brand-symbol.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/app.css">
 </head>
@@ -13,60 +13,64 @@
   <main>
     <header class="masthead">
       <div class="rail-brand">
-        <a class="brand" href="#top" aria-label="PF07 runtime hub home"><span class="brand-chip" aria-hidden="true"></span>OFFSET <span>/ PF07</span></a>
-        <p>ORDEROPS RUNTIME<br>PACKAGE 1.0.3</p>
+        <a class="brand" href="#top" aria-label="OFFSET order management home"><span class="brand-chip" aria-hidden="true"></span>OFFSET <span>/ ORDERS</span></a>
+        <p>ORDER MANAGEMENT<br>RELEASE __PF07_PACKAGE_VERSION__</p>
       </div>
       <nav class="rail-nav" aria-label="Hub sections">
-        <a href="#top"><span>01</span>Runtime status</a>
-        <a href="#access"><span>02</span>Access and mode</a>
-        <a href="#recovery-panel"><span>03</span>State and recovery</a>
-        <a href="#operations-panel"><span>04</span>Package lifecycle</a>
+        <a href="#top"><span>01</span>Start and status</a>
+        <a href="#access"><span>02</span>Store and orders</a>
+        <a href="#recovery-panel"><span>03</span>Demo order setup</a>
+        <a href="#operations-panel"><span>04</span>Additional management</a>
       </nav>
       <div class="masthead-tools">
         <label for="language-select">Language</label>
         <select id="language-select" aria-label="Display language"><option value="ko_KR">Korean</option><option value="en_US" selected>English</option></select>
-        <p id="mode-pill" class="mode">DEMO MODE · 0 KRW</p>
+        <p id="mode-pill" class="mode">Demo operation · 0 KRW</p>
       </div>
     </header>
 
     <section id="top" class="hero" aria-labelledby="hub-title">
       <div class="hero-copy">
         <div class="hero-title-block">
-          <p class="eyebrow">PF07 / LOCAL RUNTIME / 01</p>
-          <h1 id="hub-title">Order operations hub</h1>
-          <p class="hero-summary">Start the store and administrator, then manage service readiness and recovery from this screen.</p>
+          <p class="eyebrow">LOCAL ORDER SERVICE / 01</p>
+          <h1 id="hub-title">Start the store and order management.</h1>
+          <p class="hero-summary">Start the customer store and order-management tools together, follow the preparation progress, and continue with recovery here if the service needs attention.</p>
         </div>
         <div class="hero-command">
           <p class="command-label">START AND OPEN</p>
           <p id="mode-description" class="lede">
-            DEMO_MODE processes synthetic orders without credentials. It does not contact real payments, HubSpot, or Slack.
+            Demo operation processes synthetic orders without account connections. It does not contact real payments, HubSpot, or Slack.
           </p>
           <div class="actions primary-actions">
-            <button id="start-button" class="button button-primary" type="button">Start runtime</button>
+            <button id="start-button" class="button button-primary" type="button">Start service</button>
             <button id="store-button" class="button" type="button" disabled>Open store</button>
             <button id="admin-button" class="button" type="button" disabled>Open admin</button>
           </div>
-          <p class="hero-note">Only targets that pass readiness can be opened.</p>
+          <p class="hero-note">The store and order-management buttons become available when preparation is complete.</p>
         </div>
       </div>
 
       <aside class="status-card" aria-labelledby="status-title">
         <div class="status-heading">
           <div>
-            <p class="eyebrow">SERVICE READINESS</p>
-            <h2 id="status-title">Service readiness</h2>
+            <p class="eyebrow">SERVICE STATUS</p>
+            <h2 id="status-title">Current preparation</h2>
           </div>
           <span id="status-badge" class="badge badge-idle">Checking</span>
         </div>
         <div class="signal" aria-hidden="true"><span id="signal-fill"></span></div>
+        <div class="progress-meta" aria-hidden="true">
+          <span id="operation-step">Ready to start</span>
+          <span id="operation-percent">0%</span>
+        </div>
         <dl class="facts">
-          <div><dt>Mode</dt><dd id="mode-fact">DEMO_MODE</dd></div>
+          <div><dt>Operation</dt><dd id="mode-fact">Demo operation</dd></div>
           <div><dt>Required services</dt><dd id="service-fact">0 / 5</dd></div>
           <div><dt>Store</dt><dd id="store-fact">Waiting</dd></div>
           <div><dt>Admin</dt><dd id="admin-fact">Waiting</dd></div>
-          <div><dt>Automation</dt><dd id="n8n-fact">Waiting</dd></div>
-          <div><dt>Code runner</dt><dd id="runner-fact">Waiting</dd></div>
-          <div><dt>Background worker</dt><dd id="worker-fact">Waiting</dd></div>
+          <div><dt>Order delivery</dt><dd id="n8n-fact">Waiting</dd></div>
+          <div><dt>Task execution</dt><dd id="runner-fact">Waiting</dd></div>
+          <div><dt>Background processing</dt><dd id="worker-fact">Waiting</dd></div>
         </dl>
         <p id="operation-message" class="operation" role="status" aria-live="polite">
           Checking the package state.
@@ -77,27 +81,27 @@
     <section id="access" class="control-grid" aria-label="Operations">
       <article>
         <p class="step">01</p>
-        <h2>Runtime and mode</h2>
-        <p>Start the local runtime and select DEMO_MODE or CONNECTED_MODE. Both modes use the same orders and settings.</p>
-        <button id="setup-button" class="text-button" type="button">Configure mode</button>
+        <h2>Operating method</h2>
+        <p>Choose between demo operation without account connections and protected external-service operation. Both keep the same orders and settings.</p>
+        <button id="setup-button" class="text-button" type="button">Choose operating method</button>
       </article>
       <article>
         <p class="step">02</p>
-        <h2>Store and admin</h2>
-        <p>Open the WooCommerce store and administrator only after readiness passes. The administrator account is created inside this package.</p>
-        <button id="credential-button" class="text-button" type="button">View administrator account</button>
+        <h2>Store and order management</h2>
+        <p>Open the customer store and operator workspace separately. The management account is created safely inside this delivery package.</p>
+        <button id="credential-button" class="text-button" type="button" disabled>View management account</button>
       </article>
       <article>
         <p class="step">03</p>
-        <h2>Demo state and recovery</h2>
-        <p>Select normal, retry, failure, or review for the next synthetic order. Inspect processing and recovery in the administrator.</p>
-        <button id="recovery-button" class="text-button" type="button">Configure demo state</button>
+        <h2>Demo order setup</h2>
+        <p>Choose whether the next order completes normally or needs a retry or operator review. Follow the result in order management.</p>
+        <button id="recovery-button" class="text-button" type="button">Set up next order</button>
       </article>
       <article>
         <p class="step">04</p>
-        <h2>Stop runtime</h2>
-        <p>Stop the containers while preserving orders, settings, and volumes. The next start resumes the same state.</p>
-        <button id="stop-button" class="text-button text-button-muted" type="button">Stop runtime</button>
+        <h2>Stop the service</h2>
+        <p>Orders and settings remain in place while the service is stopped. The next start continues from the same state.</p>
+        <button id="stop-button" class="text-button text-button-muted" type="button">Stop service</button>
       </article>
     </section>
 
@@ -119,7 +123,7 @@
           <p class="eyebrow">CONNECTED MODE</p>
           <h2 id="connection-title">External service connections</h2>
         </div>
-        <p>Only credentials that pass connection checks are written to permission-restricted package storage. Checks read the HubSpot pipeline and verify Slack authentication; tokens are not displayed again.</p>
+        <p>Connection details are stored only after the selected HubSpot pipeline and Slack notification channel are confirmed. Tokens are not displayed again.</p>
       </div>
       <form id="connected-form" class="connected-form">
         <fieldset>
@@ -127,18 +131,19 @@
           <label for="hubspot-token">Private app access token<input id="hubspot-token" type="password" autocomplete="new-password" required></label>
           <label for="hubspot-pipeline">Deal pipeline internal ID<input id="hubspot-pipeline" type="text" autocomplete="off" required placeholder="default"></label>
           <label for="hubspot-stage">Initial stage internal ID<input id="hubspot-stage" type="text" autocomplete="off" required></label>
-          <label for="hubspot-alias">Display alias<input id="hubspot-alias" type="text" value="PF07HubSpotRuntime1" required></label>
+          <label for="hubspot-alias">Customer record name<input id="hubspot-alias" type="text" value="OFFSET Customer Records" required></label>
         </fieldset>
         <fieldset>
           <legend>Slack</legend>
           <label for="slack-token">Bot token<input id="slack-token" type="password" autocomplete="new-password" required></label>
           <label for="slack-channel">Channel ID<input id="slack-channel" type="text" autocomplete="off" required placeholder="C…"></label>
-          <label for="slack-alias">Display alias<input id="slack-alias" type="text" value="PF07SlackRuntime1" required></label>
-          <p class="form-note">CONNECTED_MODE still processes synthetic orders only and does not use real customer or payment data.</p>
+          <label for="slack-alias">Order notification name<input id="slack-alias" type="text" value="OFFSET Order Alerts" required></label>
+          <label class="confirmation-check" for="slack-test-confirmation"><input id="slack-test-confirmation" type="checkbox" required> I agree to send one setup-check message with no customer or order data to the selected channel.</label>
+          <p class="form-note">Connected operation still processes synthetic orders only and does not use real customer or payment data.</p>
         </fieldset>
         <div class="connected-actions">
-          <button id="connected-button" class="button button-primary" type="submit">Check connections and apply CONNECTED_MODE</button>
-          <button id="demo-mode-button" class="button" type="button">Switch to DEMO_MODE</button>
+          <button id="connected-button" class="button button-primary" type="submit">Send check message and apply</button>
+          <button id="demo-mode-button" class="button" type="button">Switch to demo operation</button>
         </div>
       </form>
       <p id="connection-result" class="panel-result" role="status" aria-live="polite"></p>
@@ -168,7 +173,7 @@
           <label for="reset-confirmation">Confirm demo-data reset</label>
           <input id="reset-confirmation" type="text" autocomplete="off" spellcheck="false" placeholder="RESET PF07 DEMO">
           <button id="reset-button" class="button button-danger" type="submit" disabled>Reset synthetic demo data</button>
-          <p class="form-note">Type <code>RESET PF07 DEMO</code> exactly. The administrator, catalog, runtime identity, and volumes are preserved.</p>
+          <p class="form-note">Type <code>RESET PF07 DEMO</code> exactly. The administrator, catalog, store identity, and saved service data are preserved.</p>
         </form>
       </div>
       <p id="recovery-result" class="panel-result" role="status" aria-live="polite"></p>
@@ -177,17 +182,24 @@
     <section id="operations-panel" class="recovery-panel operations-panel" aria-labelledby="operations-title">
       <div class="panel-heading">
         <div>
-          <p class="eyebrow">PACKAGE OPERATIONS</p>
-          <h2 id="operations-title">Backup, restore, and transfer</h2>
+          <p class="eyebrow">ADDITIONAL MANAGEMENT</p>
+          <h2 id="operations-title">When you need additional management</h2>
         </div>
-        <p>Actions in this area target the PF07 Compose project and volumes only. Backups and evidence are created outside the extraction; diagnostics exclude tokens and administrator passwords.</p>
+        <p>Restart or recover the service directly. Open advanced management only when you need backup, restore, previous-version transfer, external access, or removal.</p>
       </div>
       <div class="operation-actions" aria-label="Immediate package operations">
-        <button id="preflight-button" class="button" type="button">Recheck prerequisites</button>
-        <button id="restart-button" class="button" type="button">Restart same runtime</button>
-        <button id="recover-button" class="button" type="button">Run recovery</button>
-        <button id="diagnostics-button" class="button" type="button">View diagnostics</button>
-        <button id="evidence-button" class="button" type="button">Export evidence ZIP</button>
+        <button id="preflight-button" class="button" type="button">Recheck start environment</button>
+        <button id="restart-button" class="button" type="button">Restart service</button>
+        <button id="recover-button" class="button" type="button">Recover service</button>
+      </div>
+      <details class="operations-disclosure">
+        <summary>
+          <span>Advanced package management</span>
+          <small>Backup · restore · transfer · HTTPS · removal</small>
+        </summary>
+      <div class="operation-actions operation-actions-secondary" aria-label="Detailed service records">
+        <button id="diagnostics-button" class="button" type="button">View detailed status</button>
+        <button id="evidence-button" class="button" type="button">Save status record ZIP</button>
       </div>
       <div class="operations-grid">
         <form id="backup-form" class="control-form">
@@ -209,13 +221,13 @@
           <p class="form-note">If current state exists, PF07 creates a pre-restore backup, stops the current runtime, and replaces PF07 volumes only.</p>
         </form>
         <form id="update-form" class="control-form">
-          <h3>Transfer 1.0.1 state</h3>
-          <label for="update-predecessor">Absolute path to the 1.0.1 extraction</label>
+          <h3>Bring forward a previous release</h3>
+          <label for="update-predecessor">Absolute path to the previous public package (__PF07_PREDECESSOR_VERSION__)</label>
           <input id="update-predecessor" type="text" autocomplete="off" required>
           <label for="update-confirmation">Confirmation phrase</label>
           <input id="update-confirmation" type="text" autocomplete="off" placeholder="UPDATE PF07" required>
-          <button class="button" type="submit">Transfer 1.0.1 state to this package</button>
-          <p class="form-note">PF07 verifies both package identities, stops the 1.0.1 runtime, and connects its `SHOP_INSTANCE_ID` and three volumes to this package.</p>
+          <button class="button" type="submit">Bring forward existing state</button>
+          <p class="form-note">The package checks both release identities, safely stops the previous runtime, and continues the same store identity and data in this release.</p>
         </form>
         <form id="tunnel-form" class="control-form">
           <h3>HTTPS tunnel</h3>
@@ -227,30 +239,33 @@
           <input id="tunnel-config" type="text" autocomplete="off">
           <label for="tunnel-confirmation">Enable confirmation phrase</label>
           <input id="tunnel-confirmation" type="text" autocomplete="off" placeholder="ENABLE PF07 TUNNEL">
+          <label for="tunnel-disable-confirmation">Disable confirmation phrase</label>
+          <input id="tunnel-disable-confirmation" type="text" autocomplete="off" placeholder="DISABLE PF07 TUNNEL">
           <div class="operation-actions">
             <button id="tunnel-on-button" class="button" type="submit">Enable tunnel</button>
             <button id="tunnel-off-button" class="button" type="button">Disable tunnel</button>
             <button id="tunnel-store-button" class="button" type="button" disabled>HTTPS store</button>
             <button id="tunnel-admin-button" class="button" type="button" disabled>HTTPS admin</button>
           </div>
-          <p class="form-note">Only the storefront and WordPress administrator routes are exposed. n8n, databases, the Docker API, logs, and evidence remain private; the local store remains available after the tunnel stops.</p>
+          <p class="form-note">Enter ENABLE PF07 TUNNEL to start and DISABLE PF07 TUNNEL to stop. Only storefront and WordPress administrator routes are exposed; the local store remains available after the tunnel stops.</p>
         </form>
         <form id="uninstall-form" class="control-form control-form-danger">
-          <h3>Remove package</h3>
+          <h3>Remove runtime resources</h3>
           <label for="uninstall-data-choice">Data choice</label>
           <select id="uninstall-data-choice"><option value="preserve">Preserve volumes and local state</option><option value="remove">Remove PF07 volumes and local state</option></select>
           <label for="uninstall-confirmation">Confirmation phrase</label>
           <input id="uninstall-confirmation" type="text" autocomplete="off" placeholder="UNINSTALL PF07" required>
           <button class="button button-danger" type="submit">Remove confirmed PF07 resources</button>
-          <p class="form-note">Create any needed encrypted backup first. Other Compose projects, volumes, and files are never touched.</p>
+          <p class="form-note">Extracted package files remain. Preserve reconnects the same state on a later start; remove creates new local state on a later start. Create any needed encrypted backup first.</p>
         </form>
       </div>
+      </details>
       <pre id="operations-result" class="operations-result" role="status" aria-live="polite"></pre>
     </section>
 
     <footer>
       <p>OFFSET · OBJECTS / ORDER SYSTEM</p>
-      <p>Synthetic data only · no real payment · loopback access only</p>
+      <p>Synthetic data only · no real payment · local by default, HTTPS only after confirmation</p>
     </footer>
   </main>
   <script src="/app.js" defer></script>

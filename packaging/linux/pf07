@@ -1,4 +1,8 @@
 #!/bin/sh
 set -eu
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+if ! command -v python3 >/dev/null 2>&1 || ! python3 -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)'; then
+  printf '%s\n' 'Python 3.10 or newer is required. Install it from https://www.python.org/downloads/ and retry.' >&2
+  exit 20
+fi
 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$script_dir/launcher${PYTHONPATH:+:$PYTHONPATH}" exec python3 -B -m pf07_launcher.cli "$@"

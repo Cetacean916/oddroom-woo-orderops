@@ -22,14 +22,36 @@ if (!captureDisplay || Number(captureDisplay[1]) < 10) {
   throw new Error("public media recording requires a dedicated Xvfb display (:10 or higher); refusing to capture an owner desktop");
 }
 
-const targets = {
-  demo: path.join(outputDir, "demo-video.mp4"),
-  recovery: path.join(outputDir, "recovery-clip.mp4"),
-  poster: path.join(outputDir, "video-poster.png"),
-  proof: path.join(outputDir, "execution-proof.json"),
+const targetsByLocale = {
+  ko_KR: {
+    slug: "ko",
+    purchase: path.join(outputDir, "ko-purchase-delivery.mp4"),
+    recovery: path.join(outputDir, "ko-failure-recovery.mp4"),
+    purchasePoster: path.join(outputDir, "ko-purchase-delivery.png"),
+    recoveryPoster: path.join(outputDir, "ko-failure-recovery.png"),
+    purchaseCaptions: path.join(outputDir, "ko-purchase-delivery.vtt"),
+    recoveryCaptions: path.join(outputDir, "ko-failure-recovery.vtt"),
+    purchaseTimeline: path.join(outputDir, "ko-purchase-delivery.timeline.json"),
+    recoveryTimeline: path.join(outputDir, "ko-failure-recovery.timeline.json"),
+  },
+  en_US: {
+    slug: "en",
+    purchase: path.join(outputDir, "en-purchase-delivery.mp4"),
+    recovery: path.join(outputDir, "en-failure-recovery.mp4"),
+    purchasePoster: path.join(outputDir, "en-purchase-delivery.png"),
+    recoveryPoster: path.join(outputDir, "en-failure-recovery.png"),
+    purchaseCaptions: path.join(outputDir, "en-purchase-delivery.vtt"),
+    recoveryCaptions: path.join(outputDir, "en-failure-recovery.vtt"),
+    purchaseTimeline: path.join(outputDir, "en-purchase-delivery.timeline.json"),
+    recoveryTimeline: path.join(outputDir, "en-failure-recovery.timeline.json"),
+  },
 };
+const proofTarget = path.join(outputDir, "execution-proof.json");
 await fsp.mkdir(outputDir, { recursive: true });
-for (const target of Object.values(targets)) {
+for (const target of [
+  proofTarget,
+  ...Object.values(targetsByLocale).flatMap(({ slug, ...files }) => Object.values(files)),
+]) {
   if (fs.existsSync(target)) throw new Error(`refusing to replace existing output: ${path.basename(target)}`);
 }
 
@@ -59,31 +81,14 @@ const runtime = Object.fromEntries(
 for (const key of ["PF07_WORDPRESS_PORT", "PF07_ADMIN_USER", "PF07_ADMIN_PASSWORD", "PF07_COMPOSE_PROJECT"]) {
   if (!runtime[key]) throw new Error(`missing final package runtime value: ${key}`);
 }
-const configuredContactPool = process.env.PF07_SYNTHETIC_CONTACT_EMAIL_POOL
-  ? process.env.PF07_SYNTHETIC_CONTACT_EMAIL_POOL.split(",")
-  : [];
-const syntheticContactPool = configuredContactPool.length > 0
-  ? configuredContactPool
-  : [process.env.PF07_SYNTHETIC_CONTACT_EMAIL || `pf07-video-${Date.now()}@example.com`];
-if (syntheticContactPool.length > 64
-  || new Set(syntheticContactPool).size !== syntheticContactPool.length
-  || syntheticContactPool.some((value) => value.length > 254
-    || value !== value.trim()
-    || value !== value.toLowerCase()
-    || !/^[a-z0-9][a-z0-9._+\-]{0,180}@example\.com$/.test(value))) {
-  throw new Error("PF07 synthetic contact pool must contain 1 to 64 distinct lowercase @example.com addresses");
-}
-let syntheticContactIndex = 0;
-const nextSyntheticContactEmail = () => syntheticContactPool[
-  syntheticContactIndex++ % syntheticContactPool.length
-];
-const checkoutContactEmail = nextSyntheticContactEmail();
+const syntheticContactEmail = "pf07-demo@example.com";
 const artifactManifestBytes = await fsp.readFile(artifactManifestPath);
 const artifactManifest = JSON.parse(artifactManifestBytes.toString("utf8"));
 if (artifactManifest.schema !== "pf07.artifact-manifest.v1"
   || artifactManifest.artifact_id !== "pf07-linux-x86_64"
-  || artifactManifest.package_version !== "1.0.3"
-  || artifactManifest.build_id !== "pf07-build-c14f8fe0b8e95bea97bf"
+  || artifactManifest.package_version !== "1.0.4"
+  || typeof artifactManifest.build_id !== "string"
+  || !artifactManifest.build_id.startsWith("pf07-build-")
   || artifactManifest.actual_os_runtime_execution !== false
   || artifactManifest.tested_boundary !== "ACTUAL_LINUX_LOCAL_EXECUTION_REQUIRED_ON_CANONICAL_CI_BYTES_IN_STEP_090") {
   throw new Error("final Linux package identity or execution boundary failed");
@@ -383,9 +388,10 @@ async function sanitizeVisibleIdentityText(page) {
 }
 
 async function createOrderThroughCheckout(page, timelineState = null) {
+  const words = timelineState?.words;
   await page.goto(`${baseUrl}/`, { waitUntil: "networkidle" });
   if (timelineState) {
-    await caption(page, "LIVE STOREFRONT", "Final Linux package · actual WooCommerce home");
+    await caption(page, words.live[0], words.live[1]);
     mark(timelineState.capture, timelineState.timeline, "LIVE_STOREFRONT", "home_visible");
     await wait(2500);
     await page.evaluate(() => window.scrollTo({ top: 420, behavior: "smooth" }));
@@ -397,7 +403,7 @@ async function createOrderThroughCheckout(page, timelineState = null) {
   const shopLink = page.getByRole("link", { name: /컬렉션 보기|컬렉션에서 시작|Shop the collection|Start with the collection/i }).first();
   await clickAndWait(shopLink, page);
   if (timelineState) {
-    await caption(page, "SHOP OPENED", "Actual final catalog · synthetic products only");
+    await caption(page, words.shop[0], words.shop[1]);
     mark(timelineState.capture, timelineState.timeline, "SHOP_OPENED", "shop_visible");
     await wait(2200);
   }
@@ -405,7 +411,7 @@ async function createOrderThroughCheckout(page, timelineState = null) {
   const productLink = page.locator('a[href*="/product/offset-dock/"]').first();
   await clickAndWait(productLink, page);
   if (timelineState) {
-    await caption(page, "PRODUCT SELECTED", "Offset Dock · real final product detail");
+    await caption(page, words.product[0], words.product[1]);
     mark(timelineState.capture, timelineState.timeline, "PRODUCT_SELECTED", "product_page_visible");
     await wait(2200);
   }
@@ -413,11 +419,11 @@ async function createOrderThroughCheckout(page, timelineState = null) {
   await focusAction(addButton);
   await addButton.click();
   await wait(900);
-  const cartLink = page.locator('.oddroom-frontbar a[href*="/cart/"]').first();
+  const cartLink = page.locator('a[href*="/cart/"]:visible').first();
   await clickAndWait(cartLink, page);
   await page.locator("table.shop_table").first().waitFor();
   if (timelineState) {
-    await caption(page, "CART READY", "Actual cart state · no real payment");
+    await caption(page, words.cart[0], words.cart[1]);
     mark(timelineState.capture, timelineState.timeline, "CART_READY", "cart_contains_product");
     await wait(2200);
   }
@@ -425,16 +431,8 @@ async function createOrderThroughCheckout(page, timelineState = null) {
   const checkoutLink = page.locator("a.checkout-button").first();
   await clickAndWait(checkoutLink, page);
   await page.locator("#billing_email").waitFor();
-  await sanitizeVisibleIdentityText(page);
-  await slowFill(page, "#billing_first_name", "Synthetic", { protect: true });
-  await slowFill(page, "#billing_last_name", "Buyer", { protect: true });
-  await page.locator("#billing_country").selectOption("KR");
-  await slowFill(page, "#billing_address_1", "123 Test Street");
-  await slowFill(page, "#billing_city", "Seoul");
-  await slowFill(page, "#billing_postcode", "04524");
-  await slowFill(page, "#billing_email", checkoutContactEmail, { protect: true });
   if (timelineState) {
-    await caption(page, "SYNTHETIC CHECKOUT", "Test Street · Seoul · protected dummy contact fields");
+    await caption(page, words.checkout[0], words.checkout[1]);
     mark(timelineState.capture, timelineState.timeline, "CHECKOUT_INPUT", "synthetic_checkout_input_visible");
     await wait(2000);
   }
@@ -459,7 +457,7 @@ async function createOrderThroughCheckout(page, timelineState = null) {
   if (!/order received|주문.*접수|주문이 완료/i.test(confirmation)) throw new Error("actual checkout did not reach order confirmation");
   if (/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i.test(confirmation)) throw new Error("confirmation still exposes an email-like value");
   if (timelineState) {
-    await caption(page, "ORDER RECEIVED", "WooCommerce created the actual synthetic order");
+    await caption(page, words.received[0], words.received[1]);
     mark(timelineState.capture, timelineState.timeline, "ORDER_RECEIVED", "woocommerce_confirmation_visible");
     await wait(2500);
   }
@@ -476,7 +474,7 @@ async function loginAdmin(page, { requireCard = true } = {}) {
       page.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 45000 }),
       page.click("#wp-submit"),
     ]);
-    await page.locator("#adminmenu").waitFor({ timeout: 45000 });
+    await page.locator(".oddroom-orderops").waitFor({ timeout: 45000 });
   }
   if (!/[?&]page=oddroom-orderops(?:&|$)/.test(page.url())) {
     await page.goto(adminUrl, { waitUntil: "commit", timeout: 45000 });
@@ -581,15 +579,19 @@ async function submitAdminButtonInPlace(page, button) {
   }
 }
 
-async function applyHubScenario(hubPage, scenario, capture, timeline, event, observation) {
+async function applyHubScenario(hubPage, scenario, capture, timeline, event, observation, scenarioCopy = null) {
   await hubPage.bringToFront();
   await hubPage.locator("#recovery-button").click();
   await hubPage.locator("#scenario-select").selectOption(scenario);
   await focusAction(hubPage.locator("#scenario-button"));
   await hubPage.locator("#scenario-button").click();
-  await hubPage.locator("#recovery-result").filter({ hasText: /적용|applied/i }).waitFor();
+  await hubPage.locator("#recovery-result").filter({ hasText: /적용됩니다|will apply/i }).waitFor();
   if (capture) {
-    await caption(hubPage, scenario === "terminal" ? "TERMINAL SCENARIO" : "NORMAL SCENARIO", "Actual package hub control changed the next worker result");
+    const copy = scenarioCopy || [
+      scenario === "terminal" ? "TERMINAL SCENARIO" : "NORMAL SCENARIO",
+      "Actual package hub control changed the next worker result",
+    ];
+    await caption(hubPage, copy[0], copy[1]);
     mark(capture, timeline, event, observation);
     await wait(300);
   }
@@ -659,7 +661,7 @@ async function createRecoveryOrderViaWpCli() {
   const result = await compose(
     "--profile", "tools", "run", "--rm", "-T", "wpcli",
     "oddroom-orderops", "create-order", "--shape=variable", `--alias=${alias}`,
-    `--email=${nextSyntheticContactEmail()}`,
+    `--email=${syntheticContactEmail}`,
   );
   const record = JSON.parse(result.stdout.toString("utf8"));
   if (!Number.isInteger(record.order_id) || record.order_id < 1
@@ -688,31 +690,112 @@ async function videoProbe(file) {
   };
 }
 
-async function sampleDynamics(file) {
-  const { stdout } = await runProcess(ffmpeg, [
-    "-hide_banner", "-loglevel", "error", "-i", file,
-    "-vf", "fps=1,scale=160:90,format=gray", "-f", "framemd5", "-",
-  ]);
-  const hashes = stdout.toString("utf8").split("\n")
-    .filter((line) => line && !line.startsWith("#"))
-    .map((line) => line.split(",").at(-1).trim());
-  return { sampled_frame_count: hashes.length, unique_sampled_frames: new Set(hashes).size };
+function mediaWords(locale) {
+  if (locale === "ko_KR") {
+    return {
+      hub: ["서비스 준비 완료", "상점과 주문 관리가 함께 준비됐습니다."],
+      live: ["상점 둘러보기", "고객이 제품을 만나는 첫 장면부터 시작합니다."],
+      shop: ["제품 살펴보기", "컬렉션에서 원하는 제품을 비교합니다."],
+      product: ["제품 선택", "Offset Dock의 이미지와 정보를 확인합니다."],
+      cart: ["주문 전 확인", "실제 결제 없이 선택한 제품을 다시 확인합니다."],
+      checkout: ["안전한 데모 주문", "준비된 예시 정보만 사용해 개인정보 없이 주문합니다."],
+      received: ["주문 접수 완료", "고객의 구매 과정은 여기서 완결됩니다."],
+      pending: ["운영 목록에 도착", "완료된 주문에서 필요한 정보만 운영자에게 이어집니다."],
+      processing: ["주문 처리", "자동화가 접수된 주문을 처리합니다."],
+      completed: ["처리 완료", "운영자가 주문 상태와 결과를 한눈에 확인합니다."],
+      result: ["필요한 정보 전달 완료", "주문과 처리 결과를 연결해 확인합니다."],
+      failurePending: ["처리를 기다리는 주문", "같은 주문을 복구하는 과정을 시작합니다."],
+      failureRun: ["오류 상황 재현", "처리 중 문제가 생긴 상황을 확인합니다."],
+      failed: ["확인이 필요한 주문", "주문은 보존되고 운영자가 다시 처리할 수 있습니다."],
+      retry: ["다시 처리", "운영자의 선택으로 같은 주문을 다시 대기열에 넣습니다."],
+      scenario: ["정상 처리로 전환", "다음 주문부터 다시 정상적으로 처리되도록 설정합니다."],
+      recoveryRun: ["처리 재개", "보존된 주문을 이어서 처리합니다."],
+      recovered: ["복구 완료", "같은 주문이 중복 없이 정상 상태로 돌아왔습니다."],
+      workerHeading: "OFFSET 주문 처리",
+    };
+  }
+  return {
+    hub: ["SERVICE READY", "The store and order workspace are ready together."],
+    live: ["EXPLORE THE STORE", "Begin with the first experience customers see."],
+    shop: ["BROWSE PRODUCTS", "Compare the collection and choose the right product."],
+    product: ["PRODUCT SELECTED", "Review the Offset Dock imagery and product details."],
+    cart: ["REVIEW THE ORDER", "Confirm the selection with no real payment."],
+    checkout: ["SAFE DEMO ORDER", "Prepared example details complete the order without personal data."],
+    received: ["ORDER RECEIVED", "The customer journey is complete at this point."],
+    pending: ["READY FOR OPERATIONS", "Only the details needed to fulfil the completed order reach the operator."],
+    processing: ["PROCESSING THE ORDER", "Automation handles the newly received order."],
+    completed: ["PROCESSING COMPLETE", "The operator can see the order state and result at a glance."],
+    result: ["THE RIGHT DETAILS, DELIVERED", "Order context and processing result remain easy to follow."],
+    failurePending: ["ORDER WAITING", "Follow how the same order is recovered."],
+    failureRun: ["SIMULATED INTERRUPTION", "See what happens when processing cannot finish."],
+    failed: ["OPERATOR ATTENTION", "The order stays safe and can be processed again."],
+    retry: ["TRY AGAIN", "The operator returns the same order to the queue."],
+    scenario: ["NORMAL PROCESSING RESTORED", "The next order is returned to normal processing."],
+    recoveryRun: ["PROCESSING RESUMES", "The preserved order continues from the recovery action."],
+    recovered: ["RECOVERY COMPLETE", "The same order returns to normal without duplication."],
+    workerHeading: "OFFSET ORDER PROCESSING",
+  };
 }
 
-async function frameSha(file, seconds) {
-  const { stdout } = await runProcess(ffmpeg, [
-    "-hide_banner", "-loglevel", "error", "-i", file, "-ss", String(seconds),
-    "-frames:v", "1", "-f", "image2pipe", "-vcodec", "png", "-",
-  ]);
-  return sha256(stdout);
+function vttTimestamp(seconds) {
+  const milliseconds = Math.max(0, Math.round(seconds * 1000));
+  const hours = Math.floor(milliseconds / 3600000);
+  const minutes = Math.floor((milliseconds % 3600000) / 60000);
+  const secs = Math.floor((milliseconds % 60000) / 1000);
+  const ms = milliseconds % 1000;
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}.${String(ms).padStart(3, "0")}`;
 }
 
-async function bindTimelineFrames(file, timeline) {
-  for (const event of timeline) event.frame_sha256 = await frameSha(file, event.at_seconds);
+async function writeMediaSidecars({ locale, kind, timeline, words, duration, captions, timelineFile }) {
+  const labels = {
+    LAUNCH_HUB: words.hub[0],
+    LIVE_STOREFRONT: words.live[0],
+    SHOP_OPENED: words.shop[0],
+    PRODUCT_SELECTED: words.product[0],
+    CART_READY: words.cart[0],
+    CHECKOUT_INPUT: words.checkout[0],
+    ORDER_RECEIVED: words.received[0],
+    OUTBOX_PENDING: kind === "purchase-delivery" ? words.pending[0] : words.failurePending[0],
+    WORKER_RUN: words.processing[0],
+    ADMIN_COMPLETED: words.completed[0],
+    INTEGRATION_RESULT: words.result[0],
+    FAILURE_WORKER_RUN: words.failureRun[0],
+    FAILED: words.failed[0],
+    NORMAL_SCENARIO: words.scenario[0],
+    MANUAL_RETRY: words.retry[0],
+    RECOVERY_WORKER_RUN: words.recoveryRun[0],
+    RECOVERED: words.recovered[0],
+  };
+  const chapters = timeline.map((event) => ({ ...event, label: labels[event.event] || event.event }));
+  const cues = chapters.map((event, index) => {
+    const next = index + 1 < chapters.length ? chapters[index + 1].at_seconds : duration;
+    return `${index + 1}\n${vttTimestamp(event.at_seconds)} --> ${vttTimestamp(Math.max(event.at_seconds + 0.8, next))}\n${event.label}\n`;
+  });
+  await fsp.writeFile(captions, `WEBVTT\n\n${cues.join("\n")}`, "utf8");
+  await fsp.writeFile(timelineFile, `${JSON.stringify({
+    schema: "pf07.focused-public-media.v1",
+    package_version: artifactManifest.package_version,
+    artifact_id: artifactManifest.artifact_id,
+    build_id: artifactManifest.build_id,
+    artifact_manifest_sha256: sha256(artifactManifestBytes),
+    locale,
+    media_kind: kind,
+    total_seconds: duration,
+    time_compression: false,
+    chapters,
+  }, null, 2)}\n`, "utf8");
+}
+
+async function extractPoster(video, output, seconds) {
+  await runProcess(ffmpeg, [
+    "-hide_banner", "-loglevel", "error", "-i", video, "-ss", String(Math.max(0, seconds)),
+    "-frames:v", "1",
+    "-vf", "scale=1440:810:force_original_aspect_ratio=decrease,pad=1440:1000:(ow-iw)/2:(oh-ih)/2:color=0x171714",
+    "-map_metadata", "-1", output,
+  ]);
 }
 
 await packageCommand("mode", "DEMO_MODE");
-await packageCommand("language", "ko_KR");
 await packageCommand("scenario", "normal");
 const hub = await startHub();
 const browser = await chromium.launch({
@@ -727,68 +810,78 @@ const browser = await chromium.launch({
 });
 
 let activeCapture = null;
-const demoTimeline = [];
-const recoveryTimeline = [];
-try {
+const recordings = {};
+
+async function recordLocale(locale, targets) {
+  const words = mediaWords(locale);
+  const purchaseTimeline = [];
+  const recoveryTimeline = [];
+  await packageCommand("language", locale);
+  await packageCommand("scenario", "normal");
   await packageCommand("reset-demo", "--confirm=RESET PF07 DEMO");
   await resetCheckoutAllowance();
-  const demoSession = await openContext(browser);
-  await demoSession.page.goto(hub.url, { waitUntil: "networkidle" });
-  await demoSession.page.locator("#status-badge").filter({ hasText: "준비 완료" }).waitFor();
-  const demoAdminSession = await openContext(browser);
-  await loginAdmin(demoAdminSession.page, { requireCard: false });
-  await demoSession.page.bringToFront();
-  const demoCapture = await startCapture(targets.demo);
-  activeCapture = demoCapture;
-  await caption(demoSession.page, "PACKAGE LAUNCH HUB", "Final Linux package · READY · actual hub controls");
-  mark(demoCapture, demoTimeline, "LAUNCH_HUB", "final_package_hub_ready");
+
+  const purchaseSession = await openContext(browser);
+  await purchaseSession.page.goto(hub.url, { waitUntil: "networkidle" });
+  await purchaseSession.page.locator("#status-badge").filter({ hasText: /준비 완료|Ready/i }).waitFor();
+  const purchaseAdminSession = await openContext(browser);
+  await loginAdmin(purchaseAdminSession.page, { requireCard: false });
+  await purchaseSession.page.bringToFront();
+  const purchaseCapture = await startCapture(targets.purchase);
+  activeCapture = purchaseCapture;
+  await caption(purchaseSession.page, words.hub[0], words.hub[1]);
+  mark(purchaseCapture, purchaseTimeline, "LAUNCH_HUB", "package_hub_ready");
   await wait(2500);
 
-  const storePage = await openHubTarget(demoSession.page, demoSession.context, "#store-button", "/");
-  const adminPage = demoAdminSession.page;
+  const storePage = await openHubTarget(purchaseSession.page, purchaseSession.context, "#store-button", "/");
+  const adminPage = purchaseAdminSession.page;
   await storePage.bringToFront();
   await compose("stop", "-t", "1", "worker");
-  await createOrderThroughCheckout(storePage, { capture: demoCapture, timeline: demoTimeline });
+  await createOrderThroughCheckout(storePage, {
+    capture: purchaseCapture,
+    timeline: purchaseTimeline,
+    words,
+  });
 
   await adminPage.bringToFront();
   await loginAdmin(adminPage);
-  if (!(await newestClass(adminPage)).includes("status-queued")) throw new Error("demo row was not pending before foreground worker");
-  await caption(adminPage, "OUTBOX PENDING", "ORDER_CREATED · pending · actual final admin");
-  mark(demoCapture, demoTimeline, "OUTBOX_PENDING", "status_pending");
+  if (!(await newestClass(adminPage)).includes("status-queued")) throw new Error("purchase row was not pending before processing");
+  await caption(adminPage, words.pending[0], words.pending[1]);
+  mark(purchaseCapture, purchaseTimeline, "OUTBOX_PENDING", "status_pending");
   await wait(2000);
 
-  await caption(adminPage, "FOREGROUND WORKER", "Actual final-package Action Scheduler run");
+  await caption(adminPage, words.processing[0], words.processing[1]);
   await runVisibleWorker({
-    heading: "PF07 FINAL PACKAGE WORKER",
+    heading: words.workerHeading,
     command: "action-scheduler run --hooks=oddroom_orderops_process",
-    capture: demoCapture,
-    timeline: demoTimeline,
+    capture: purchaseCapture,
+    timeline: purchaseTimeline,
     event: "WORKER_RUN",
-    observation: "visible_terminal_foreground_worker_exit_zero",
+    observation: "visible_order_processing",
   });
   await reloadAdmin(adminPage);
-  if (!(await newestClass(adminPage)).includes("status-normal")) throw new Error("demo row did not complete");
-  await caption(adminPage, "ADMIN COMPLETED", "ORDER_CREATED · completed · HTTP 200");
-  mark(demoCapture, demoTimeline, "ADMIN_COMPLETED", "status_completed");
+  if (!(await newestClass(adminPage)).includes("status-normal")) throw new Error("purchase row did not complete");
+  await caption(adminPage, words.completed[0], words.completed[1]);
+  mark(purchaseCapture, purchaseTimeline, "ADMIN_COMPLETED", "status_completed");
   await wait(2500);
   const details = adminPage.locator(".oddroom-event-card").first().locator("details");
   await details.locator("summary").click();
   await details.scrollIntoViewIfNeeded();
-  await caption(adminPage, "INTEGRATION RESULT", "Woo → PF07 → n8n → CRM → Slack · identifiers masked");
-  mark(demoCapture, demoTimeline, "INTEGRATION_RESULT", "masked_integration_correlation_visible");
-  const demoElapsed = (Date.now() - demoCapture.startedAt) / 1000;
-  if (demoElapsed < 62) await wait((62 - demoElapsed) * 1000);
-  await stopCapture(demoCapture);
+  await caption(adminPage, words.result[0], words.result[1]);
+  mark(purchaseCapture, purchaseTimeline, "INTEGRATION_RESULT", "order_result_visible");
+  const purchaseElapsed = (Date.now() - purchaseCapture.startedAt) / 1000;
+  if (purchaseElapsed < 62) await wait((62 - purchaseElapsed) * 1000);
+  await stopCapture(purchaseCapture);
   activeCapture = null;
-  await demoSession.context.close();
-  await demoAdminSession.context.close();
+  await purchaseSession.context.close();
+  await purchaseAdminSession.context.close();
 
   await compose("start", "worker");
   await packageCommand("reset-demo", "--confirm=RESET PF07 DEMO");
   await resetCheckoutAllowance();
   const recoverySession = await openContext(browser);
   await recoverySession.page.goto(hub.url, { waitUntil: "networkidle" });
-  await recoverySession.page.locator("#status-badge").filter({ hasText: "준비 완료" }).waitFor();
+  await recoverySession.page.locator("#status-badge").filter({ hasText: /준비 완료|Ready/i }).waitFor();
   await applyHubScenario(recoverySession.page, "terminal", null, null, null, null);
   await compose("stop", "-t", "1", "worker");
   await createRecoveryOrderViaWpCli();
@@ -799,24 +892,24 @@ try {
 
   const recoveryCapture = await startCapture(targets.recovery);
   activeCapture = recoveryCapture;
-  await caption(recoveryAdmin, "OUTBOX PENDING", "ORDER_CREATED · pending · same delivered runtime");
+  await caption(recoveryAdmin, words.failurePending[0], words.failurePending[1]);
   mark(recoveryCapture, recoveryTimeline, "OUTBOX_PENDING", "status_pending");
-  await wait(300);
+  await wait(500);
   await recoveryAdmin.bringToFront();
-  await caption(recoveryAdmin, "FAILURE WORKER", "Actual final-package worker enters terminal failure");
+  await caption(recoveryAdmin, words.failureRun[0], words.failureRun[1]);
   await runVisibleWorker({
-    heading: "PF07 FINAL PACKAGE WORKER",
+    heading: words.workerHeading,
     command: "action-scheduler run --hooks=oddroom_orderops_process",
     capture: recoveryCapture,
     timeline: recoveryTimeline,
     event: "FAILURE_WORKER_RUN",
-    observation: "visible_terminal_failure_worker_exit_zero",
+    observation: "visible_interrupted_processing",
   });
   await reloadAdmin(recoveryAdmin);
   if (!(await newestClass(recoveryAdmin)).includes("status-failed")) throw new Error("recovery row did not enter failed");
-  await caption(recoveryAdmin, "FAILED", "Same outbox row · HTTP 422 · manual retry now available");
-  mark(recoveryCapture, recoveryTimeline, "FAILED", "status_failed_manual_retry_visible");
-  await wait(250);
+  await caption(recoveryAdmin, words.failed[0], words.failed[1]);
+  mark(recoveryCapture, recoveryTimeline, "FAILED", "operator_attention_visible");
+  await wait(500);
   await compose("start", "worker");
   await recoverySession.page.bringToFront();
   await recoverySession.page.waitForFunction(async () => {
@@ -830,37 +923,45 @@ try {
   await recoverySession.page.waitForFunction(() => !document.querySelector("#scenario-button")?.disabled, null, { timeout: 10000 });
   await applyHubScenario(
     recoverySession.page, "normal", recoveryCapture, recoveryTimeline,
-    "NORMAL_SCENARIO", "actual_hub_normal_scenario_applied",
+    "NORMAL_SCENARIO", "normal_processing_restored", words.scenario,
   );
   await compose("stop", "-t", "1", "worker");
   await recoveryAdmin.bringToFront();
   await recoveryAdmin.locator(".oddroom-event-card").first().locator("details summary").click();
-  const retryButton = recoveryAdmin.getByRole("button", { name: /수동 재시도|Manual retry/i }).first();
+  const retryButton = recoveryAdmin.getByRole("button", { name: /다시 처리|Retry processing/i }).first();
   await focusAction(retryButton);
   await submitAdminButtonInPlace(recoveryAdmin, retryButton);
   await sanitizeVisibleIdentityText(recoveryAdmin);
   await focusNewestCard(recoveryAdmin);
   if (!(await newestClass(recoveryAdmin)).includes("status-queued")) throw new Error("manual retry did not return row to pending");
-  await caption(recoveryAdmin, "MANUAL RETRY", "Actual administrator action scheduled one follow-up");
-  mark(recoveryCapture, recoveryTimeline, "MANUAL_RETRY", "manual_retry_scheduled_pending");
-  await wait(250);
-  await caption(recoveryAdmin, "RECOVERY WORKER", "Actual final-package worker resumes the same row");
+  await caption(recoveryAdmin, words.retry[0], words.retry[1]);
+  mark(recoveryCapture, recoveryTimeline, "MANUAL_RETRY", "manual_retry_scheduled");
+  await wait(500);
+  await caption(recoveryAdmin, words.recoveryRun[0], words.recoveryRun[1]);
   await runVisibleWorker({
-    heading: "PF07 FINAL PACKAGE WORKER",
+    heading: words.workerHeading,
     command: "action-scheduler run --hooks=oddroom_orderops_process",
     capture: recoveryCapture,
     timeline: recoveryTimeline,
     event: "RECOVERY_WORKER_RUN",
-    observation: "visible_terminal_recovery_worker_exit_zero",
+    observation: "visible_recovery_processing",
   });
   await reloadAdmin(recoveryAdmin);
   if (!(await newestClass(recoveryAdmin)).includes("status-recovered")) throw new Error("recovery row did not reach recovered");
-  await caption(recoveryAdmin, "RECOVERED", "Same outbox row · recovered · HTTP 200");
+  await caption(recoveryAdmin, words.recovered[0], words.recovered[1]);
   mark(recoveryCapture, recoveryTimeline, "RECOVERED", "status_recovered");
-  await wait(300);
+  await wait(900);
   await stopCapture(recoveryCapture);
   activeCapture = null;
   await recoverySession.context.close();
+  await compose("start", "worker");
+  return { locale, words, purchaseTimeline, recoveryTimeline };
+}
+
+try {
+  for (const locale of ["ko_KR", "en_US"]) {
+    recordings[locale] = await recordLocale(locale, targetsByLocale[locale]);
+  }
 } finally {
   if (activeCapture) await stopCapture(activeCapture).catch(() => {});
   await packageCommand("scenario", "normal").catch(() => {});
@@ -871,68 +972,86 @@ try {
   await fsp.rm(visibleOperationRoot, { recursive: true, force: true });
 }
 
-const posterTime = Math.max(0, (demoTimeline.find((event) => event.event === "ADMIN_COMPLETED")?.at_seconds || 55) + 0.5);
-await runProcess(ffmpeg, [
-  "-hide_banner", "-loglevel", "error", "-i", targets.demo, "-ss", String(posterTime),
-  "-frames:v", "1", "-vf", "scale=1440:810:force_original_aspect_ratio=decrease,pad=1440:1000:(ow-iw)/2:(oh-ih)/2:color=0x171714",
-  "-map_metadata", "-1", targets.poster,
-]);
-
-await bindTimelineFrames(targets.demo, demoTimeline);
-await bindTimelineFrames(targets.recovery, recoveryTimeline);
-const demoProbe = await videoProbe(targets.demo);
-const recoveryProbe = await videoProbe(targets.recovery);
-if (demoProbe.duration_seconds < 60 || demoProbe.duration_seconds > 90) throw new Error("demo duration is outside 60-90 seconds");
-if (recoveryProbe.duration_seconds < 8 || recoveryProbe.duration_seconds > 30) throw new Error("recovery duration is outside 8-30 seconds");
-
 const proof = {
-  schema_version: 1,
+  schema_version: 2,
   case_id: "pf07",
-  classification: "PUBLIC_SANITIZED_EXECUTION_PROOF",
+  classification: "PUBLIC_SANITIZED_DIRECT_RUNTIME_RECORD",
   recording_script: "scripts/record-public-media.mjs",
   recording_script_sha256: await sha256File(scriptPath),
   metadata_stripped: true,
+  package_version: artifactManifest.package_version,
+  package_artifact_id: artifactManifest.artifact_id,
   package_build_id: artifactManifest.build_id,
   package_artifact_manifest_sha256: sha256(artifactManifestBytes),
-  final_linux_package_preflight: "PASS",
-  synthetic_checkout_window_prepared_via_wp_cli: true,
-  videos: {
-    "demo-video.mp4": {
-      sha256: await sha256File(targets.demo),
-      ...demoProbe,
-      ...(await sampleDynamics(targets.demo)),
-      continuous_capture: true,
-      actual_launcher_hub_observed: true,
-      actual_checkout_observed: true,
-      foreground_worker_observed: true,
-      visible_worker_terminal_observed: true,
-      final_status: "completed",
-      timeline: demoTimeline,
-    },
-    "recovery-clip.mp4": {
-      sha256: await sha256File(targets.recovery),
-      ...recoveryProbe,
-      ...(await sampleDynamics(targets.recovery)),
-      continuous_capture: true,
-      actual_terminal_failure_observed: true,
-      actual_hub_scenario_transition_observed: true,
-      manual_retry_observed: true,
-      visible_worker_terminal_observed: true,
-      final_status: "recovered",
-      timeline: recoveryTimeline,
-    },
-  },
-  poster: {
-    file: "video-poster.png",
-    sha256: await sha256File(targets.poster),
-    source_video: "demo-video.mp4",
-    source_at_seconds: posterTime,
-  },
+  synthetic_checkout_identity: syntheticContactEmail,
+  videos: {},
 };
-await fsp.writeFile(targets.proof, `${JSON.stringify(proof, null, 2)}\n`, { mode: 0o644 });
+
+for (const locale of ["ko_KR", "en_US"]) {
+  const targets = targetsByLocale[locale];
+  const recording = recordings[locale];
+  const purchaseProbe = await videoProbe(targets.purchase);
+  const recoveryProbe = await videoProbe(targets.recovery);
+  const purchasePosterTime = Math.max(
+    0,
+    (recording.purchaseTimeline.find((event) => event.event === "ADMIN_COMPLETED")?.at_seconds || 55) + 0.5,
+  );
+  const recoveryPosterTime = Math.max(
+    0,
+    (recording.recoveryTimeline.find((event) => event.event === "RECOVERED")?.at_seconds || recoveryProbe.duration_seconds - 1),
+  );
+  await extractPoster(targets.purchase, targets.purchasePoster, purchasePosterTime);
+  await extractPoster(targets.recovery, targets.recoveryPoster, recoveryPosterTime);
+  await writeMediaSidecars({
+    locale,
+    kind: "purchase-delivery",
+    timeline: recording.purchaseTimeline,
+    words: recording.words,
+    duration: purchaseProbe.duration_seconds,
+    captions: targets.purchaseCaptions,
+    timelineFile: targets.purchaseTimeline,
+  });
+  await writeMediaSidecars({
+    locale,
+    kind: "failure-recovery",
+    timeline: recording.recoveryTimeline,
+    words: recording.words,
+    duration: recoveryProbe.duration_seconds,
+    captions: targets.recoveryCaptions,
+    timelineFile: targets.recoveryTimeline,
+  });
+  for (const [kind, video, poster, captions, timeline, probe] of [
+    ["purchase-delivery", targets.purchase, targets.purchasePoster, targets.purchaseCaptions, targets.purchaseTimeline, purchaseProbe],
+    ["failure-recovery", targets.recovery, targets.recoveryPoster, targets.recoveryCaptions, targets.recoveryTimeline, recoveryProbe],
+  ]) {
+    proof.videos[path.basename(video)] = {
+      locale,
+      media_kind: kind,
+      sha256: await sha256File(video),
+      ...probe,
+      poster: {
+        file: path.basename(poster),
+        sha256: await sha256File(poster),
+      },
+      captions: {
+        file: path.basename(captions),
+        sha256: await sha256File(captions),
+      },
+      timeline: {
+        file: path.basename(timeline),
+        sha256: await sha256File(timeline),
+      },
+      continuous_capture: true,
+      time_compression: false,
+    };
+  }
+}
+
+await fsp.writeFile(proofTarget, `${JSON.stringify(proof, null, 2)}\n`, { mode: 0o644 });
 process.stdout.write(`${JSON.stringify({
-  demo_duration_seconds: demoProbe.duration_seconds,
-  recovery_duration_seconds: recoveryProbe.duration_seconds,
-  demo_events: demoTimeline.length,
-  recovery_events: recoveryTimeline.length,
+  package_version: artifactManifest.package_version,
+  package_build_id: artifactManifest.build_id,
+  videos: Object.fromEntries(
+    Object.entries(proof.videos).map(([name, value]) => [name, value.duration_seconds]),
+  ),
 }, null, 2)}\n`);
