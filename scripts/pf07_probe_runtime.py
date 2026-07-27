@@ -36,6 +36,10 @@ def _validate_synthetic_contact_email(value: str, label: str) -> str:
     return value
 
 
+def validated_synthetic_contact_email(value: str) -> str:
+    return _validate_synthetic_contact_email(value, "explicit synthetic contact")
+
+
 def protected_synthetic_contact_email(default: str) -> str:
     global _SYNTHETIC_CONTACT_POOL_KEY, _SYNTHETIC_CONTACT_POOL, _SYNTHETIC_CONTACT_INDEX
     raw_pool = os.environ.get("PF07_SYNTHETIC_CONTACT_EMAIL_POOL", "")
@@ -337,8 +341,19 @@ class ProbeRuntime:
         if not isinstance(observed, dict) or observed.get("run_id") != expected:
             raise ProbeRuntimeError("collector RUN_ID differs from the active restored runtime")
 
-    def create_order(self, shape: str, alias: str, amount: str) -> dict:
-        email = protected_synthetic_contact_email(f"pf07+{alias}@example.com")
+    def create_order(
+        self,
+        shape: str,
+        alias: str,
+        amount: str,
+        *,
+        email: str | None = None,
+    ) -> dict:
+        email = (
+            validated_synthetic_contact_email(email)
+            if email is not None
+            else protected_synthetic_contact_email(f"pf07+{alias}@example.com")
+        )
         value = self.wpcli_json([
             "oddroom-orderops", "create-order", f"--shape={shape}", f"--alias={alias}",
             f"--amount={amount}", f"--email={email}",

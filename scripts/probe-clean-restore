@@ -22,7 +22,14 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from acceptance_semantics import derive_fixture_observations
-from pf07_probe_runtime import ProbeRuntime, ProbeRuntimeError, parse_env_file, parse_json_output, run
+from pf07_probe_runtime import (
+    ProbeRuntime,
+    ProbeRuntimeError,
+    parse_env_file,
+    parse_json_output,
+    run,
+    validated_synthetic_contact_email,
+)
 
 
 WORKFLOW_ID = "PF07OrderOpsVSL1"
@@ -418,6 +425,66 @@ def hubspot_deals(env: dict[str, str], root: Path, order_key: str) -> list[dict]
         and isinstance(item.get("properties"), dict)
         and item["properties"].get("oddroom_wc_order_key") == order_key
     ]
+
+
+def restored_contact_email(runtime: ProbeRuntime, env: dict[str, str], root: Path) -> str:
+    candidates = runtime.wpcli_json([
+        "eval",
+        r'''
+$emails=[];
+$orders=wc_get_orders(['limit'=>200,'orderby'=>'ID','order'=>'DESC']);
+foreach($orders as $order){
+    if(!($order instanceof WC_Order)){continue;}
+    $email=strtolower(trim((string)$order->get_billing_email()));
+    if(preg_match('/^pf07\+[a-z0-9][a-z0-9._+\-]{0,180}@example\.com$/',$email)!==1){continue;}
+    $emails[$email]=true;
+    if(count($emails)>=100){break;}
+}
+echo wp_json_encode(array_keys($emails));
+''',
+    ])
+    require(
+        isinstance(candidates, list)
+        and 1 <= len(candidates) <= 100
+        and all(isinstance(item, str) for item in candidates),
+        "restored backup has no bounded synthetic Contact candidates",
+    )
+    emails = [validated_synthetic_contact_email(item) for item in candidates]
+    token = (root / "runtime/secrets/hubspot_runtime_token").read_text(encoding="utf-8").strip()
+    require(bool(token), "restored HubSpot Contact lookup credential is unavailable")
+    status, value = json_request(
+        "https://api.hubapi.com/crm/objects/2026-03/contacts/batch/read",
+        method="POST",
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        value={
+            "idProperty": "email",
+            "properties": ["email"],
+            "inputs": [{"id": email} for email in emails],
+        },
+    )
+    require(
+        status in {200, 207}
+        and isinstance(value, dict)
+        and isinstance(value.get("results"), list),
+        "restored synthetic HubSpot Contact lookup failed",
+    )
+    if status == 207:
+        errors = value.get("errors")
+        require(
+            isinstance(errors, list)
+            and bool(errors)
+            and all(isinstance(item, dict) and item.get("category") == "OBJECT_NOT_FOUND" for item in errors),
+            "restored synthetic HubSpot Contact lookup returned an unexpected partial result",
+        )
+    found = {
+        item.get("properties", {}).get("email")
+        for item in value["results"]
+        if isinstance(item, dict) and isinstance(item.get("properties"), dict)
+    }
+    for email in emails:
+        if email in found:
+            return email
+    raise ProbeRuntimeError("restored backup has no reusable synthetic HubSpot Contact")
 
 
 def discard_unprocessed_restore_candidate(runtime: ProbeRuntime, created: dict) -> None:
@@ -887,10 +954,16 @@ def main() -> None:
     os.environ["ODDROOM_RUN_ID"] = final_env["ODDROOM_RUN_ID"]
     runtime = ProbeRuntime()
     runtime.assert_run_identity()
+    contact_email = restored_contact_email(runtime, final_env, final_root)
     collision_count = 0
     for _selection_attempt in range(20):
         suffix = secrets.token_hex(5)
-        created = runtime.create_order("simple", f"g10-{suffix}", "32500.00")
+        created = runtime.create_order(
+            "simple",
+            f"g10-{suffix}",
+            "32500.00",
+            email=contact_email,
+        )
         created_row = runtime.order_rows([created["order_id"]], "ORDER_CREATED")["rows"][0]
         order_key = f"{final_env['ODDROOM_SHOP_INSTANCE_ID']}:{created['order_id']}"
         deal_before = hubspot_deals(final_env, final_root, order_key)
