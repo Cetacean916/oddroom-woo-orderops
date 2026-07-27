@@ -36,6 +36,7 @@ ARCHIVE_NAMES = {
 }
 FORBIDDEN_NAMES = {".git", ".pf07", "__pycache__", "node_modules", "runtime", "evidence", "secrets"}
 FORBIDDEN_SUFFIXES = {".pyc", ".pyo", ".sqlite", ".sqlite3", ".db", ".log", ".bak", ".orig", ".old"}
+PACKAGE_OWNED_RUNTIME_HOMES = {"/home/node", "/home/runner"}
 RUNTIME_PRIVATE_PATHS = tuple(
     path
     for path in {
@@ -43,7 +44,7 @@ RUNTIME_PRIVATE_PATHS = tuple(
         str(ROOT),
         str(ROOT.parent),
     }
-    if path and path != "/"
+    if path and path != "/" and path not in PACKAGE_OWNED_RUNTIME_HOMES
 )
 FORBIDDEN_TEXT = (
     b"runtime/secrets",
