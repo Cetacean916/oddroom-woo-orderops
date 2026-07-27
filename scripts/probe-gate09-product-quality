@@ -9,6 +9,9 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+import time
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 
 from acceptance_semantics import AcceptanceSemanticError, derive_fixture_observations
 from pf07_probe_runtime import ProbeRuntimeError
@@ -121,6 +124,17 @@ def main() -> None:
     require(container_result.returncode == 0, "WordPress container lookup failed")
     container_id = container_result.stdout.strip()
     require(re.fullmatch(r"[0-9a-f]{12,64}", container_id) is not None, "WordPress container is not running")
+    readiness_deadline = time.monotonic() + 60
+    while True:
+        try:
+            with urlopen(Request(f"{base_url}/shop/", headers={"User-Agent": "PF07-product-quality/1"}), timeout=5) as response:
+                if 200 <= int(response.status) < 400:
+                    break
+        except (HTTPError, URLError, TimeoutError):
+            pass
+        if time.monotonic() >= readiness_deadline:
+            raise ProbeRuntimeError("WordPress storefront did not become HTTP-ready")
+        time.sleep(0.5)
 
     def log_size() -> int:
         result = execute([

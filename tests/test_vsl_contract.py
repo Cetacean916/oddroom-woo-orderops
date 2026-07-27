@@ -324,7 +324,7 @@ require("Use --email with one lowercase synthetic @example.com address." in CLI
         and "PF07_SYNTHETIC_CONTACT_EMAIL_POOL" in PROBE_RUNTIME
         and "1 to 64 distinct addresses" in PROBE_RUNTIME
         and "protected_synthetic_contact_email" in CORE_ACCEPTANCE_PROBE
-        and "protected_synthetic_contact_email" in GATE06_PROBE
+        and "create_fresh_order" in GATE06_PROBE
         and "PF07_SYNTHETIC_CONTACT_EMAIL_POOL" in MEDIA_RECORDER
         and "`--email=${nextSyntheticContactEmail()}`" in MEDIA_RECORDER,
         "protected connected probes or media can exhaust the remote synthetic-contact allowance")
