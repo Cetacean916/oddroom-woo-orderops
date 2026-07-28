@@ -346,7 +346,7 @@
     {
       "path": "launcher/pf07_launcher/core.py",
       "mode": "0644",
-      "sha256": "050a5d2e144737349da1218941a5bd7c6346fbdb4c840cbfa83a0fcdbf0b894f"
+      "sha256": "bf8832a1c0f9445db6f53dfaf5952a95ce3d9345ed1ad379b7d74d0fd2ff0ac3"
     },
     {
       "path": "launcher/pf07_launcher/hub.py",
@@ -416,7 +416,7 @@
     {
       "path": "packaging/common/bootstrap-manifest.json",
       "mode": "0644",
-      "sha256": "aeea3ad4cba9fa7a1013af650c268793e7ea14d8ae77de76f2bb856fa3d54ecf"
+      "sha256": "edd19e36f929254d479f4d73140065b243cef4e8440e19af710a5195774a9bf3"
     },
     {
       "path": "packaging/common/compose.yaml",
@@ -426,7 +426,7 @@
     {
       "path": "packaging/common/distribution-content-bindings.json",
       "mode": "0644",
-      "sha256": "b7ff775ebfd77994bf068d0ee5b67758b575bdd301b124c8506f54b985ee721e"
+      "sha256": "3e8ca96b975daffedb1a3464633d5e14ea4d9b92393edce2b7a6fd30b0cee894"
     },
     {
       "path": "packaging/common/n8n-task-runners.json",
@@ -501,7 +501,7 @@
     {
       "path": "packaging/linux/local-package-allowlist.json",
       "mode": "0644",
-      "sha256": "d4bd6c6e7cf563b4c36e8cda6e1b06e7517a76bd9fa1fd9aa42b4325d07bd4e1"
+      "sha256": "3d597cef52b4dcb1d154c58594743a3d06b010e24081d2cf68904a89c8325041"
     },
     {
       "path": "packaging/linux/pf07",
@@ -511,7 +511,7 @@
     {
       "path": "packaging/linux/server-package-allowlist.json",
       "mode": "0644",
-      "sha256": "c35f8a5ab7fd7e210fdfdca060b16f672fb8aefe36be01f40d2f6aca30fe04a3"
+      "sha256": "9f2742c2da3376d57ee5d2ad2af2cf2bc94cfbf51213c12b66b48133e75933ad"
     },
     {
       "path": "packaging/linux/server/README.en.md",
@@ -571,7 +571,7 @@
     {
       "path": "packaging/macos/package-allowlist.json",
       "mode": "0644",
-      "sha256": "a77faa9ef55cc26bfdaeb6a635c6cef129bc1d9bd02ec4a58dc09b5f39ad359b"
+      "sha256": "9cb1c6627d0275ca0ca9123f0268bbb7822ac4fedcf7cb228cfe8a779fcafcd6"
     },
     {
       "path": "packaging/macos/pf07",
@@ -651,7 +651,7 @@
     {
       "path": "packaging/windows/package-allowlist.json",
       "mode": "0644",
-      "sha256": "fcea729b4d2fc8e13e8b10fb1fd020f69af931a0336690fc28ea28177a2c7ef8"
+      "sha256": "3cf20e3e8a130f79b448bc1b0559ab6e9ca411eb25ff7beeb410a9e04b2dac36"
     },
     {
       "path": "packaging/windows/pf07.cmd",
@@ -956,7 +956,7 @@
     {
       "path": "release/acceptance-lineage.json",
       "mode": "0644",
-      "sha256": "7d0fff823766eb4f75d19c0be8b3ef36c90b56c1d822c72194d1e97ee4bdb717"
+      "sha256": "9b580be2d6b9d24d1312d5fc47c6831f54daf017aa5f2eb7df746b58ec2a32dd"
     },
     {
       "path": "release/public-allowlist.json",

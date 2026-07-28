@@ -4688,6 +4688,12 @@ def _controlled_update_locked(predecessor_name: str, confirmation: str) -> dict[
         _cleanup_controlled_update_scratch(transaction)
         _controlled_update_transaction_path().unlink(missing_ok=True)
         _write_controlled_update_gate("NORMAL")
+        _set_operation(
+            "ready",
+            f"PF07 {PACKAGE_VERSION} 업데이트가 완료됐습니다. 상점과 관리자 화면을 열 수 있습니다.",
+            "PASS",
+        )
+        result["runtime"] = status()
         return result
     except Exception as error:
         current_transaction: dict[str, Any] | None = None
