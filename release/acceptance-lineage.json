@@ -2,7 +2,7 @@
   "schema": "pf07.acceptance-lineage.v1",
   "current_package_version": "1.0.7",
   "current_release_tag": "pf07-v1.0.7",
-  "current_public_source_sha256": "d2ac499eb7fb4abd32f0e3fd71d919249c709e6f3675090b2a244b6c5b7c7f25",
+  "current_public_source_sha256": "35bf2516f59af0806249432288391e6f69bcfdafd341780e4b6895d96c36830d",
   "predecessor_release_tag": "pf07-v1.0.6",
   "predecessor_source_commit": "36ff22a69cd04898c44d801c86dd35df175b79ff",
   "inherited_evidence_source_sha256": "bf58e6b30b3c9eca2fcf402a468171f07442b81c78a79014ecc35e87479fc288",
