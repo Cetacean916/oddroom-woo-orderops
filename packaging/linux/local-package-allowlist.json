@@ -1,10 +1,10 @@
 {
   "schema": "pf07.package-allowlist.v1",
   "artifact_id": "pf07-linux-x86_64",
-  "package_version": "1.0.6",
+  "package_version": "1.0.7",
   "platform": "linux",
   "architecture": "x86_64",
-  "root_name": "PF07-OrderOps-1.0.6-linux-x86_64",
+  "root_name": "PF07-OrderOps-1.0.7-linux-x86_64",
   "classification": "PUBLIC_DISTRIBUTION",
   "tested_boundary": "ACTUAL_LINUX_LOCAL_EXECUTION_REQUIRED_ON_CANONICAL_CI_BYTES_IN_STEP_090",
   "files": [
@@ -43,13 +43,13 @@
       "source": "packaging/linux/README.local.en.md",
       "target": "README.en.md",
       "mode": "0644",
-      "source_sha256": "d5c4e6898af5c1445836ffe10a44d537b94c6090bca53984706872e0cabf22f1"
+      "source_sha256": "303393cc557d990f3f13c8d4f0a3959574e1427d92efbfd10288c98b07fa8e50"
     },
     {
       "source": "packaging/linux/README.local.ko.md",
       "target": "README.ko.md",
       "mode": "0644",
-      "source_sha256": "7693d86265a32491a30e56d6d221637915f55023bd9db058b438ecefce31e1ca"
+      "source_sha256": "8024d04a11b25166e9e11a101fd5dae2a8ec504fc2e57c2956168b94a913b948"
     },
     {
       "source": "THIRD_PARTY_NOTICES.md",
@@ -73,7 +73,7 @@
       "source": "launcher/pf07_launcher/__init__.py",
       "target": "launcher/pf07_launcher/__init__.py",
       "mode": "0644",
-      "source_sha256": "4c51674ebce0a9e83b7aba55abcca928f22e2c1ae17f3400b654c2e0b9630c00"
+      "source_sha256": "ee089cec1368a94ea5a79ae2822d4c7c437f3a06c79a9546c26cacdbdaf4b558"
     },
     {
       "source": "launcher/pf07_launcher/action_contract.py",
@@ -91,7 +91,7 @@
       "source": "launcher/pf07_launcher/core.py",
       "target": "launcher/pf07_launcher/core.py",
       "mode": "0644",
-      "source_sha256": "cc1cf0a18373bc289aff66798576f44d5646559191b108bd43bcadfa72cba3f7"
+      "source_sha256": "050a5d2e144737349da1218941a5bd7c6346fbdb4c840cbfa83a0fcdbf0b894f"
     },
     {
       "source": "launcher/pf07_launcher/hub.py",
@@ -145,13 +145,13 @@
       "source": "packaging/common/PACKAGE-README.en.md",
       "target": "packaging/common/PACKAGE-README.en.md",
       "mode": "0644",
-      "source_sha256": "7c49956f8fd43ed6ae7a7ae36e02fc5faacb9f84db97d8b6dccbc6cc69a2a969"
+      "source_sha256": "e2515bd2eb7e865a9781484fc4f9768e852ce1cecd112c9ce1e97af62c8e7b44"
     },
     {
       "source": "packaging/common/PACKAGE-README.ko.md",
       "target": "packaging/common/PACKAGE-README.ko.md",
       "mode": "0644",
-      "source_sha256": "c0dc909dac2dc91c2889129a6e2dd7ce18586edf008e5c78f628789291c3eb1f"
+      "source_sha256": "6bc6c8648a571da2a4cd5a878796d0c65a1e3e94e32546cb1280c6743a9d260b"
     },
     {
       "source": "packaging/common/action-contract.json",
@@ -163,7 +163,7 @@
       "source": "packaging/common/bootstrap-manifest.json",
       "target": "packaging/common/bootstrap-manifest.json",
       "mode": "0644",
-      "source_sha256": "040b4282b5bf8a66c9c69b43236b90ffd7103328835437d55ae99df846f64fb6"
+      "source_sha256": "aeea3ad4cba9fa7a1013af650c268793e7ea14d8ae77de76f2bb856fa3d54ecf"
     },
     {
       "source": "packaging/common/compose.yaml",
@@ -175,7 +175,7 @@
       "source": "packaging/common/distribution-content-bindings.json",
       "target": "packaging/common/distribution-content-bindings.json",
       "mode": "0644",
-      "source_sha256": "914b1cfe4b96f11790e5d5bfe113296ccd951738c1342ca5a8c91496be1e776e"
+      "source_sha256": "b7ff775ebfd77994bf068d0ee5b67758b575bdd301b124c8506f54b985ee721e"
     },
     {
       "source": "packaging/common/n8n-task-runners.json",

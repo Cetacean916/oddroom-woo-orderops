@@ -45,7 +45,10 @@ def public_candidate_source_sha256(project_root: Path) -> str:
         pure = PurePosixPath(raw)
         if raw != pure.as_posix() or pure.is_absolute() or any(part in {"", ".", ".."} for part in pure.parts):
             raise ValueError("public allowlist path is unsafe for source identity")
-        if pure.parts[0] in excluded_roots or raw == "release/public-build-manifest.json":
+        if pure.parts[0] in excluded_roots or raw in {
+            "release/acceptance-lineage.json",
+            "release/public-build-manifest.json",
+        }:
             continue
         path = root.joinpath(*pure.parts)
         if not path.is_file() or path.is_symlink():

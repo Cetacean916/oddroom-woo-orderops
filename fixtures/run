@@ -340,14 +340,18 @@ for fixture in fixtures:
 
     results.append({"fixture_id": fixture_id, "acceptance_id": fixture["acceptance_id"], "status": "PASS"})
 
-try:
-    expected_source_hash = public_candidate_source_sha256(ROOT)
-except (OSError, ValueError, json.JSONDecodeError) as error:
-    fail(f"current public candidate source identity is unavailable: {error}")
-require(record_source_hashes == {expected_source_hash}, "fixture records are not bound to the current public candidate source identity")
 if args.protected:
+    try:
+        expected_source_hash = public_candidate_source_sha256(ROOT)
+    except (OSError, ValueError, json.JSONDecodeError) as error:
+        fail(f"current public candidate source identity is unavailable: {error}")
+    require(
+        record_source_hashes == {expected_source_hash},
+        "protected fixture records are not bound to the current public candidate source identity",
+    )
     require(len(record_run_ids) == 1, "protected fixture records do not share one successor run identity")
 else:
+    require(len(record_source_hashes) == 1, "public fixture records do not share one evidence source identity")
     require(record_run_ids == {PUBLIC_RUN_ALIAS}, "public fixture records do not use the fixed public run alias")
 
 print(json.dumps({

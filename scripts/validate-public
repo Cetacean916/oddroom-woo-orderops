@@ -50,6 +50,139 @@ def candidate_files() -> list[str]:
     return sorted(entries)
 
 
+def validate_inherited_acceptance_lineage(
+    current_source_hash: str,
+    evidence_source_hashes: set[str],
+) -> None:
+    lineage_path = root / "release/acceptance-lineage.json"
+    try:
+        lineage = json.loads(lineage_path.read_text(encoding="utf-8"))
+        bootstrap = json.loads(
+            (root / "packaging/common/bootstrap-manifest.json").read_text(encoding="utf-8")
+        )
+    except (OSError, json.JSONDecodeError) as error:
+        fail(f"acceptance lineage is unavailable: {error}")
+
+    required_direct_validation = [
+        "PUBLIC_SAFE_CI",
+        "CANONICAL_PLATFORM_PACKAGE_BUILD_AND_STATIC_VALIDATION",
+        "LINUX_1.0.6_TO_1.0.7_CONTROLLED_UPDATE",
+        "LINUX_START_STATUS_STOREFRONT_ADMIN_STOP",
+    ]
+    expected_keys = {
+        "schema",
+        "current_package_version",
+        "current_release_tag",
+        "current_public_source_sha256",
+        "predecessor_release_tag",
+        "predecessor_source_commit",
+        "inherited_evidence_source_sha256",
+        "inherited_evidence_scope",
+        "media_evidence_release_tag",
+        "acceptance_critical_paths_unchanged",
+        "current_release_required_direct_validation",
+        "changed_paths",
+        "claim_boundary",
+    }
+    if (
+        set(lineage) != expected_keys
+        or lineage.get("schema") != "pf07.acceptance-lineage.v1"
+        or lineage.get("current_package_version") != bootstrap.get("package_version")
+        or bootstrap.get("package_version") != "1.0.7"
+        or lineage.get("current_release_tag") != bootstrap.get("release_tag")
+        or bootstrap.get("release_tag") != "pf07-v1.0.7"
+        or lineage.get("current_public_source_sha256") != current_source_hash
+        or lineage.get("predecessor_release_tag") != "pf07-v1.0.6"
+        or lineage.get("predecessor_source_commit")
+        != "36ff22a69cd04898c44d801c86dd35df175b79ff"
+        or evidence_source_hashes != {lineage.get("inherited_evidence_source_sha256")}
+        or lineage.get("inherited_evidence_source_sha256")
+        != "bf58e6b30b3c9eca2fcf402a468171f07442b81c78a79014ecc35e87479fc288"
+        or lineage.get("inherited_evidence_scope")
+        != "ORDER_PROCESSING_BACKEND_ACCEPTANCE_ONLY"
+        or lineage.get("media_evidence_release_tag") != "pf07-v1.0.6"
+        or lineage.get("acceptance_critical_paths_unchanged") is not True
+        or lineage.get("current_release_required_direct_validation")
+        != required_direct_validation
+        or not isinstance(lineage.get("claim_boundary"), str)
+        or len(lineage["claim_boundary"]) < 80
+    ):
+        fail("acceptance lineage identity or claim boundary failed")
+
+    changed_paths = lineage.get("changed_paths")
+    if (
+        not isinstance(changed_paths, list)
+        or changed_paths != sorted(changed_paths)
+        or len(changed_paths) != len(set(changed_paths))
+        or any(
+            not isinstance(path, str)
+            or path == ""
+            or "\\" in path
+            or path.startswith("/")
+            or ".." in Path(path).parts
+            for path in changed_paths
+        )
+    ):
+        fail("acceptance lineage changed-path inventory is invalid")
+
+    critical_prefixes = (
+        "infra/",
+        "plugin/",
+        "workflow/",
+        "packaging/common/seed/",
+        "packaging/common/workflows/",
+        "launcher/ui/",
+    )
+    critical_paths = {
+        "launcher/pf07_launcher/action_contract.py",
+        "packaging/common/action-contract.json",
+        "packaging/common/compose.yaml",
+        "packaging/common/n8n-task-runners.json",
+        "packaging/common/task-runner.Dockerfile",
+        "packaging/common/task-runner-deps/package.json",
+        "packaging/common/task-runner-deps/package-lock.json",
+        "packaging/network/tunnel-route-allowlist.json",
+    }
+    if any(
+        path in critical_paths or path.startswith(critical_prefixes)
+        for path in changed_paths
+    ):
+        fail("an inherited-acceptance critical implementation path changed")
+
+    if not (root / ".git").is_dir():
+        fail("Git history is required to verify inherited acceptance lineage")
+    predecessor = subprocess.run(
+        ["git", "rev-parse", f"{lineage['predecessor_release_tag']}^{{commit}}"],
+        cwd=root,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    if (
+        predecessor.returncode != 0
+        or predecessor.stdout.strip() != lineage["predecessor_source_commit"]
+    ):
+        fail("immutable predecessor tag identity failed")
+    diff = subprocess.run(
+        [
+            "git",
+            "diff",
+            "--name-only",
+            "--diff-filter=ACMRTD",
+            f"{lineage['predecessor_source_commit']}..HEAD",
+        ],
+        cwd=root,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    observed_paths = sorted(line for line in diff.stdout.splitlines() if line)
+    if diff.returncode != 0 or observed_paths != changed_paths:
+        fail("reviewed successor diff does not match the acceptance lineage inventory")
+
+
 if manifest_path.exists():
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     manifest_paths = [entry["path"] for entry in manifest.get("files", [])]
@@ -187,8 +320,10 @@ try:
     expected_source_hash = public_candidate_source_sha256(root)
 except (OSError, ValueError, json.JSONDecodeError) as error:
     fail(f"current public candidate source identity is unavailable: {error}")
-if set(public_records) != set(expected_records) or source_tree_hashes != {expected_source_hash}:
-    fail("public evidence records do not form one complete source-bound set")
+if set(public_records) != set(expected_records):
+    fail("public evidence records do not form one complete set")
+if source_tree_hashes != {expected_source_hash}:
+    validate_inherited_acceptance_lineage(expected_source_hash, source_tree_hashes)
 
 matrix = json.loads((public_root / "acceptance-matrix.json").read_text(encoding="utf-8"))
 entries = matrix.get("entries")

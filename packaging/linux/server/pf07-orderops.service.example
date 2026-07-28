@@ -6,7 +6,11 @@ After=docker.service network-online.target
 [Service]
 Type=oneshot
 RemainAfterExit=yes
+User=pf07
+Group=pf07
+SupplementaryGroups=docker
 WorkingDirectory=/opt/pf07-orderops
+EnvironmentFile=-/opt/pf07-orderops/server/pf07-server.env
 ExecStart=/opt/pf07-orderops/server/pf07-server start
 ExecStop=/opt/pf07-orderops/server/pf07-server stop
 TimeoutStartSec=1200
