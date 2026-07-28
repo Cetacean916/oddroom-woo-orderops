@@ -34,14 +34,14 @@ from .action_contract import PrerequisiteFacts, RuntimeFacts, classify_prerequis
 
 ADMIN_USER = "pf07-operator"
 ADMIN_EMAIL = "pf07-admin@example.com"
-PACKAGE_VERSION = "1.0.6"
-CONTROLLED_UPDATE_PREDECESSOR_VERSION = "1.0.5"
-CONTROLLED_UPDATE_PREDECESSOR_BUILD_ID = "pf07-build-900537cb1491a0566633"
+PACKAGE_VERSION = "1.0.7"
+CONTROLLED_UPDATE_PREDECESSOR_VERSION = "1.0.6"
+CONTROLLED_UPDATE_PREDECESSOR_BUILD_ID = "pf07-build-ff2e0bdbc1e2e54502fc"
 CONTROLLED_UPDATE_PREDECESSOR_MANIFEST_SHA256 = {
-    "pf07-linux-server": "b7cfa9a93790417d7d6b882f6f288025cde652c89fe3f0d2f0c83e9dd13c05f9",
-    "pf07-linux-x86_64": "c6c40d52df8d40d45b5894f65f953e2758d6c3b523b17e6c9bf5295bd413128d",
-    "pf07-macos-universal": "907968b9a6fc3e1101ed1727e7eedca97deced008228e1dd06435de98231c370",
-    "pf07-windows-x64": "c7c220f2112ec3362cee2c339e77cdbc1b8ceaace777389fc2e6d8409672cebf",
+    "pf07-linux-server": "02fb477cd86dd3b1ba0f1ab12a3a79bfee49d6d6e03258839e7c9fb213f9a63d",
+    "pf07-linux-x86_64": "925b96056870997f31f8807e4a429b6e88847ba5572f793e304340ba588f757a",
+    "pf07-macos-universal": "620e8add6261327a39fa6baf3ba5dde582dde4c2a8f2a219896b11794880c3bd",
+    "pf07-windows-x64": "2583e2d6f5c32d19e05f8397250c12c4903050ba382bbfe92fc8f4de65804dbb",
 }
 DEFAULT_WORDPRESS_PORT = 19081
 STATE_DIR_NAME = ".pf07"
@@ -3874,7 +3874,7 @@ def _running_project_containers(values: dict[str, str]) -> list[str]:
 
 
 def _controlled_update_missing_runtime_keys(values: dict[str, str]) -> list[str]:
-    """Require the reviewed 1.0.5 runtime identity before migration."""
+    """Require the exact reviewed predecessor runtime identity before migration."""
     predecessor_keys = REQUIRED_ENV_KEYS - {"PF07_NETWORK_SUBNET"}
     return sorted(predecessor_keys - values.keys())
 
@@ -4360,7 +4360,10 @@ def _controlled_update_locked(predecessor_name: str, confirmation: str) -> dict[
         or predecessor_identity["build_id"] != CONTROLLED_UPDATE_PREDECESSOR_BUILD_ID
         or predecessor_identity["artifact_manifest_sha256"] != approved_manifest
     ):
-        raise LauncherError("The predecessor is not an exact approved public PF07 1.0.5 package.")
+        raise LauncherError(
+            "The predecessor is not an exact approved public "
+            f"PF07 {CONTROLLED_UPDATE_PREDECESSOR_VERSION} package."
+        )
     expected_update = (CONTROLLED_UPDATE_PREDECESSOR_VERSION, PACKAGE_VERSION)
     observed_update = (predecessor_identity["package_version"], current_identity["package_version"])
     if observed_update != expected_update:
@@ -4588,7 +4591,7 @@ def _controlled_update_locked(predecessor_name: str, confirmation: str) -> dict[
             "from_build_id": predecessor_identity["build_id"],
             "to_build_id": current_identity["build_id"],
             "package_version": current_identity["package_version"],
-            "migration_id": "controlled-1.0.5-to-1.0.6-v1",
+            "migration_id": "controlled-1.0.6-to-1.0.7-v1",
             "manifest_migrations": [
                 "oddroom-orderops-schema-1.1.0",
                 "package-config-v1",

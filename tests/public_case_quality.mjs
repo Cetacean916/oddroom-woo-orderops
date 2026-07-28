@@ -30,9 +30,12 @@ const frameAt = (videoPath, seconds) => run("ffmpeg", [
   "-vcodec", "png",
   "-",
 ]);
-const expectedPackageVersion = "1.0.6";
-const expectedReleaseTag = "pf07-v1.0.6";
-const immutablePredecessorTag = "pf07-v1.0.5";
+const expectedPackageVersion = "1.0.7";
+const expectedReleaseTag = "pf07-v1.0.7";
+const immutablePredecessorTag = "pf07-v1.0.6";
+const mediaEvidencePackageVersion = "1.0.6";
+const mediaEvidenceReleaseTag = "pf07-v1.0.6";
+const mediaEvidencePredecessorTag = "pf07-v1.0.5";
 const repositoryRoot = new URL("https://github.com/Cetacean916/oddroom-woo-orderops/");
 const deploymentRoot = new URL("https://cetacean916.github.io/portfolio-showcase/");
 const publicEvidenceRoot = new URL(
@@ -42,11 +45,16 @@ const releaseManifestUrl = new URL(
   `releases/download/${expectedReleaseTag}/PF07-RELEASE-MANIFEST.json`,
   repositoryRoot,
 );
+const mediaEvidenceReleaseManifestUrl = new URL(
+  `releases/download/${mediaEvidenceReleaseTag}/PF07-RELEASE-MANIFEST.json`,
+  repositoryRoot,
+);
 const caseRoutes = {
   ko: new URL("case-pf07-ko.html", deploymentRoot).href,
   en: new URL("case-pf07-en.html", deploymentRoot).href,
 };
 let expectedRelease;
+let expectedMediaRelease;
 const expectedTimelines = {
   "guided-overview": [
     "SERVICE_READY", "STOREFRONT_HOME", "PRODUCT_CATALOG", "PRODUCT_DETAIL",
@@ -137,16 +145,22 @@ const fetchBytes = async (url, label) => {
 };
 const fetchDeployment = (relative) => fetchBytes(new URL(relative, deploymentRoot), relative);
 
-async function resolveExpectedRelease() {
-  const manifestBytes = await fetchBytes(releaseManifestUrl, "PF07 release manifest");
+async function resolveExpectedRelease({
+  manifestUrl,
+  packageVersion,
+  releaseTag,
+  predecessorTag,
+  label,
+}) {
+  const manifestBytes = await fetchBytes(manifestUrl, label);
   const manifest = JSON.parse(manifestBytes.toString("utf8"));
   const linuxPackage = manifest.package_assets?.find(
     (asset) => asset.artifact_id === "pf07-linux-x86_64",
   );
   requireCondition(
     manifest.schema === "pf07.public-release-manifest.v1"
-      && manifest.package_version === expectedPackageVersion
-      && manifest.release_tag === expectedReleaseTag
+      && manifest.package_version === packageVersion
+      && manifest.release_tag === releaseTag
       && manifest.public_package_delivery_mode === "GITHUB_RELEASE_ASSETS"
       && /^pf07-build-[0-9a-f]{20}$/.test(manifest.build_id)
       && /^[0-9a-f]{40}$/.test(manifest.repository?.source_commit)
@@ -157,12 +171,12 @@ async function resolveExpectedRelease() {
       && manifest.build_identity?.release_manifest_is_inside_source_commit_or_package === false
       && manifest.package_assets?.length === 5
       && linuxPackage,
-    "published PF07 release manifest identity failed",
+    `${label} identity failed`,
   );
   return {
     package_version: manifest.package_version,
     release_tag: manifest.release_tag,
-    immutable_predecessor_tag: immutablePredecessorTag,
+    immutable_predecessor_tag: predecessorTag,
     source_commit: manifest.repository.source_commit,
     source_tree: manifest.repository.source_tree,
     package_build_id: manifest.build_id,
@@ -262,8 +276,8 @@ async function validateExecutionMedia() {
   const currentUi = JSON.parse(currentUiBytes.toString("utf8"));
   const exactRelease = (release) => (
     release
-    && Object.keys(release).length === Object.keys(expectedRelease).length
-    && Object.entries(expectedRelease).every(([key, value]) => release[key] === value)
+    && Object.keys(release).length === Object.keys(expectedMediaRelease).length
+    && Object.entries(expectedMediaRelease).every(([key, value]) => release[key] === value)
   );
 
   requireCondition(
@@ -369,10 +383,10 @@ async function validateExecutionMedia() {
         && document.case_id === "pf07"
         && document.classification === contract.classification
         && document.metadata_stripped === true
-        && document.package_version === expectedRelease.package_version
+        && document.package_version === expectedMediaRelease.package_version
         && document.package_artifact_id === "pf07-linux-x86_64"
-        && document.package_build_id === expectedRelease.package_build_id
-        && document.package_artifact_manifest_sha256 === expectedRelease.linux_package_manifest_sha256
+        && document.package_build_id === expectedMediaRelease.package_build_id
+        && document.package_artifact_manifest_sha256 === expectedMediaRelease.linux_package_manifest_sha256
         && document.recording_script_sha256 === authorityHashes.get(contract.recorder)
         && !Object.hasOwn(document, "status")
         && !Object.hasOwn(document, "result")
@@ -552,9 +566,9 @@ async function validateExecutionMedia() {
             && timeline.schema === (proofKind === "guided"
               ? "pf07.guided-service-tour.v1"
               : "pf07.focused-public-media.v1")
-            && timeline.package_version === expectedRelease.package_version
-            && timeline.build_id === expectedRelease.package_build_id
-            && timeline.artifact_manifest_sha256 === expectedRelease.linux_package_manifest_sha256
+            && timeline.package_version === expectedMediaRelease.package_version
+            && timeline.build_id === expectedMediaRelease.package_build_id
+            && timeline.artifact_manifest_sha256 === expectedMediaRelease.linux_package_manifest_sha256
             && timeline.locale === runtimeLocale
             && timeline.time_compression === false
             && (proofKind === "guided" || timeline.media_kind === slug)
@@ -655,7 +669,7 @@ async function validateExecutionMedia() {
   }
 
   return {
-    release_tag: expectedRelease.release_tag,
+    release_tag: expectedMediaRelease.release_tag,
     media_manifest_sha256: sha256(manifestBytes),
     current_ui_manifest_sha256: sha256(currentUiBytes),
     execution_proof_sha256: sha256(proofBytes),
@@ -895,7 +909,20 @@ async function validateBuyerPages() {
   return observations;
 }
 
-expectedRelease = await resolveExpectedRelease();
+expectedRelease = await resolveExpectedRelease({
+  manifestUrl: releaseManifestUrl,
+  packageVersion: expectedPackageVersion,
+  releaseTag: expectedReleaseTag,
+  predecessorTag: immutablePredecessorTag,
+  label: "current PF07 release manifest",
+});
+expectedMediaRelease = await resolveExpectedRelease({
+  manifestUrl: mediaEvidenceReleaseManifestUrl,
+  packageVersion: mediaEvidencePackageVersion,
+  releaseTag: mediaEvidenceReleaseTag,
+  predecessorTag: mediaEvidencePredecessorTag,
+  label: "PF07 1.0.6 media-evidence release manifest",
+});
 const evidence = await validatePublicEvidence();
 const media = await validateExecutionMedia();
 const observations = await validateBuyerPages();

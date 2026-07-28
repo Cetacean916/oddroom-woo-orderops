@@ -191,6 +191,7 @@
     "plugin/oddroom-orderops/tests/run.php",
     "plugin/oddroom-orderops/tests/scheduler-branches.php",
     "plugin/oddroom-orderops/uninstall.php",
+    "release/acceptance-lineage.json",
     "release/public-allowlist.json",
     "scripts/acceptance_semantics.py",
     "scripts/build-platform-packages",

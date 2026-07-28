@@ -136,7 +136,7 @@ def main() -> None:
     ):
         require(token in pe_result.stdout, f"PE metadata is missing: {token}")
     utf16 = pe.read_bytes().decode("utf-16le", errors="ignore")
-    for token in ("OFFSET OrderOps", "PF07-Launcher.exe", "1.0.6"):
+    for token in ("OFFSET OrderOps", "PF07-Launcher.exe", "1.0.7"):
         require(token in utf16, f"PE version string missing: {token}")
     powershell = parse_powershell(
         args.pwsh,
@@ -158,7 +158,21 @@ def main() -> None:
     require("__BUYER_" not in kit_html, "KVM kit retains an unresolved binding placeholder")
     for step in range(1, 11):
         require(f"><b>{step}</b>" in kit_html, f"KVM GUI workflow step {step} missing")
-    for token in ("preflight", "hub", "Store", "Admin", "status", "Stop", "restart/recovery", "diagnostics", "Evidence export"):
+    for token in (
+        "preflight",
+        "hub",
+        "Open Store",
+        "Open Admin",
+        "View detailed status",
+        "Stop the service",
+        "Restart service",
+        "Recover service",
+        "Save status record ZIP",
+        "synthetic order",
+        "Rancher Desktop",
+        "OWNER_REPORTED_COMPLETE",
+        "NOT_AUTOMATIC_EXECUTION_PROOF",
+    ):
         require(token.lower() in kit_html.lower(), f"KVM workflow coverage missing: {token}")
 
     macos = build / "packages" / rows["pf07-macos-universal"]["root_name"]
@@ -231,7 +245,7 @@ def main() -> None:
         "windows": {
             "status": "WINDOWS_PACKAGE_AND_TEST_KIT_READY",
             "actual_owner_kvm_execution": "NOT_RUN",
-            "pe": {"machine": "AMD64", "subsystem": "WINDOWS_GUI", "imports": ["USER32.dll", "KERNEL32.dll"], "version": "1.0.6"},
+            "pe": {"machine": "AMD64", "subsystem": "WINDOWS_GUI", "imports": ["USER32.dll", "KERNEL32.dll"], "version": "1.0.7"},
             "powershell": powershell,
             "cmd": cmd_results,
             "kvm_binding": {"archive": binding["buyer_archive"], "sha256": binding["buyer_sha256"]},
