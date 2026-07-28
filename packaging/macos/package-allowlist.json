@@ -1,10 +1,10 @@
 {
   "schema": "pf07.package-allowlist.v1",
   "artifact_id": "pf07-macos-universal",
-  "package_version": "1.0.7",
+  "package_version": "1.0.8",
   "platform": "macos",
   "architecture": "arm64+x86_64-script-adapter",
-  "root_name": "PF07-OrderOps-1.0.7-macos-universal",
+  "root_name": "PF07-OrderOps-1.0.8-macos-universal",
   "classification": "PUBLIC_DISTRIBUTION",
   "tested_boundary": "LINUX_STATIC_APP_BUNDLE_AND_SHARED_CORE_VALIDATION_ONLY",
   "files": [
@@ -31,7 +31,7 @@
       "source": "packaging/macos/PF07 Launcher.app/Contents/Info.plist",
       "target": "PF07 Launcher.app/Contents/Info.plist",
       "mode": "0644",
-      "source_sha256": "dddd9054c4b2f45180bb714e734b3bed6ab2ef6f29b50fd76090deaf098a1148"
+      "source_sha256": "b6ce4808eb1088f92ec80f9210b32137942624a868030492a9ef9ef679060abc"
     },
     {
       "source": "packaging/macos/PF07 Launcher.app/Contents/MacOS/PF07-OrderOps",
@@ -49,13 +49,13 @@
       "source": "packaging/macos/README.en.md",
       "target": "README.en.md",
       "mode": "0644",
-      "source_sha256": "ddfbafbaf3275b2ba84493a5db4aeb7701216ea8ec6f3235839d76a4113055d7"
+      "source_sha256": "ea47e77c0f4c34d7271a9664e275d6ab79ba5c9cf713eab5172c25c46eebfef8"
     },
     {
       "source": "packaging/macos/README.ko.md",
       "target": "README.ko.md",
       "mode": "0644",
-      "source_sha256": "8869cc63659dad38fe400fd4d777c4466be1e76bd70c8278a51493b200d9c557"
+      "source_sha256": "576a4387829dcb1fa10b8463ef87345ee4ddb47578fc0bad5bd906aff924b8cb"
     },
     {
       "source": "THIRD_PARTY_NOTICES.md",
@@ -79,7 +79,7 @@
       "source": "launcher/pf07_launcher/__init__.py",
       "target": "launcher/pf07_launcher/__init__.py",
       "mode": "0644",
-      "source_sha256": "ee089cec1368a94ea5a79ae2822d4c7c437f3a06c79a9546c26cacdbdaf4b558"
+      "source_sha256": "73099a9314ef3c9eddf15402b49d44c5f5e9b744e33b36af318ee8551c345ad9"
     },
     {
       "source": "launcher/pf07_launcher/action_contract.py",
@@ -97,7 +97,7 @@
       "source": "launcher/pf07_launcher/core.py",
       "target": "launcher/pf07_launcher/core.py",
       "mode": "0644",
-      "source_sha256": "bf8832a1c0f9445db6f53dfaf5952a95ce3d9345ed1ad379b7d74d0fd2ff0ac3"
+      "source_sha256": "bde7e0afb2a95a99c6a79e13c0302ba91215c987d6a8fd7435ea744ae06ffb7f"
     },
     {
       "source": "launcher/pf07_launcher/hub.py",
@@ -151,13 +151,13 @@
       "source": "packaging/common/PACKAGE-README.en.md",
       "target": "packaging/common/PACKAGE-README.en.md",
       "mode": "0644",
-      "source_sha256": "e2515bd2eb7e865a9781484fc4f9768e852ce1cecd112c9ce1e97af62c8e7b44"
+      "source_sha256": "b0d6407853a120d1135f1fcc87e9c5164ba89af6fbfb8353f299e40f9573c24d"
     },
     {
       "source": "packaging/common/PACKAGE-README.ko.md",
       "target": "packaging/common/PACKAGE-README.ko.md",
       "mode": "0644",
-      "source_sha256": "6bc6c8648a571da2a4cd5a878796d0c65a1e3e94e32546cb1280c6743a9d260b"
+      "source_sha256": "ea5c6792ce1203aef488ac8a7e8a32cda01116bd52b96692891f6575939c20a9"
     },
     {
       "source": "packaging/common/action-contract.json",
@@ -169,7 +169,7 @@
       "source": "packaging/common/bootstrap-manifest.json",
       "target": "packaging/common/bootstrap-manifest.json",
       "mode": "0644",
-      "source_sha256": "edd19e36f929254d479f4d73140065b243cef4e8440e19af710a5195774a9bf3"
+      "source_sha256": "efd9b44cec068f6c3908f01754011078431e040e367a999db18faa02d77974d2"
     },
     {
       "source": "packaging/common/compose.yaml",
@@ -181,7 +181,7 @@
       "source": "packaging/common/distribution-content-bindings.json",
       "target": "packaging/common/distribution-content-bindings.json",
       "mode": "0644",
-      "source_sha256": "3e8ca96b975daffedb1a3464633d5e14ea4d9b92393edce2b7a6fd30b0cee894"
+      "source_sha256": "1ba741d4a6eed324101e5fb67b3874fbe40c084244059f2a955fc1bce6e10ebf"
     },
     {
       "source": "packaging/common/n8n-task-runners.json",

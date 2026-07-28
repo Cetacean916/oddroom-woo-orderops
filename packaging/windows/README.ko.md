@@ -2,12 +2,12 @@
 
 ## 다운로드와 설치 위치
 
-같은 GitHub Release에서 `pf07-windows-x64-1.0.7.zip`과
+같은 GitHub Release에서 `pf07-windows-x64-1.0.8.zip`과
 `SHA256SUMS.txt`를 받습니다. ZIP을 풀기 전에 PowerShell에서 다음 값을
 확인하고 `SHA256SUMS.txt`의 해당 줄과 비교합니다.
 
 ```powershell
-Get-FileHash .\pf07-windows-x64-1.0.7.zip -Algorithm SHA256
+Get-FileHash .\pf07-windows-x64-1.0.8.zip -Algorithm SHA256
 ```
 
 파일명이나 SHA-256이 다르면 실행하지 말고 다시 받습니다. 확인한 ZIP
@@ -60,7 +60,7 @@ pf07.cmd evidence-export
 
 ## 선택 사항: Windows KVM 테스트 키트
 
-같은 Release의 `pf07-windows-kvm-test-kit-1.0.7.zip`은 이 실행
+같은 Release의 `pf07-windows-kvm-test-kit-1.0.8.zip`은 이 실행
 패키지를 Windows에서 검수하기 위한 별도 보조 키트이며 실행본이 아닙니다.
 빠른 CMD 사전검사는 파일명·SHA·압축 해제·런처 버전만 확인합니다. 실제
 상점·관리자·중지·복구까지 확인하려면 테스트 키트의 `README.ko.md`와

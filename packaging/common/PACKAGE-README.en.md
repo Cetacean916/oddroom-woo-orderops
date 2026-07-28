@@ -129,8 +129,8 @@ The removal command can create its external backup before deleting data:
 
 Never overwrite a running extraction to update it. Extract the reviewed new
 archive into a separate folder, then select the exact supported predecessor
-from the new hub. The PF07 1.0.7 controlled-update input is an exact reviewed
-1.0.6 extraction. Do not select another version or a successor extraction that
+from the new hub. The PF07 1.0.8 controlled-update input is an exact reviewed
+1.0.7 extraction. Do not select another version or a successor extraction that
 already owns runtime state.
 
 Tunnel mode is optional and only attaches to a ready local runtime; local mode

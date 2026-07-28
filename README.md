@@ -4,12 +4,12 @@ OFFSET OrderOps is a recoverable WooCommerce order-operations integration presen
 
 This repository is built from a separate non-Git implementation source by a deny-by-default public builder. It contains synthetic fixtures and public-safe evidence only. Protected raw evidence, credentials, runtime state, backups, and owner-machine paths are excluded.
 
-The current distribution is `1.0.7 / pf07-v1.0.7`. Its package guides,
-Windows KVM workflow, Linux server setup, and controlled update path supersede
-1.0.6. The order-processing implementation, public acceptance records, and
-runtime recordings remain the exact 1.0.6 observations; they are not
-relabelled as 1.0.7. The explicit inheritance and direct-validation boundary is
-published in
+The current distribution is `1.0.8 / pf07-v1.0.8`. Its package guides,
+Windows KVM workflow, Linux server setup, public-release manifest, and
+controlled update path supersede 1.0.7. The order-processing implementation,
+public acceptance records, and runtime recordings remain the exact 1.0.6
+observations; they are not relabelled as 1.0.8. The explicit inheritance and
+direct-validation boundary is published in
 [`release/acceptance-lineage.json`](release/acceptance-lineage.json).
 
 ## Delivered system

@@ -66,7 +66,7 @@ def validate_inherited_acceptance_lineage(
     required_direct_validation = [
         "PUBLIC_SAFE_CI",
         "CANONICAL_PLATFORM_PACKAGE_BUILD_AND_STATIC_VALIDATION",
-        "LINUX_1.0.6_TO_1.0.7_CONTROLLED_UPDATE",
+        "LINUX_1.0.7_TO_1.0.8_CONTROLLED_UPDATE",
         "LINUX_START_STATUS_STOREFRONT_ADMIN_STOP",
     ]
     expected_keys = {
@@ -88,13 +88,13 @@ def validate_inherited_acceptance_lineage(
         set(lineage) != expected_keys
         or lineage.get("schema") != "pf07.acceptance-lineage.v1"
         or lineage.get("current_package_version") != bootstrap.get("package_version")
-        or bootstrap.get("package_version") != "1.0.7"
+        or bootstrap.get("package_version") != "1.0.8"
         or lineage.get("current_release_tag") != bootstrap.get("release_tag")
-        or bootstrap.get("release_tag") != "pf07-v1.0.7"
+        or bootstrap.get("release_tag") != "pf07-v1.0.8"
         or lineage.get("current_public_source_sha256") != current_source_hash
-        or lineage.get("predecessor_release_tag") != "pf07-v1.0.6"
+        or lineage.get("predecessor_release_tag") != "pf07-v1.0.7"
         or lineage.get("predecessor_source_commit")
-        != "36ff22a69cd04898c44d801c86dd35df175b79ff"
+        != "1b42e6aad9e4d64c6bab2dab70cf72895be2b4e4"
         or evidence_source_hashes != {lineage.get("inherited_evidence_source_sha256")}
         or lineage.get("inherited_evidence_source_sha256")
         != "bf58e6b30b3c9eca2fcf402a468171f07442b81c78a79014ecc35e87479fc288"

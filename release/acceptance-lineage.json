@@ -1,10 +1,10 @@
 {
   "schema": "pf07.acceptance-lineage.v1",
-  "current_package_version": "1.0.7",
-  "current_release_tag": "pf07-v1.0.7",
-  "current_public_source_sha256": "35bf2516f59af0806249432288391e6f69bcfdafd341780e4b6895d96c36830d",
-  "predecessor_release_tag": "pf07-v1.0.6",
-  "predecessor_source_commit": "36ff22a69cd04898c44d801c86dd35df175b79ff",
+  "current_package_version": "1.0.8",
+  "current_release_tag": "pf07-v1.0.8",
+  "current_public_source_sha256": "399f256891b217d63516e23d487b1a61da453c96326d6e370c053272263b74d0",
+  "predecessor_release_tag": "pf07-v1.0.7",
+  "predecessor_source_commit": "1b42e6aad9e4d64c6bab2dab70cf72895be2b4e4",
   "inherited_evidence_source_sha256": "bf58e6b30b3c9eca2fcf402a468171f07442b81c78a79014ecc35e87479fc288",
   "inherited_evidence_scope": "ORDER_PROCESSING_BACKEND_ACCEPTANCE_ONLY",
   "media_evidence_release_tag": "pf07-v1.0.6",
@@ -12,13 +12,13 @@
   "current_release_required_direct_validation": [
     "PUBLIC_SAFE_CI",
     "CANONICAL_PLATFORM_PACKAGE_BUILD_AND_STATIC_VALIDATION",
-    "LINUX_1.0.6_TO_1.0.7_CONTROLLED_UPDATE",
+    "LINUX_1.0.7_TO_1.0.8_CONTROLLED_UPDATE",
     "LINUX_START_STATUS_STOREFRONT_ADMIN_STOP"
   ],
   "changed_paths": [
     ".github/workflows/ci.yml",
+    "GOVERNANCE.md",
     "README.md",
-    "fixtures/run",
     "launcher/pf07_launcher/__init__.py",
     "launcher/pf07_launcher/core.py",
     "packaging/common/PACKAGE-README.en.md",
@@ -31,9 +31,6 @@
     "packaging/linux/server-package-allowlist.json",
     "packaging/linux/server/README.en.md",
     "packaging/linux/server/README.ko.md",
-    "packaging/linux/server/nginx-pf07.conf.example",
-    "packaging/linux/server/pf07-orderops.service.example",
-    "packaging/linux/server/pf07-server.env.example",
     "packaging/macos/PF07 Launcher.app/Contents/Info.plist",
     "packaging/macos/README.en.md",
     "packaging/macos/README.ko.md",
@@ -41,20 +38,17 @@
     "packaging/windows/README.en.md",
     "packaging/windows/README.ko.md",
     "packaging/windows/kvm-test-kit-allowlist.json",
-    "packaging/windows/kvm/PF07-KVM-TEST.html",
     "packaging/windows/kvm/README.en.md",
     "packaging/windows/kvm/README.ko.md",
     "packaging/windows/native/PF07-Launcher.rc",
     "packaging/windows/package-allowlist.json",
     "release/acceptance-lineage.json",
-    "release/public-allowlist.json",
     "release/public-build-manifest.json",
     "scripts/build-platform-packages",
-    "scripts/refinement_evidence_paths.py",
     "scripts/refresh-package-allowlists",
     "scripts/validate-platform-packages",
     "scripts/validate-public",
     "tests/public_case_quality.mjs"
   ],
-  "claim_boundary": "PF07 1.0.7 inherits only the unchanged order-processing backend acceptance and 1.0.6 runtime media. Distribution, documentation, controlled-update, and launcher changes require their own 1.0.7 package and Linux observations before publication."
+  "claim_boundary": "PF07 1.0.8 inherits only the unchanged order-processing backend acceptance and 1.0.6 runtime media. The public-release integrity closeout, distribution documentation, controlled update, and launcher identity require their own 1.0.8 packages and Linux observations before publication."
 }

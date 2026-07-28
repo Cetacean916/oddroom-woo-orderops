@@ -30,9 +30,9 @@ const frameAt = (videoPath, seconds) => run("ffmpeg", [
   "-vcodec", "png",
   "-",
 ]);
-const expectedPackageVersion = "1.0.7";
-const expectedReleaseTag = "pf07-v1.0.7";
-const immutablePredecessorTag = "pf07-v1.0.6";
+const expectedPackageVersion = "1.0.8";
+const expectedReleaseTag = "pf07-v1.0.8";
+const immutablePredecessorTag = "pf07-v1.0.7";
 const mediaEvidencePackageVersion = "1.0.6";
 const mediaEvidenceReleaseTag = "pf07-v1.0.6";
 const mediaEvidencePredecessorTag = "pf07-v1.0.5";

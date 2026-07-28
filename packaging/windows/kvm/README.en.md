@@ -1,11 +1,11 @@
 # PF07 Windows KVM owner test kit
 
-This kit assists testing of `pf07-windows-x64-1.0.7.zip` in Windows. It does
+This kit assists testing of `pf07-windows-x64-1.0.8.zip` in Windows. It does
 not replace the runnable PF07 package.
 
 ## Prerequisites
 
-- `pf07-windows-x64-1.0.7.zip` from the same GitHub Release
+- `pf07-windows-x64-1.0.8.zip` from the same GitHub Release
 - this extracted test-kit folder
 - a Windows x64 virtual machine or separate Windows test machine
 - for full runtime testing: Rancher Desktop with the Moby engine, Python 3.10
@@ -17,7 +17,7 @@ Keep the buyer package as an unmodified ZIP for verification.
 ## 1. Quick preflight
 
 1. Double-click `RUN-KVM-TEST.cmd`.
-2. Select the unmodified `pf07-windows-x64-1.0.7.zip`.
+2. Select the unmodified `pf07-windows-x64-1.0.8.zip`.
 3. Confirm that Archive name, Archive hash, and Launcher found are all `True`.
 4. Open `PF07-WINDOWS-KVM-PREFLIGHT.json` on the Windows desktop, confirm all
    preflight PASS conditions below, then retain it.
@@ -30,7 +30,7 @@ Preflight PASS conditions:
   "archive_hash_pass": true,
   "unicode_space_extraction_pass": true,
   "launcher_present": true,
-  "launcher_version": "1.0.7",
+  "launcher_version": "1.0.8",
   "actual_full_stack_executed": false
 }
 ```

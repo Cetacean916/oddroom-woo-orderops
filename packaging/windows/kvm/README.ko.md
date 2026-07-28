@@ -1,11 +1,11 @@
 # PF07 Windows KVM owner test kit
 
-이 키트는 `pf07-windows-x64-1.0.7.zip`을 Windows 환경에서 검수하기 위한
+이 키트는 `pf07-windows-x64-1.0.8.zip`을 Windows 환경에서 검수하기 위한
 보조 도구입니다. PF07 실행 패키지를 대신하지 않습니다.
 
 ## 준비물
 
-- 같은 GitHub Release에서 받은 `pf07-windows-x64-1.0.7.zip`
+- 같은 GitHub Release에서 받은 `pf07-windows-x64-1.0.8.zip`
 - 이 테스트 키트의 압축을 푼 폴더
 - Windows x64 가상머신 또는 별도 Windows 시험 장비
 - 전체 런타임 검수 시 Rancher Desktop(Moby 엔진), Python 3.10 이상,
@@ -17,7 +17,7 @@
 ## 1. 빠른 사전검사
 
 1. `RUN-KVM-TEST.cmd`를 더블클릭합니다.
-2. 파일 선택창에서 원본 `pf07-windows-x64-1.0.7.zip`을 선택합니다.
+2. 파일 선택창에서 원본 `pf07-windows-x64-1.0.8.zip`을 선택합니다.
 3. 완료 안내창에서 Archive name, Archive hash, Launcher found가 모두
    `True`인지 확인합니다.
 4. 바탕화면의 `PF07-WINDOWS-KVM-PREFLIGHT.json`을 열어 아래 사전검사
@@ -31,7 +31,7 @@
   "archive_hash_pass": true,
   "unicode_space_extraction_pass": true,
   "launcher_present": true,
-  "launcher_version": "1.0.7",
+  "launcher_version": "1.0.8",
   "actual_full_stack_executed": false
 }
 ```

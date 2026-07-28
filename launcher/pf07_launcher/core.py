@@ -34,14 +34,14 @@ from .action_contract import PrerequisiteFacts, RuntimeFacts, classify_prerequis
 
 ADMIN_USER = "pf07-operator"
 ADMIN_EMAIL = "pf07-admin@example.com"
-PACKAGE_VERSION = "1.0.7"
-CONTROLLED_UPDATE_PREDECESSOR_VERSION = "1.0.6"
-CONTROLLED_UPDATE_PREDECESSOR_BUILD_ID = "pf07-build-ff2e0bdbc1e2e54502fc"
+PACKAGE_VERSION = "1.0.8"
+CONTROLLED_UPDATE_PREDECESSOR_VERSION = "1.0.7"
+CONTROLLED_UPDATE_PREDECESSOR_BUILD_ID = "pf07-build-e54194b1253076a8c414"
 CONTROLLED_UPDATE_PREDECESSOR_MANIFEST_SHA256 = {
-    "pf07-linux-server": "02fb477cd86dd3b1ba0f1ab12a3a79bfee49d6d6e03258839e7c9fb213f9a63d",
-    "pf07-linux-x86_64": "925b96056870997f31f8807e4a429b6e88847ba5572f793e304340ba588f757a",
-    "pf07-macos-universal": "620e8add6261327a39fa6baf3ba5dde582dde4c2a8f2a219896b11794880c3bd",
-    "pf07-windows-x64": "2583e2d6f5c32d19e05f8397250c12c4903050ba382bbfe92fc8f4de65804dbb",
+    "pf07-linux-server": "fac9b679573658be91e6b1f95b6801dff722b2a7ac8637c76e6caa0c40f94861",
+    "pf07-linux-x86_64": "40300f7f0ec571ed9994995e3ff8bf569eb4ee6576a1aa0955acc17505b979e5",
+    "pf07-macos-universal": "9eacafc074f591fdd9b404ebcde5de97b59403ad603358ff7c978da9fb2d9974",
+    "pf07-windows-x64": "ded1dd19f4bb0e469f988376536bc38836c98eb3972a5906b345883d1f66b9d9",
 }
 DEFAULT_WORDPRESS_PORT = 19081
 STATE_DIR_NAME = ".pf07"
@@ -4591,7 +4591,7 @@ def _controlled_update_locked(predecessor_name: str, confirmation: str) -> dict[
             "from_build_id": predecessor_identity["build_id"],
             "to_build_id": current_identity["build_id"],
             "package_version": current_identity["package_version"],
-            "migration_id": "controlled-1.0.6-to-1.0.7-v1",
+            "migration_id": "controlled-1.0.7-to-1.0.8-v1",
             "manifest_migrations": [
                 "oddroom-orderops-schema-1.1.0",
                 "package-config-v1",
