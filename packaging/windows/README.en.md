@@ -2,12 +2,12 @@
 
 ## Download and installation location
 
-Download `pf07-windows-x64-1.0.7.zip` and `SHA256SUMS.txt` from the same
+Download `pf07-windows-x64-1.0.8.zip` and `SHA256SUMS.txt` from the same
 GitHub Release. Before extraction, run the following in PowerShell and compare
 the result with the matching line in `SHA256SUMS.txt`:
 
 ```powershell
-Get-FileHash .\pf07-windows-x64-1.0.7.zip -Algorithm SHA256
+Get-FileHash .\pf07-windows-x64-1.0.8.zip -Algorithm SHA256
 ```
 
 Do not run a file whose name or SHA-256 differs. Extract the complete verified
@@ -61,7 +61,7 @@ read
 
 ## Optional Windows KVM test kit
 
-`pf07-windows-kvm-test-kit-1.0.7.zip` from the same Release is a separate
+`pf07-windows-kvm-test-kit-1.0.8.zip` from the same Release is a separate
 assistant kit for testing this runnable package in Windows; it is not another
 runnable PF07 package. Its quick CMD preflight checks only filename, SHA,
 extraction, and launcher version. To test the actual store, administrator,

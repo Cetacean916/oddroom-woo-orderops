@@ -22,11 +22,11 @@ TLS 인증서를 발급하지 않습니다.
 계정입니다. Docker 소켓 접근 권한은 호스트의 높은 권한과 동등할 수
 있으므로 이 계정을 다른 용도와 공유하지 않습니다.
 
-같은 GitHub Release에서 `pf07-linux-server-1.0.7.tar.gz`와
+같은 GitHub Release에서 `pf07-linux-server-1.0.8.tar.gz`와
 `SHA256SUMS.txt`를 받고 압축을 풀기 전에 비교합니다.
 
 ```sh
-sha256sum pf07-linux-server-1.0.7.tar.gz
+sha256sum pf07-linux-server-1.0.8.tar.gz
 ```
 
 파일명이나 SHA-256이 다르면 실행하지 않습니다. 확인한 전체 아카이브를

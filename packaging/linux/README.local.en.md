@@ -2,12 +2,12 @@
 
 ## Download and installation location
 
-Download `pf07-linux-x86_64-1.0.7.tar.gz` and `SHA256SUMS.txt` from the same
+Download `pf07-linux-x86_64-1.0.8.tar.gz` and `SHA256SUMS.txt` from the same
 GitHub Release. Before extraction, compare this result with the matching line
 in `SHA256SUMS.txt`:
 
 ```sh
-sha256sum pf07-linux-x86_64-1.0.7.tar.gz
+sha256sum pf07-linux-x86_64-1.0.8.tar.gz
 ```
 
 Do not run a file whose name or SHA-256 differs. Extract the complete verified

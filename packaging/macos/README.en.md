@@ -2,11 +2,11 @@
 
 ## Download and installation location
 
-Download `pf07-macos-universal-1.0.7.zip` and `SHA256SUMS.txt` from the same
+Download `pf07-macos-universal-1.0.8.zip` and `SHA256SUMS.txt` from the same
 GitHub Release. Before extraction, compare this result with the matching line:
 
 ```sh
-shasum -a 256 pf07-macos-universal-1.0.7.zip
+shasum -a 256 pf07-macos-universal-1.0.8.zip
 ```
 
 Do not run a file whose name or SHA-256 differs. Extract the complete verified

@@ -4,7 +4,8 @@
 
 - Repository class: development.
 - Delivery scope: PF07 OFFSET OrderOps only; historical `oddroom-*` identifiers remain compatibility namespaces.
-- The active PF07 implementation contract controls product, evidence, release, and completion requirements.
+- The current owner request and this repository's published delivery identity
+  control product, evidence, release, and completion requirements.
 - Git-staging root canon controls every Git operation. This file is subordinate to that canon and MUST NOT broaden it.
 - Higher-priority system, developer, and current owner instructions govern conflicts.
 
@@ -25,21 +26,29 @@
 
 ## Git and Review Gates
 
-- The prepared remote remains private through development.
+- The registered remote is public. Work remains on a review branch until the
+  exact outgoing candidate passes the public Commit Gate and Push Gate.
 - Every commit and push requires the root Commit Gate and Push Gate.
 - The writer and independent reviewer must be different roles, sessions, or agents.
 - Approval binds to the exact reviewed candidate, commit, tree, manifest, outgoing history, or publication action. A material change invalidates the affected approval.
 - Do not force-push, rewrite history, delete a remote, or remove GitHub evidence surfaces without separate explicit authority.
-- The first remote ref must be the reviewed builder-produced commit on `main`.
+- Every public source commit must come from the reviewed builder-produced
+  candidate. Historical public refs are preserved.
 
 ## Public Release Boundary
 
-- Public visibility is allowed only at the ordered PF07 release step after every contract-required security, license, evidence, CI, history, and independent-review gate passes.
-- Visibility change must preserve the exact reviewed commit and tree.
+- A successor release is allowed only after its exact source, security,
+  license, evidence, CI, history, and independent-review gates pass.
+- A changed release uses a new version and tag. Existing tags and release
+  assets are immutable by operating policy even when the GitHub API reports
+  that platform-enforced release immutability is disabled.
 - Fresh authenticated and unauthenticated verification clones are read-only evidence paths.
-- Publication alone is not completion; the deployed seventh showcase case and final live checks are also required.
+- Publication alone is not completion; the deployed PF07 showcase case and
+  required live checks are separate delivery surfaces.
 
 ## Completion Truth
 
 - Local files, tests, private CI, a release candidate, or a public repository do not independently establish completion.
-- Completion requires the active contract's actual `FINAL_PASS` with all required live, public, restore, preservation, and evidence observations.
+- Completion requires the requested live, public, restore, preservation, and
+  evidence observations. Historical contract status does not replace current
+  delivery evidence.

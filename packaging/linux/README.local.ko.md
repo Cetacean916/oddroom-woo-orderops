@@ -2,12 +2,12 @@
 
 ## 다운로드와 설치 위치
 
-같은 GitHub Release에서 `pf07-linux-x86_64-1.0.7.tar.gz`와
+같은 GitHub Release에서 `pf07-linux-x86_64-1.0.8.tar.gz`와
 `SHA256SUMS.txt`를 받고, 압축을 풀기 전에 다음 결과를
 `SHA256SUMS.txt`의 해당 줄과 비교합니다.
 
 ```sh
-sha256sum pf07-linux-x86_64-1.0.7.tar.gz
+sha256sum pf07-linux-x86_64-1.0.8.tar.gz
 ```
 
 파일명이나 SHA-256이 다르면 실행하지 말고 다시 받습니다. 확인한

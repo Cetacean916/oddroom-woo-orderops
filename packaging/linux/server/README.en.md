@@ -25,11 +25,11 @@ plugin, internet access for initial image acquisition, and a dedicated operator
 account authorized to use Docker. Docker-socket access can be equivalent to
 high privilege on the host, so do not share this account with unrelated work.
 
-Download `pf07-linux-server-1.0.7.tar.gz` and `SHA256SUMS.txt` from the same
+Download `pf07-linux-server-1.0.8.tar.gz` and `SHA256SUMS.txt` from the same
 GitHub Release. Compare the archive before extraction:
 
 ```sh
-sha256sum pf07-linux-server-1.0.7.tar.gz
+sha256sum pf07-linux-server-1.0.8.tar.gz
 ```
 
 Do not run a file whose name or SHA-256 differs. Extract the complete verified

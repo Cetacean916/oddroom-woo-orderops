@@ -11,7 +11,7 @@
     {
       "path": ".github/workflows/ci.yml",
       "mode": "0644",
-      "sha256": "11d3077dd7dce0fe0f736d2beeda1dd73484e3b561bd5915d0a3c77588a849b4"
+      "sha256": "a2b9ad6a03512377a2999a89c58a258456bed026ddc5995b6e9a169962988fb7"
     },
     {
       "path": ".gitignore",
@@ -26,7 +26,7 @@
     {
       "path": "GOVERNANCE.md",
       "mode": "0644",
-      "sha256": "a0733c65907938e42edc983bdd2f0af6648005fc9ad5ce95b5ffe7776e2e7ab7"
+      "sha256": "d76a0158eb0e94d904f0e2b53e043e0c5fb29b590419c55622d547cea124791a"
     },
     {
       "path": "LICENSE",
@@ -36,7 +36,7 @@
     {
       "path": "README.md",
       "mode": "0644",
-      "sha256": "61d3ac83e0f923da7d55be09c5dd68c807f59250c530a3e0781ffd4d67a4b27a"
+      "sha256": "a8f02b03b35c66e5cd27c5639b22f027a487b4d19311984a8a54fa6707d5b18f"
     },
     {
       "path": "THIRD_PARTY_NOTICES.md",
@@ -331,7 +331,7 @@
     {
       "path": "launcher/pf07_launcher/__init__.py",
       "mode": "0644",
-      "sha256": "ee089cec1368a94ea5a79ae2822d4c7c437f3a06c79a9546c26cacdbdaf4b558"
+      "sha256": "73099a9314ef3c9eddf15402b49d44c5f5e9b744e33b36af318ee8551c345ad9"
     },
     {
       "path": "launcher/pf07_launcher/action_contract.py",
@@ -346,7 +346,7 @@
     {
       "path": "launcher/pf07_launcher/core.py",
       "mode": "0644",
-      "sha256": "bf8832a1c0f9445db6f53dfaf5952a95ce3d9345ed1ad379b7d74d0fd2ff0ac3"
+      "sha256": "bde7e0afb2a95a99c6a79e13c0302ba91215c987d6a8fd7435ea744ae06ffb7f"
     },
     {
       "path": "launcher/pf07_launcher/hub.py",
@@ -401,12 +401,12 @@
     {
       "path": "packaging/common/PACKAGE-README.en.md",
       "mode": "0644",
-      "sha256": "e2515bd2eb7e865a9781484fc4f9768e852ce1cecd112c9ce1e97af62c8e7b44"
+      "sha256": "b0d6407853a120d1135f1fcc87e9c5164ba89af6fbfb8353f299e40f9573c24d"
     },
     {
       "path": "packaging/common/PACKAGE-README.ko.md",
       "mode": "0644",
-      "sha256": "6bc6c8648a571da2a4cd5a878796d0c65a1e3e94e32546cb1280c6743a9d260b"
+      "sha256": "ea5c6792ce1203aef488ac8a7e8a32cda01116bd52b96692891f6575939c20a9"
     },
     {
       "path": "packaging/common/action-contract.json",
@@ -416,7 +416,7 @@
     {
       "path": "packaging/common/bootstrap-manifest.json",
       "mode": "0644",
-      "sha256": "edd19e36f929254d479f4d73140065b243cef4e8440e19af710a5195774a9bf3"
+      "sha256": "efd9b44cec068f6c3908f01754011078431e040e367a999db18faa02d77974d2"
     },
     {
       "path": "packaging/common/compose.yaml",
@@ -426,7 +426,7 @@
     {
       "path": "packaging/common/distribution-content-bindings.json",
       "mode": "0644",
-      "sha256": "3e8ca96b975daffedb1a3464633d5e14ea4d9b92393edce2b7a6fd30b0cee894"
+      "sha256": "1ba741d4a6eed324101e5fb67b3874fbe40c084244059f2a955fc1bce6e10ebf"
     },
     {
       "path": "packaging/common/n8n-task-runners.json",
@@ -491,17 +491,17 @@
     {
       "path": "packaging/linux/README.local.en.md",
       "mode": "0644",
-      "sha256": "303393cc557d990f3f13c8d4f0a3959574e1427d92efbfd10288c98b07fa8e50"
+      "sha256": "5ce1caf7e70623009b6f4c04d34b514ab8219e309cb838e8dd4228978cfa96d8"
     },
     {
       "path": "packaging/linux/README.local.ko.md",
       "mode": "0644",
-      "sha256": "8024d04a11b25166e9e11a101fd5dae2a8ec504fc2e57c2956168b94a913b948"
+      "sha256": "0c047ad8b9c8667e71b1099831f36465d1cf1a275900607928a0b625326d93bf"
     },
     {
       "path": "packaging/linux/local-package-allowlist.json",
       "mode": "0644",
-      "sha256": "3d597cef52b4dcb1d154c58594743a3d06b010e24081d2cf68904a89c8325041"
+      "sha256": "d5952be2209a9bf9f6527b38aa622350af355c5533dde5566eac54f8b9bfce62"
     },
     {
       "path": "packaging/linux/pf07",
@@ -511,17 +511,17 @@
     {
       "path": "packaging/linux/server-package-allowlist.json",
       "mode": "0644",
-      "sha256": "9f2742c2da3376d57ee5d2ad2af2cf2bc94cfbf51213c12b66b48133e75933ad"
+      "sha256": "1e8bedefc45d536afbe7428db7088aa4d92f0105fd826675cbe135697851d04e"
     },
     {
       "path": "packaging/linux/server/README.en.md",
       "mode": "0644",
-      "sha256": "5bbf44b36cbd5ee7de341912f84b52e2a6c45027b893302275311ffe08e8e6bd"
+      "sha256": "2f55f14f75f71bd4067ec6cc37e29c991ba620dd12e98344c11fd2d1d42d1860"
     },
     {
       "path": "packaging/linux/server/README.ko.md",
       "mode": "0644",
-      "sha256": "46c002a669b00d089bbaedc42ded49fdc082045610fec5cbd8e0c6e533b35bb0"
+      "sha256": "0ddd1e5b6ca32ad8012ca2a1e85e77e7a61dc56ed0cc5ca60304f49edd6c4cf6"
     },
     {
       "path": "packaging/linux/server/nginx-pf07.conf.example",
@@ -546,7 +546,7 @@
     {
       "path": "packaging/macos/PF07 Launcher.app/Contents/Info.plist",
       "mode": "0644",
-      "sha256": "dddd9054c4b2f45180bb714e734b3bed6ab2ef6f29b50fd76090deaf098a1148"
+      "sha256": "b6ce4808eb1088f92ec80f9210b32137942624a868030492a9ef9ef679060abc"
     },
     {
       "path": "packaging/macos/PF07 Launcher.app/Contents/MacOS/PF07-OrderOps",
@@ -561,17 +561,17 @@
     {
       "path": "packaging/macos/README.en.md",
       "mode": "0644",
-      "sha256": "ddfbafbaf3275b2ba84493a5db4aeb7701216ea8ec6f3235839d76a4113055d7"
+      "sha256": "ea47e77c0f4c34d7271a9664e275d6ab79ba5c9cf713eab5172c25c46eebfef8"
     },
     {
       "path": "packaging/macos/README.ko.md",
       "mode": "0644",
-      "sha256": "8869cc63659dad38fe400fd4d777c4466be1e76bd70c8278a51493b200d9c557"
+      "sha256": "576a4387829dcb1fa10b8463ef87345ee4ddb47578fc0bad5bd906aff924b8cb"
     },
     {
       "path": "packaging/macos/package-allowlist.json",
       "mode": "0644",
-      "sha256": "9cb1c6627d0275ca0ca9123f0268bbb7822ac4fedcf7cb228cfe8a779fcafcd6"
+      "sha256": "c0cad6bb0f4d90760995ad4ea36f40054c3bd4c05db44b0be3fcc980301f4713"
     },
     {
       "path": "packaging/macos/pf07",
@@ -591,12 +591,12 @@
     {
       "path": "packaging/windows/README.en.md",
       "mode": "0644",
-      "sha256": "a85ce2aabf2f8cafbb84eda218ee73473a44ccc0fe616e5dd0e95694c3e6f3bf"
+      "sha256": "c2c1399a084324834d1f7238b29d970e703fc7b45ea89816f54eb3166efc8959"
     },
     {
       "path": "packaging/windows/README.ko.md",
       "mode": "0644",
-      "sha256": "398fbfe610ff3b35bd83f132aaa76ba59dbb6703bab437dcb2bf908e598d10be"
+      "sha256": "ab932af2519a8a90e4e8dc1fb57151eb9eed15a150696bb3149cad93e436b8e1"
     },
     {
       "path": "packaging/windows/START-PF07.cmd",
@@ -611,7 +611,7 @@
     {
       "path": "packaging/windows/kvm-test-kit-allowlist.json",
       "mode": "0644",
-      "sha256": "e0179b6caff4e605a4a5cc71986d013c175803794a972065a4d75a39ef7c1f6a"
+      "sha256": "02937055236e7d5e7549a87e32c3eb5cd9916b6ed78bd955c907804a4ffda6be"
     },
     {
       "path": "packaging/windows/kvm/PF07-KVM-Evidence.ps1",
@@ -626,12 +626,12 @@
     {
       "path": "packaging/windows/kvm/README.en.md",
       "mode": "0644",
-      "sha256": "90f9eceb6622d22eceda2a2c29a642c6c7fb28ff2cdb776529a5fa220f1ba071"
+      "sha256": "1d40aed019cc9f12c0caae03d3c2884b758d35a8df443daf96ecbecdc3cf0a1b"
     },
     {
       "path": "packaging/windows/kvm/README.ko.md",
       "mode": "0644",
-      "sha256": "5ff5336bff6a347107e8e3b8863fc0aa64eb8215f4682140981aa434ea5d9763"
+      "sha256": "340427a59ef08d831099d8f34ddedd5f483646fd6cf20f29edb1798c7a39ccf9"
     },
     {
       "path": "packaging/windows/kvm/RUN-KVM-TEST.cmd",
@@ -646,12 +646,12 @@
     {
       "path": "packaging/windows/native/PF07-Launcher.rc",
       "mode": "0644",
-      "sha256": "e7ec6f74645e08ebdc311255ffa10c79f95d4fd05db4e623648b4830acaf5e2b"
+      "sha256": "1abdcc6dc0eecf8f490b2a0fdde6aaede668a9488705eb31e96b6551f472aaab"
     },
     {
       "path": "packaging/windows/package-allowlist.json",
       "mode": "0644",
-      "sha256": "3cf20e3e8a130f79b448bc1b0559ab6e9ca411eb25ff7beeb410a9e04b2dac36"
+      "sha256": "09a2d8c3ac1dda0be0388a445fe944a34aef6542900f7673d29aeb497ace6e73"
     },
     {
       "path": "packaging/windows/pf07.cmd",
@@ -956,7 +956,7 @@
     {
       "path": "release/acceptance-lineage.json",
       "mode": "0644",
-      "sha256": "9b580be2d6b9d24d1312d5fc47c6831f54daf017aa5f2eb7df746b58ec2a32dd"
+      "sha256": "ecd7c5a661952e0cb797ea0b02014e8a2e91f61c7928eba35ff72fb7c15590ee"
     },
     {
       "path": "release/public-allowlist.json",
@@ -971,7 +971,7 @@
     {
       "path": "scripts/build-platform-packages",
       "mode": "0755",
-      "sha256": "0cd30e422ffded28ed66b6f20c3e01775b1510aeb37b584b1e148d065a1f2243"
+      "sha256": "c679a9e41951c13d4bd48174c8dbc065970c3bbca1e8caa738fbb4abecbd08c7"
     },
     {
       "path": "scripts/build-public-media-manifest.mjs",
@@ -1096,7 +1096,7 @@
     {
       "path": "scripts/refresh-package-allowlists",
       "mode": "0755",
-      "sha256": "7faf7618ab465fd780a3a65210147d197591fb5e8dbfb038a529d5ad6b024ba0"
+      "sha256": "4abc33ec049e56dfdc452dee44f534f58abfdc8981deb8705da7a4224f6034cd"
     },
     {
       "path": "scripts/runtime-import-credentials",
@@ -1121,12 +1121,12 @@
     {
       "path": "scripts/validate-platform-packages",
       "mode": "0755",
-      "sha256": "693003a166c4f0f0249d00bb265b90475587128c42238742c96944fa1224ebc3"
+      "sha256": "930d928111480eb59ab48ba843ceda51110b0f7142f92a0fc967c3ff21138048"
     },
     {
       "path": "scripts/validate-public",
       "mode": "0755",
-      "sha256": "28721399f3dd805cb7875b8fe4071f07d4dfa3fe7f8ae0577ab9c23d27876639"
+      "sha256": "98d2466238ebfeab886898b466a3f81cdde9259b9e3b8fc0c0d30357b8eafe21"
     },
     {
       "path": "scripts/validate-ui",
@@ -1141,7 +1141,7 @@
     {
       "path": "tests/public_case_quality.mjs",
       "mode": "0644",
-      "sha256": "a0302fdf40023fc42662c6d5d5e226e0fa32f2e62f1e960c491f1439f2ad18da"
+      "sha256": "887d833c262b7d4dba6f524c85b6bde33e17d4962236c906b24f6f4e0fdf0d36"
     },
     {
       "path": "tests/test_acceptance_semantics.py",

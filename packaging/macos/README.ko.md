@@ -2,12 +2,12 @@
 
 ## 다운로드와 설치 위치
 
-같은 GitHub Release에서 `pf07-macos-universal-1.0.7.zip`과
+같은 GitHub Release에서 `pf07-macos-universal-1.0.8.zip`과
 `SHA256SUMS.txt`를 받고, 압축을 풀기 전에 다음 결과를 해당 줄과
 비교합니다.
 
 ```sh
-shasum -a 256 pf07-macos-universal-1.0.7.zip
+shasum -a 256 pf07-macos-universal-1.0.8.zip
 ```
 
 파일명이나 SHA-256이 다르면 실행하지 말고 다시 받습니다. 확인한 ZIP

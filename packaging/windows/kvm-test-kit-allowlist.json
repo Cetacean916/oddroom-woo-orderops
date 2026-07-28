@@ -1,10 +1,10 @@
 {
   "schema": "pf07.package-allowlist.v1",
   "artifact_id": "pf07-windows-kvm-test-kit",
-  "package_version": "1.0.7",
+  "package_version": "1.0.8",
   "platform": "windows-kvm-test-kit",
   "architecture": "x86_64",
-  "root_name": "PF07-OrderOps-1.0.7-windows-kvm-test-kit",
+  "root_name": "PF07-OrderOps-1.0.8-windows-kvm-test-kit",
   "classification": "PUBLIC_DISTRIBUTION",
   "tested_boundary": "ARTIFACT_DRIVEN_OWNER_KVM_WORKFLOW_NOT_EXECUTED",
   "files": [
@@ -37,13 +37,13 @@
       "source": "packaging/windows/kvm/README.en.md",
       "target": "README.en.md",
       "mode": "0644",
-      "source_sha256": "90f9eceb6622d22eceda2a2c29a642c6c7fb28ff2cdb776529a5fa220f1ba071"
+      "source_sha256": "1d40aed019cc9f12c0caae03d3c2884b758d35a8df443daf96ecbecdc3cf0a1b"
     },
     {
       "source": "packaging/windows/kvm/README.ko.md",
       "target": "README.ko.md",
       "mode": "0644",
-      "source_sha256": "5ff5336bff6a347107e8e3b8863fc0aa64eb8215f4682140981aa434ea5d9763"
+      "source_sha256": "340427a59ef08d831099d8f34ddedd5f483646fd6cf20f29edb1798c7a39ccf9"
     },
     {
       "source": "packaging/windows/kvm/RUN-KVM-TEST.cmd",
